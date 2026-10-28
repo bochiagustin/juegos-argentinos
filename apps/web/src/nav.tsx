@@ -7,7 +7,9 @@ export type Route =
   | { name: "juego"; id: GameId }
   | { name: "perfil"; bienvenida?: boolean }
   | { name: "ajustes" }
-  | { name: "mazos" };
+  | { name: "mazos" }
+  | { name: "truco-setup" }
+  | { name: "truco-mesa" };
 
 interface Nav {
   route: Route;
@@ -16,6 +18,8 @@ interface Nav {
   /** Reemplaza la pantalla actual (ej. después de la bienvenida). */
   replace: (r: Route) => void;
   back: () => void;
+  /** Ir a una sección principal (pestañas): deja la pila en [inicio, destino]. */
+  goTo: (r: Route) => void;
 }
 
 const NavContext = createContext<Nav | null>(null);
@@ -50,8 +54,21 @@ export function NavProvider({ children }: { children: ReactNode }) {
     if (stackRef.current.length > 1) history.back();
   }, []);
 
+  const goTo = useCallback((r: Route) => {
+    if (r.name === "inicio") {
+      if (stackRef.current.length > 1) history.go(-(stackRef.current.length - 1));
+      return;
+    }
+    if (stackRef.current.length === 1) {
+      history.pushState({ depth: 1 }, "");
+    } else {
+      history.replaceState({ depth: 1 }, "");
+    }
+    setStack([{ name: "inicio" }, r]);
+  }, []);
+
   const route = stack[stack.length - 1] ?? { name: "inicio" };
-  return <NavContext.Provider value={{ route, depth: stack.length, push, replace, back }}>{children}</NavContext.Provider>;
+  return <NavContext.Provider value={{ route, depth: stack.length, push, replace, back, goTo }}>{children}</NavContext.Provider>;
 }
 
 export function useNav(): Nav {

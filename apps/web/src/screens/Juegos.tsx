@@ -15,7 +15,7 @@ export function GameArtFallback({ game, size = 64 }: { game: GameInfo; size?: nu
         {["A", "M", "R"].map((l, i) => (
           <span
             key={l}
-            className="grid place-items-center rounded-lg bg-crema font-criolla text-tinta shadow-lg shadow-black/30"
+            className="madera grid place-items-center rounded-lg font-criolla text-crema shadow-lg shadow-black/40"
             style={{ width: size * 0.62, height: size * 0.62, fontSize: size * 0.38, rotate: `${(i - 1) * 8}deg` }}
           >
             {l}
@@ -51,18 +51,17 @@ function GameCard({ game, index }: { game: GameInfo; index: number }) {
         playSfx("click");
         push({ name: "juego", id: game.id });
       }}
-      className="relative flex min-h-28 w-full items-center gap-4 overflow-hidden rounded-2xl border-2 border-naranja/40 p-3 text-left text-crema shadow-lg shadow-black/30 active:scale-[0.98]"
-      style={{ background: `linear-gradient(110deg, ${game.colores[0]}, ${game.colores[1]})` }}
+      className={`cuero ${game.cuero} flex min-h-28 w-full items-center gap-4 rounded-2xl p-3 text-left active:scale-[0.98]`}
     >
-      <div className="flex w-28 shrink-0 justify-center">
+      <div className="relative z-[1] flex w-28 shrink-0 justify-center">
         <Art id={game.arte} className="h-24 w-28 rounded-xl object-cover" fallback={<GameArtFallback game={game} size={52} />} />
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="font-criolla text-2xl leading-tight drop-shadow">{game.nombre}</p>
-        <p className="text-sm font-semibold text-crema/85">{game.bajada}</p>
-        <p className="mt-1 text-xs font-bold uppercase tracking-wider text-crema/60">{game.jugadores}</p>
+      <div className="relative z-[1] min-w-0 flex-1">
+        <p className="titulo-criollo text-[1.65rem] leading-tight">{game.nombre}</p>
+        <p className="text-sm font-semibold text-crema/90 drop-shadow">{game.bajada}</p>
+        <p className="mt-1 text-xs font-black uppercase tracking-wider text-crema/70">{game.jugadores}</p>
       </div>
-      <span className="text-3xl text-naranja" aria-hidden>
+      <span className="bronce relative z-[1] grid size-10 shrink-0 place-items-center rounded-full text-2xl font-black" aria-hidden>
         ›
       </span>
     </motion.button>
@@ -72,7 +71,7 @@ function GameCard({ game, index }: { game: GameInfo; index: number }) {
 export function Juegos() {
   const { back } = useNav();
   return (
-    <Screen title="Elegí un juego" onBack={back}>
+    <Screen title="Elegí un juego" onBack={back} tab="juegos">
       <div className="flex flex-col gap-3">
         {GAMES.map((g, i) => (
           <GameCard key={g.id} game={g} index={i} />

@@ -20,7 +20,7 @@ export function Ajustes() {
     update((s) => ({ ...s, ajustes: { ...s.ajustes, [key]: value } }));
 
   return (
-    <Screen title="Ajustes" onBack={back}>
+    <Screen title="Ajustes" onBack={back} tab="ajustes">
       <Section title="Sonido">
         <Toggle
           label="Sonidos"
@@ -49,19 +49,19 @@ export function Ajustes() {
             playSfx("click");
             push({ name: "mazos" });
           }}
-          className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-borde bg-superficie px-4 py-3 text-left"
+          className="cuero flex min-h-14 w-full items-center gap-3 rounded-2xl px-4 py-3 text-left"
         >
-          <span className="flex-1">
+          <span className="relative z-[1] flex-1">
             <span className="block font-bold">Mazo</span>
-            <span className="block text-sm text-texto-suave">{DECKS[save.ajustes.mazo].nombre}</span>
+            <span className="block text-sm text-crema/75">{DECKS[save.ajustes.mazo].nombre}</span>
           </span>
-          <span className="text-2xl text-naranja">›</span>
+          <span className="bronce relative z-[1] grid size-9 place-items-center rounded-full text-xl font-black">›</span>
         </button>
       </Section>
 
       <Section title="Datos">
         {confirmando ? (
-          <div className="rounded-2xl border border-red-400/50 bg-red-500/10 p-4">
+          <div className="cuero cuero-rojo rounded-2xl p-4"><div className="relative z-[1]">
             <p className="mb-3 font-bold">¿Seguro? Se borran tu perfil y tus ajustes de este dispositivo.</p>
             <div className="grid grid-cols-2 gap-2">
               <BigButton variant="secundario" onClick={() => setConfirmando(false)}>
@@ -78,7 +78,7 @@ export function Ajustes() {
                 Borrar
               </button>
             </div>
-          </div>
+          </div></div>
         ) : (
           <BigButton variant="secundario" onClick={() => setConfirmando(true)}>
             Borrar mis datos

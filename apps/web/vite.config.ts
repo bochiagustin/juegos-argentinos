@@ -30,7 +30,7 @@ export default defineConfig({
       },
       workbox: {
         // La app (código, fuentes, íconos) queda precacheada: anda sin internet desde la primera visita.
-        globPatterns: ["**/*.{js,css,html,woff2,svg,png}"],
+        globPatterns: ["**/*.{js,css,html,woff2,svg,png}", "texturas/*.webp"],
         globIgnores: ["mazos/**", "arte/**"],
         // Mazos e ilustraciones: se guardan en caché a medida que se ven (o al elegir un mazo).
         runtimeCaching: [

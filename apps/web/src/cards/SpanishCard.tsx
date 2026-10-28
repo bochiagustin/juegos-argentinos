@@ -3,7 +3,7 @@ import { createContext, useContext, useId, useState } from "react";
 import { DECKS, deckImageUrl, type DeckId } from "./decks.ts";
 import { Figure } from "./figures.tsx";
 import { Borla, Cinta, Hoja, Voluta } from "./filete.tsx";
-import { BORDO, CELESTE, CREAM, GOLD, GOLD_DARK, INK, SUIT_COLORS } from "./palette.ts";
+import { BORDO, CELESTE, GOLD, GOLD_DARK, INK, SUIT_COLORS } from "./palette.ts";
 import { SuitIcon } from "./suits.tsx";
 
 /**
@@ -73,10 +73,10 @@ function Frame({ suit }: { suit: Suit }) {
   );
 }
 
-function CornerIndex({ label, suit, color }: { label: string; suit?: Suit; color: string }) {
+function CornerIndex({ label, suit, color, paper }: { label: string; suit?: Suit; color: string; paper: string }) {
   return (
     <g>
-      <rect x={14} y={14} width={34} height={suit ? 66 : 44} rx={6} fill={CREAM} />
+      <rect x={14} y={14} width={34} height={suit ? 66 : 44} rx={6} fill={paper} />
       <text
         x={31}
         y={50}
@@ -94,12 +94,12 @@ function CornerIndex({ label, suit, color }: { label: string; suit?: Suit; color
   );
 }
 
-function Corners({ label, suit, color }: { label: string; suit?: Suit; color: string }) {
+function Corners({ label, suit, color, paper }: { label: string; suit?: Suit; color: string; paper: string }) {
   return (
     <>
-      <CornerIndex label={label} color={color} {...(suit ? { suit } : {})} />
+      <CornerIndex label={label} color={color} paper={paper} {...(suit ? { suit } : {})} />
       <g transform={`rotate(180 ${CARD_W / 2} ${CARD_H / 2})`}>
-        <CornerIndex label={label} color={color} {...(suit ? { suit } : {})} />
+        <CornerIndex label={label} color={color} paper={paper} {...(suit ? { suit } : {})} />
       </g>
     </>
   );
@@ -122,7 +122,7 @@ function Ace({ suit }: { suit: Suit }) {
             transform={`rotate(${i * 18} 100 150)`}
           />
         ))}
-      <circle cx={100} cy={150} r={ancho ? 56 : 64} fill={c.light} stroke={c.main} strokeWidth={1.5} />
+      <circle cx={100} cy={150} r={ancho ? 56 : 64} fill={c.light} fillOpacity={0.65} stroke={c.main} strokeWidth={1.5} />
       <Voluta x={96} y={70} scale={0.75} flipX color={c.main} />
       <Voluta x={104} y={70} scale={0.75} color={c.main} />
       <Voluta x={96} y={230} scale={0.75} flipX flipY color={c.main} />
@@ -153,7 +153,7 @@ function SuitedFace({ rank, suit }: { rank: Rank; suit: Suit }) {
   if (rank === 10 || rank === 11 || rank === 12) {
     return (
       <>
-        <rect x={46} y={28} width={108} height={244} rx={8} fill={c.light} />
+        <rect x={46} y={28} width={108} height={244} rx={8} fill={c.light} opacity={0.6} />
         <g transform="translate(46 30)">
           <Figure rank={rank} suit={suit} />
         </g>
@@ -273,29 +273,55 @@ function CriollaCard({ card, faceDown = false, width = 120, className, highlight
       style={{ display: "block", filter: dimmed ? "grayscale(0.6) brightness(0.7)" : undefined }}
     >
       <title>{label}</title>
+      <defs>
+        {/* Papel envejecido: más claro en el centro, tostado en los bordes (mismo degradé para el fondo y los índices). */}
+        <radialGradient id={`papel-${id}`} gradientUnits="userSpaceOnUse" cx={100} cy={140} r={200}>
+          <stop offset="0" stopColor="#fdf7e6" />
+          <stop offset="0.65" stopColor="#f4e6c4" />
+          <stop offset="1" stopColor="#e2c992" />
+        </radialGradient>
+        <clipPath id={`clip-${id}`}>
+          <rect x={1.5} y={1.5} width={CARD_W - 3} height={CARD_H - 3} rx={14} />
+        </clipPath>
+      </defs>
+      <rect x={1.5} y={1.5} width={CARD_W - 3} height={CARD_H - 3} rx={14} fill={showBack ? "#fff" : `url(#papel-${id})`} />
+      {!showBack && (
+        <image
+          href="/texturas/papel.webp"
+          x={0}
+          y={0}
+          width={CARD_W}
+          height={CARD_H}
+          preserveAspectRatio="none"
+          clipPath={`url(#clip-${id})`}
+          opacity={0.45}
+          style={{ mixBlendMode: "multiply" }}
+        />
+      )}
       <rect
         x={1.5}
         y={1.5}
         width={CARD_W - 3}
         height={CARD_H - 3}
         rx={14}
-        fill={showBack ? "#fff" : CREAM}
-        stroke={highlight ? GOLD : "#cbbd9e"}
+        fill="none"
+        stroke={highlight ? GOLD : "#b89b66"}
         strokeWidth={highlight ? 6 : 3}
       />
+      {!showBack && <rect x={6.5} y={6.5} width={CARD_W - 13} height={CARD_H - 13} rx={10} fill="none" stroke="#a88a55" strokeWidth={1} opacity={0.55} />}
       {showBack ? (
         <CardBack patternId={`dorso-${id}`} />
       ) : card.kind === "joker" ? (
         <>
           <rect x={FRAME.x0} y={FRAME.y0} width={FRAME.x1 - FRAME.x0} height={FRAME.y1 - FRAME.y0} fill="none" stroke={GOLD_DARK} strokeWidth={2.5} strokeDasharray="10 6" />
           <JokerFace />
-          <Corners label="★" color={GOLD_DARK} />
+          <Corners label="★" color={GOLD_DARK} paper={`url(#papel-${id})`} />
         </>
       ) : (
         <>
           <Frame suit={card.suit} />
           <SuitedFace rank={card.rank} suit={card.suit} />
-          <Corners label={String(card.rank)} suit={card.suit} color={SUIT_COLORS[card.suit].ink} />
+          <Corners label={String(card.rank)} suit={card.suit} color={SUIT_COLORS[card.suit].ink} paper={`url(#papel-${id})`} />
         </>
       )}
     </svg>

@@ -49,6 +49,22 @@ describe("guardado", () => {
     expect(loadSave(undefined)).toEqual(defaultSave());
   });
 
+  it("migra un guardado v1 a v2 sin perder el perfil", () => {
+    const v1 = { version: 1, perfil: { apodo: "Tito", avatar: "🤠", creado: true }, ajustes: { sonido: false, vibracion: true, tema: "claro", mazo: "argento-memes" } };
+    const s = migrate(v1);
+    expect(s.version).toBe(2);
+    expect(s.perfil).toEqual(v1.perfil);
+    expect(s.ajustes).toEqual(v1.ajustes);
+    expect(s.juegos).toEqual({});
+  });
+
+  it("normaliza las estadísticas por juego", () => {
+    const s = migrate({ version: 2, juegos: { truco: { rating: 1100, jugadas: 5, ganadas: 9 }, poker: { rating: 1 }, chinchon: { rating: "x" } } });
+    expect(s.juegos.truco).toEqual({ rating: 1100, jugadas: 5, ganadas: 5 });
+    expect(s.juegos.chinchon?.rating).toBe(900);
+    expect("poker" in s.juegos).toBe(false);
+  });
+
   it("descarta versiones desconocidas o futuras", () => {
     expect(migrate({ version: CURRENT_VERSION + 1, perfil: { apodo: "X" } })).toEqual(defaultSave());
     expect(migrate({ version: 0 })).toEqual(defaultSave());
@@ -58,7 +74,7 @@ describe("guardado", () => {
 
   it("normaliza campos inválidos sin perder los válidos", () => {
     const s = migrate({
-      version: 1,
+      version: 2,
       perfil: { apodo: "   El   Polaco   de   Boedo   ", avatar: "🦄", creado: true },
       ajustes: { sonido: "sí", vibracion: false, tema: "rosa", mazo: "poker" },
     });
@@ -68,7 +84,7 @@ describe("guardado", () => {
   });
 
   it("no da por creado un perfil sin apodo", () => {
-    expect(migrate({ version: 1, perfil: { apodo: "  ", creado: true } }).perfil.creado).toBe(false);
+    expect(migrate({ version: 2, perfil: { apodo: "  ", creado: true } }).perfil.creado).toBe(false);
   });
 
   it("limpia el apodo", () => {

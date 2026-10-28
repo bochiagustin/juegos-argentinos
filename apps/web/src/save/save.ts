@@ -6,10 +6,12 @@
  * si no se puede leer, se arranca con los valores por defecto.
  */
 
+import type { GameId } from "@juegos-argentinos/engine";
 import { isDeckId, type DeckId } from "../cards/decks.ts";
+import { DEFAULT_RATING } from "../ia/nivel.ts";
 
 export const SAVE_KEY = "juegos-argentinos:save";
-export const CURRENT_VERSION = 1;
+export const CURRENT_VERSION = 2;
 
 export type Tema = "pano" | "claro" | "auto";
 
@@ -28,10 +30,24 @@ export interface Ajustes {
   mazo: DeckId;
 }
 
+/** Cómo le va al jugador en cada juego contra la IA (de acá sale el nivel adaptativo). */
+export interface StatsJuego {
+  rating: number;
+  jugadas: number;
+  ganadas: number;
+}
+
 export interface Save {
   version: typeof CURRENT_VERSION;
   perfil: Perfil;
   ajustes: Ajustes;
+  juegos: Partial<Record<GameId, StatsJuego>>;
+}
+
+const GAME_IDS: readonly GameId[] = ["truco", "chinchon", "casita-robada", "escoba", "tutti-frutti"];
+
+export function statsDe(save: Save, game: GameId): StatsJuego {
+  return save.juegos[game] ?? { rating: DEFAULT_RATING, jugadas: 0, ganadas: 0 };
 }
 
 export const AVATARES = ["🧉", "🤠", "🐴", "🧔", "👵", "👴", "🧑‍🌾", "🐂", "🦙", "🐧", "⚽", "🎸", "🥩", "🌵", "🦜", "💃"] as const;
@@ -42,6 +58,7 @@ export function defaultSave(): Save {
     version: CURRENT_VERSION,
     perfil: { apodo: "", avatar: "🧉", creado: false },
     ajustes: { sonido: true, vibracion: true, tema: "pano", mazo: "criolla" },
+    juegos: {},
   };
 }
 
@@ -53,11 +70,13 @@ export function sanitizeApodo(raw: string): string {
   return raw.replace(/\s+/g, " ").trim().slice(0, APODO_MAX);
 }
 
-/**
- * Migraciones: `MIGRATIONS[n]` transforma un guardado de la versión n a la n+1.
- * Cuando haya v2, se agrega `1: (s) => ({ ...s, version: 2, carrera: ... })`.
- */
-const MIGRATIONS: Record<number, (s: UnknownRecord) => UnknownRecord> = {};
+/** Migraciones: `MIGRATIONS[n]` transforma un guardado de la versión n a la n+1. */
+const MIGRATIONS: Record<number, (s: UnknownRecord) => UnknownRecord> = {
+  // v2: estadísticas y rating por juego (para la IA que se adapta).
+  1: (s) => ({ ...s, version: 2, juegos: {} }),
+};
+
+const num = (v: unknown, fallback: number, min = 0) => (typeof v === "number" && Number.isFinite(v) && v >= min ? v : fallback);
 
 /** Convierte cualquier cosa leída del storage en un `Save` válido. Nunca lanza. */
 export function migrate(raw: unknown): Save {
@@ -91,7 +110,20 @@ function normalize(s: UnknownRecord): Save {
       tema,
       mazo: isDeckId(ajustes.mazo) ? ajustes.mazo : d.ajustes.mazo,
     },
+    juegos: normalizeJuegos(s.juegos),
   };
+}
+
+function normalizeJuegos(raw: unknown): Save["juegos"] {
+  const out: Save["juegos"] = {};
+  if (!isRecord(raw)) return out;
+  for (const id of GAME_IDS) {
+    const g = raw[id];
+    if (!isRecord(g)) continue;
+    const jugadas = Math.floor(num(g.jugadas, 0));
+    out[id] = { rating: num(g.rating, DEFAULT_RATING, 100), jugadas, ganadas: Math.min(jugadas, Math.floor(num(g.ganadas, 0))) };
+  }
+  return out;
 }
 
 /** Subconjunto de `Storage` que usamos (facilita testear). */

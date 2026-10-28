@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { setSfxEnabled, setVibrationEnabled } from "../audio/sfx.ts";
+import { setVozEnabled } from "../audio/voz.ts";
 import { clearSave, defaultSave, loadSave, writeSave, type Save } from "./save.ts";
 
 interface SaveContextValue {
@@ -23,6 +24,7 @@ export function SaveProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     writeSave(save);
     setSfxEnabled(save.ajustes.sonido);
+    setVozEnabled(save.ajustes.sonido);
     setVibrationEnabled(save.ajustes.vibracion);
     applyTheme(save.ajustes.tema);
   }, [save]);

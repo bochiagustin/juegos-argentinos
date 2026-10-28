@@ -45,9 +45,14 @@ Memoria de trabajo del proyecto: lo que el usuario pidió, prefirió o decidió 
 - 2026-10-28 · Sonidos sintetizados con Web Audio (cero archivos). PWA con vite-plugin-pwa; imágenes de mazos/arte con caché en runtime.
 - 2026-10-28 · Hasta la Fase 3 (carrera) todos los mazos están disponibles; después los Mazo Argento se desbloquean con fósforos/logros.
 
+- 2026-10-28 · Mandó mockups (cuero cosido, paño con textura, botones de bronce, pestañas abajo, cartas tipo pergamino) y pidió
+  "mejorá las imágenes y arrancá la fase 2": se aplicó ese estilo con texturas procedurales propias.
+- 2026-10-28 · Fase 2 arrancó sin respuesta a las dudas del truco: se usaron las propuestas como default (configurables las que
+  tienen variante). Fuerza medida de los bots (300 partidas a 15): nivel 10 vs 1 gana 76%, 10 vs 5 60%, 5 vs 1 62%.
+
 ## Dudas abiertas (preguntar antes de implementar la fase correspondiente)
 
-### Truco
+### Truco (implementado con la propuesta; confirmar)
 1. ¿Quién empieza la baza siguiente a una parda? Propuesta: el que empezó la baza empardada (el más cercano a la mano).
 2. Irse al mazo en primera baza sin envido cantado: ¿+1 al rival solo si se va el que es mano / antes de tirar, o siempre? Propuesta: siempre que no se haya cantado envido y se esté en primera baza, configurable.
 3. Falta envido en partida a 30 estando en malas: ¿lo que falta para 15, o lo que falta para ganar el partido (30)? El brief dice "15 o 30 según la etapa" → en malas se juega a llegar a 15. Confirmar.

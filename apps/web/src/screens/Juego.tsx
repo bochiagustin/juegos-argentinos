@@ -4,20 +4,20 @@ import { Art } from "../art/Art.tsx";
 import { playSfx } from "../audio/sfx.ts";
 import { gameInfo, MODOS, type ModoId } from "../games.ts";
 import { useNav } from "../nav.tsx";
-import { Screen, Section } from "../ui/ui.tsx";
+import { FileteEsquinas, Screen, Section } from "../ui/ui.tsx";
 import { GameArtFallback } from "./Juegos.tsx";
 
 export function Juego({ id }: { id: GameId }) {
-  const { back } = useNav();
+  const { back, push } = useNav();
   const game = gameInfo(id);
   const [aviso, setAviso] = useState<string | null>(null);
 
   return (
     <Screen title={game.nombre} onBack={back}>
       <div
-        className="relative flex h-44 items-center justify-center overflow-hidden rounded-3xl border-2 border-naranja/40 shadow-xl shadow-black/30"
-        style={{ background: `linear-gradient(135deg, ${game.colores[0]}, ${game.colores[1]})` }}
+        className={`cuero ${game.cuero} relative flex h-44 items-center justify-center overflow-hidden rounded-3xl`}
       >
+        <FileteEsquinas />
         <Art id={game.arte} className="absolute inset-0 size-full object-cover" fallback={<GameArtFallback game={game} size={80} />} />
       </div>
       <p className="mt-3 text-center font-bold text-texto-suave">
@@ -34,19 +34,20 @@ export function Juego({ id }: { id: GameId }) {
               onClick={() => {
                 playSfx(disponible ? "click" : "error");
                 if (!disponible) setAviso(`${modo.nombre} de ${game.nombre} está en camino. ¡Aguantá que ya llega!`);
+                else if (id === "truco" && m === "ia") push({ name: "truco-setup" });
               }}
               aria-disabled={!disponible}
-              className={`flex min-h-16 w-full items-center gap-3 rounded-2xl border border-borde bg-superficie px-4 py-3 text-left ${disponible ? "active:scale-[0.98]" : "opacity-70"}`}
+              className={`cuero flex min-h-16 w-full items-center gap-3 rounded-2xl px-4 py-3 text-left ${disponible ? "cuero-verde active:scale-[0.98]" : "opacity-80"}`}
             >
-              <span className="text-3xl" aria-hidden>
+              <span className="relative z-[1] text-3xl" aria-hidden>
                 {modo.icono}
               </span>
-              <span className="flex-1">
+              <span className="relative z-[1] flex-1">
                 <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span className="font-black">{modo.nombre}</span>
-                  {!disponible && <span className="rounded-full bg-naranja/20 px-2 py-0.5 text-[11px] font-black uppercase text-naranja">Próximamente</span>}
+                  {!disponible && <span className="rounded-full bg-black/35 px-2 py-0.5 text-[11px] font-black uppercase text-naranja">Próximamente</span>}
                 </span>
-                <span className="block text-sm text-texto-suave">{modo.bajada}</span>
+                <span className="block text-sm text-crema/80">{modo.bajada}</span>
               </span>
             </button>
           );
@@ -59,9 +60,11 @@ export function Juego({ id }: { id: GameId }) {
       </Section>
 
       <Section title="Cómo se juega">
-        <ol className="flex list-decimal flex-col gap-2 rounded-2xl border border-borde bg-superficie py-4 pl-9 pr-4 marker:font-black marker:text-naranja">
+        <ol className="cuero flex list-decimal flex-col gap-2 rounded-2xl py-4 pl-9 pr-4 marker:font-black marker:text-naranja">
           {game.reglas.map((r) => (
-            <li key={r}>{r}</li>
+            <li key={r} className="relative z-[1]">
+              {r}
+            </li>
           ))}
         </ol>
       </Section>

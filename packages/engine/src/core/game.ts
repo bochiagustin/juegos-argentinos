@@ -8,18 +8,22 @@
 
 export type PlayerId = string;
 
-export type ActionResult<State> =
-  | { readonly ok: true; readonly state: State }
+/**
+ * Resultado de aplicar una acción. `events` describe lo que pasó (cantos, bazas, puntos):
+ * la UI lo usa para animar y sonar, y la carrera para dar logros. Son públicos: no revelan cartas ocultas.
+ */
+export type ActionResult<State, Event = never> =
+  | { readonly ok: true; readonly state: State; readonly events: readonly Event[] }
   | { readonly ok: false; readonly error: string };
 
-export interface GameDefinition<Config, State, Action, View> {
+export interface GameDefinition<Config, State, Action, View, Event = never> {
   readonly id: GameId;
   /** Crea el estado inicial. La semilla define todo el azar de la partida. */
   initialState(config: Config, players: readonly PlayerId[], seed: string): State;
   /** Acciones válidas para un jugador en este momento (vacío si no le toca). */
   getValidActions(state: State, playerId: PlayerId): Action[];
   /** Aplica una acción. Devuelve error si la acción no es válida. */
-  applyAction(state: State, playerId: PlayerId, action: Action): ActionResult<State>;
+  applyAction(state: State, playerId: PlayerId, action: Action): ActionResult<State, Event>;
   /** Lo que puede ver ese jugador: nunca incluye cartas ocultas de otros ni el mazo. */
   getPlayerView(state: State, playerId: PlayerId): View;
   /** true cuando la partida terminó. */

@@ -6,7 +6,7 @@ import { SpanishCard } from "../cards/SpanishCard.tsx";
 import { SuitBadge } from "../cards/suits.tsx";
 import { useNav } from "../nav.tsx";
 import { useSave } from "../save/SaveContext.tsx";
-import { Screen, Section } from "../ui/ui.tsx";
+import { FileteEsquinas, Screen, Section } from "../ui/ui.tsx";
 
 const PREVIEW = ["1-espada", "1-basto", "7-espada", "7-oro"].map(cardFromId);
 const FULL_DECK = createDeck({ size: 48, jokers: 2 });
@@ -27,7 +27,7 @@ export function Mazos() {
   };
 
   return (
-    <Screen title="Mazos" onBack={back}>
+    <Screen title="Mazos" onBack={back} tab="mazos">
       <div className="flex flex-col gap-3">
         {DECK_IDS.map((id) => {
           const d = DECKS[id];
@@ -35,14 +35,15 @@ export function Mazos() {
           return (
             <div
               key={id}
-              className={`rounded-2xl border-2 bg-superficie p-3 transition ${viendo === id ? "border-naranja" : "border-borde"}`}
+              className={`cuero cuero-azul rounded-2xl p-4 transition ${viendo === id ? "outline-3 outline-naranja" : ""}`}
             >
+              <FileteEsquinas />
               <button
                 onClick={() => {
                   setViendo(id);
                   playSfx("click");
                 }}
-                className="flex w-full items-center gap-3 text-left"
+                className="relative z-[1] flex w-full items-center gap-3 text-left"
                 aria-label={`Ver ${d.nombre}`}
               >
                 <div className="flex shrink-0 -space-x-5">
@@ -54,10 +55,10 @@ export function Mazos() {
                 </div>
                 <span className="min-w-0 flex-1">
                   <span className="block font-black">{d.nombre}</span>
-                  <span className="block text-sm text-texto-suave">{d.descripcion}</span>
+                  <span className="block text-sm text-crema/80">{d.descripcion}</span>
                 </span>
               </button>
-              <div className="mt-3 flex justify-end">
+              <div className="relative z-[1] mt-3 flex justify-end">
                 {activo ? (
                   <span className="rounded-full bg-pano px-4 py-2 text-sm font-black text-crema">✓ En uso</span>
                 ) : (

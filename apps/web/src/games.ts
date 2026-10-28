@@ -11,6 +11,8 @@ export interface GameInfo {
   jugadores: string;
   /** Degradé de la tarjeta (desde, hasta). */
   colores: readonly [string, string];
+  /** Clase de cuero teñido de la tarjeta (ver index.css). */
+  cuero: "cuero-verde" | "cuero-rojo" | "cuero-azul" | "cuero-violeta" | "cuero-mostaza";
   arte: ArtId;
   /** Cartas de muestra para la tarjeta mientras no esté la ilustración (vacío = juego sin cartas). */
   muestra: readonly string[];
@@ -33,9 +35,10 @@ export const GAMES: readonly GameInfo[] = [
     bajada: "El clásico de siempre",
     jugadores: "2, 4 o 6 jugadores",
     colores: ["#2e8b57", "#0d3b2a"],
+    cuero: "cuero-verde",
     arte: "juego-truco",
     muestra: ["1-espada", "1-basto", "7-espada"],
-    modos: PRONTO,
+    modos: { ia: "disponible", carrera: "proximamente", amigos: "proximamente" },
     reglas: [
       "Mazo de 40 cartas, 3 para cada uno. Gana la mano quien gana 2 de las 3 bazas.",
       "Las más fuertes: ancho de espada, ancho de basto, 7 de espada, 7 de oro, los 3 y los 2.",
@@ -50,6 +53,7 @@ export const GAMES: readonly GameInfo[] = [
     bajada: "Formá tu mano ideal",
     jugadores: "2 a 6 jugadores",
     colores: ["#b5502c", "#5b1f12"],
+    cuero: "cuero-rojo",
     arte: "juego-chinchon",
     muestra: ["4-copa", "5-copa", "6-copa", "7-copa"],
     modos: PRONTO,
@@ -67,6 +71,7 @@ export const GAMES: readonly GameInfo[] = [
     bajada: "Robale la casita al de al lado",
     jugadores: "2 a 4 jugadores",
     colores: ["#2f6db5", "#13325e"],
+    cuero: "cuero-azul",
     arte: "juego-casita-robada",
     muestra: ["5-oro", "5-copa", "5-basto"],
     modos: PRONTO,
@@ -84,6 +89,7 @@ export const GAMES: readonly GameInfo[] = [
     bajada: "Sumá 15 y barré la mesa",
     jugadores: "2 a 4 jugadores",
     colores: ["#8e44ad", "#3b1650"],
+    cuero: "cuero-violeta",
     arte: "juego-escoba",
     muestra: ["7-oro", "5-espada", "3-copa"],
     modos: PRONTO,
@@ -101,6 +107,7 @@ export const GAMES: readonly GameInfo[] = [
     bajada: "¡Basta para mí, basta para todos!",
     jugadores: "2 a 10 jugadores",
     colores: ["#f59e0b", "#a4470b"],
+    cuero: "cuero-mostaza",
     arte: "juego-tutti-frutti",
     muestra: [],
     modos: PRONTO,

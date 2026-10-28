@@ -55,9 +55,27 @@ docs/             arte.md (checklist de ilustraciones), licencias/.
   Una partida se reproduce con semilla + lista de acciones. El tiempo (timeouts de turno) entra como acciones.
 - Estado 100% serializable a JSON. Cartas: objetos planos con `id` estable (`"1-espada"`, `"12-copa"`, `"comodin-1"`).
 - `getPlayerView` **nunca** incluye cartas ocultas de otros jugadores ni el orden del mazo (solo cantidades).
-- Archivos actuales: `core/cards.ts`, `core/deck.ts` (mazos 40/48 + comodines, Fisher–Yates, repartir), `core/rng.ts`, `core/game.ts`.
+- Archivos: `core/cards.ts`, `core/deck.ts` (mazos 40/48 + comodines, Fisher–Yates, repartir), `core/rng.ts`, `core/game.ts`,
+  `core/clone.ts` (copia profunda: `applyAction` trabaja sobre una copia, así el motor sigue puro).
+- Subpaths por juego: `@juegos-argentinos/engine/truco` (`src/truco/`): `cards.ts` (jerarquía, tanto, flor), `types.ts`,
+  `game.ts` (la máquina de estados `truco`), `bot.ts` (`chooseTrucoAction`, `botProfile`, `playBotGame`), tests
+  (`game.test.ts`: reglas y casos borde; `simulation.test.ts`: 600 partidas al azar con invariantes en cada paso + fuerza de los bots).
 - Cada juego irá en `src/<juego>/` con tests al lado, un bot (`bot.ts`) y una simulación de miles de partidas bot vs bot.
-- `applyAction` va a devolver también `events` (para logros de la carrera: "cantaste 33", "chinchón", "robaste una casita").
+- `applyAction` devuelve `events` públicos (cantos, jugadas, bazas, tantos, puntos, fin de ronda/partida): la UI los usa para
+  animar y sonar, y la carrera los va a usar para logros.
+
+### Truco: decisiones de implementación
+
+- Contesta un canto el **siguiente rival en el orden de juego** (en 2v2/3v3 no contesta "cualquiera del equipo").
+- **Irse al mazo** concede la mano para todo el equipo. El rival cobra lo que vale la mano (o lo anterior si había un truco sin contestar).
+- Después de una **parda** empieza el que había empezado la baza empardada. Dentro del mismo equipo, dos cartas iguales no son parda.
+- Los **tantos** se cantan solos, en orden desde la mano: cada uno dice el suyo solo si supera al mejor; si no, "son buenas".
+  No se puede mentir el tanto. Las cartas de quien declaró se muestran en el resumen de la mano.
+- Si el envido (o la flor) lleva a alguien a los puntos, la partida termina en el acto.
+- Con flor habilitada, el que tiene flor no puede ir al envido (canta flor). Flor sola: 3 por cada flor del equipo.
+  Achicarse: 4. Contraflor querida: 6 a la mejor. Contraflor al resto querida: lo que vale la falta. Contraflor no querida: 4.
+  *(provisorio, ver MEMORY.md)*
+- Señas, chat de equipo y pica-pica quedan para el online (Fase 8): contra bots no aportan.
 
 ### IA (bots, desde la Fase 2)
 
@@ -94,7 +112,17 @@ docs/             arte.md (checklist de ilustraciones), licencias/.
   espada 2 / basto 3, ases fileteados, dorso fileteado), `suits.tsx` (oro con Sol de Mayo, copa con filete, espada con gavilanes,
   basto de algarrobo), `figures.tsx` (Sota = peón con boina, Caballo = gaucho en un overo, Rey = patrón con bigotón y rastra;
   caricatura, el color del palo en la ropa), `filete.tsx` (voluta, hoja, cinta celeste y blanca, borla).
-- **PWA** (`vite.config.ts`): precachea app y fuentes; `mazos/` y `arte/` van con caché en tiempo de ejecución (CacheFirst) y
+- **Truco en la web** (`src/truco/`): `partida.ts` (partida contra la IA guardada en localStorage para retomarla, nombres de rivales),
+  `useTrucoMatch.ts` (controlador: el motor en el navegador, los bots piensan 0,75–1,5 s, globos, voz y sonidos por evento,
+  pausa con el resumen de cada mano), `TrucoMesa.tsx` (mesa 1v1/2v2/3v3, marcador con fósforos, solo botones válidos,
+  cartas que vuelan a la mesa, resumen, fin con revancha), `TrucoSetup.tsx`, `ReglasTruco.tsx` (reglamento + jerarquía con cartas), `Fosforos.tsx`.
+- **Nivel adaptativo** (`src/ia/nivel.ts`): rating tipo Elo por juego, guardado en `save.juegos[juego]` (guardado v2).
+- **Voz** (`src/audio/voz.ts`): cantos y tantos con `speechSynthesis` (voz es-AR si hay); se apaga con el sonido.
+- **Materiales** (`src/index.css`, en `@layer components` para que las utilidades de Tailwind les ganen): `.pano`, `.cuero`
+  (+ `cuero-verde/rojo/azul/violeta/mostaza/oscuro`, con costura), `.madera`, `.bronce`, `.titulo-criollo`, `.btn-criollo`.
+  Texturas procedurales en `public/texturas/` (`tools/generar-texturas.py`). Barra de pestañas en `Screen tab=…`.
+  Las cartas de la Criolla tienen papel envejecido (degradé + textura).
+- **PWA** (`vite.config.ts`): precachea app, fuentes y texturas; `mazos/` y `arte/` van con caché en tiempo de ejecución (CacheFirst) y
   al elegir un mazo se precargan sus 51 imágenes. Íconos provisorios en `public/icons/` (hasta que llegue `arte/icono.png`).
 - Mobile-first: blancos táctiles ≥ 44px, sin scroll horizontal, `100dvh`, safe areas.
 
@@ -204,8 +232,10 @@ reglamento rioplatense estándar, dudas en `MEMORY.md`.)*
 - [x] **Fase 1** — App "Juegos Argentinos": Inicio, Elegí un juego, ficha de cada juego (5, Escoba incluida) con modos ("Próximamente") y
   "Cómo se juega", Perfil (apodo + avatar), Ajustes (sonido, vibración, tema paño/claro/auto, mazo, borrar datos),
   Mazos (Criolla + 3 Mazo Argento), guardado versionado (7 tests), sonidos Web Audio, PWA offline, placeholders de arte.
+- [x] **Fase 2** — Truco contra la IA: motor completo (truco/retruco/vale 4, envido con cadenas y falta, "el envido está primero",
+  flor opcional, pardas, mazo, malas y buenas), bot de niveles 1–10 con Monte Carlo, 1v1/2v2/3v3, nivel adaptativo,
+  partida guardada, voz y lavado de cara (cuero, paño, madera, bronce, pestañas). 64 tests del motor + 14 de la web.
   *Esperando OK del usuario.*
-- [ ] **Fase 2** — Truco: motor completo + bot con niveles + jugar contra la IA (1v1 y 2v2 con compañero bot).
 - [ ] **Fase 3** — Gira Nacional del Truco + fósforos + logros (`packages/career`).
 - [ ] **Fase 4** — Chinchón (motor, bot, gira).
 - [ ] **Fase 5** — Casita Robada (motor, bot, gira).

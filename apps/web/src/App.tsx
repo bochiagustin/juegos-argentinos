@@ -8,6 +8,8 @@ import { Juego } from "./screens/Juego.tsx";
 import { Juegos } from "./screens/Juegos.tsx";
 import { Mazos } from "./screens/Mazos.tsx";
 import { Perfil } from "./screens/Perfil.tsx";
+import { TrucoMesa } from "./truco/TrucoMesa.tsx";
+import { TrucoSetup } from "./truco/TrucoSetup.tsx";
 
 function routeKey(r: Route): string {
   return r.name === "juego" ? `juego-${r.id}` : r.name;
@@ -27,6 +29,10 @@ function CurrentScreen({ route }: { route: Route }) {
       return <Ajustes />;
     case "mazos":
       return <Mazos />;
+    case "truco-setup":
+      return <TrucoSetup />;
+    case "truco-mesa":
+      return <TrucoMesa />;
   }
 }
 
