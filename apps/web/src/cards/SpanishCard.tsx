@@ -287,7 +287,7 @@ function CriollaCard({ card, faceDown = false, width = 120, className, highlight
       <rect x={1.5} y={1.5} width={CARD_W - 3} height={CARD_H - 3} rx={14} fill={showBack ? "#fff" : `url(#papel-${id})`} />
       {!showBack && (
         <image
-          href="/texturas/papel.webp"
+          href={`${import.meta.env.BASE_URL}texturas/papel.webp`}
           x={0}
           y={0}
           width={CARD_W}

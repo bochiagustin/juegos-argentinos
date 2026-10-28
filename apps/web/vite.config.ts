@@ -4,12 +4,17 @@ import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import pkg from "./package.json" with { type: "json" };
 
+// ARTIFACT=1: build para publicar como página de claude.ai (sin service worker, rutas relativas).
+const artifact = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.ARTIFACT === "1";
+
 export default defineConfig({
+  ...(artifact ? { base: "./" } : {}),
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   plugins: [
     react(),
     tailwindcss(),
     VitePWA({
+      disable: artifact,
       registerType: "autoUpdate",
       includeAssets: ["icons/icon.svg", "icons/apple-touch-icon.png"],
       manifest: {

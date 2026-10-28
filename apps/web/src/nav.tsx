@@ -32,40 +32,70 @@ export function NavProvider({ children }: { children: ReactNode }) {
   const [stack, setStack] = useState<Route[]>([{ name: "inicio" }]);
   const stackRef = useRef(stack);
   stackRef.current = stack;
+  // La pila interna manda; el historial del navegador es un extra (en algunos visores embebidos no está disponible).
+  const historyOk = useRef(true);
+  const ignorePops = useRef(0);
+
+  const tryHistory = useCallback((fn: () => void) => {
+    if (!historyOk.current) return;
+    try {
+      fn();
+    } catch {
+      historyOk.current = false;
+    }
+  }, []);
 
   useEffect(() => {
-    history.replaceState({ depth: 0 }, "");
+    tryHistory(() => history.replaceState({ depth: 0 }, ""));
     const onPop = (e: PopStateEvent) => {
+      if (ignorePops.current > 0) {
+        ignorePops.current--;
+        return;
+      }
+      // "Atrás" del navegador o del celular.
       const depth = typeof e.state?.depth === "number" ? e.state.depth : 0;
       setStack((s) => s.slice(0, Math.max(1, depth + 1)));
     };
     addEventListener("popstate", onPop);
     return () => removeEventListener("popstate", onPop);
-  }, []);
+  }, [tryHistory]);
 
-  const push = useCallback((r: Route) => {
-    history.pushState({ depth: stackRef.current.length }, "");
-    setStack((s) => [...s, r]);
-  }, []);
+  const push = useCallback(
+    (r: Route) => {
+      tryHistory(() => history.pushState({ depth: stackRef.current.length }, ""));
+      setStack((s) => [...s, r]);
+    },
+    [tryHistory],
+  );
 
   const replace = useCallback((r: Route) => setStack((s) => [...s.slice(0, -1), r]), []);
 
   const back = useCallback(() => {
-    if (stackRef.current.length > 1) history.back();
-  }, []);
+    if (stackRef.current.length <= 1) return;
+    setStack((s) => s.slice(0, -1));
+    tryHistory(() => {
+      ignorePops.current++;
+      history.back();
+    });
+  }, [tryHistory]);
 
-  const goTo = useCallback((r: Route) => {
-    if (r.name === "inicio") {
-      if (stackRef.current.length > 1) history.go(-(stackRef.current.length - 1));
-      return;
-    }
-    if (stackRef.current.length === 1) {
-      history.pushState({ depth: 1 }, "");
-    } else {
-      history.replaceState({ depth: 1 }, "");
-    }
-    setStack([{ name: "inicio" }, r]);
-  }, []);
+  const goTo = useCallback(
+    (r: Route) => {
+      const depth = stackRef.current.length;
+      if (r.name === "inicio") {
+        setStack([{ name: "inicio" }]);
+        if (depth > 1)
+          tryHistory(() => {
+            ignorePops.current++;
+            history.go(-(depth - 1));
+          });
+        return;
+      }
+      tryHistory(() => (depth === 1 ? history.pushState({ depth: 1 }, "") : history.replaceState({ depth: 1 }, "")));
+      setStack([{ name: "inicio" }, r]);
+    },
+    [tryHistory],
+  );
 
   const route = stack[stack.length - 1] ?? { name: "inicio" };
   return <NavContext.Provider value={{ route, depth: stack.length, push, replace, back, goTo }}>{children}</NavContext.Provider>;
