@@ -79,6 +79,23 @@ export const GAMES: readonly GameInfo[] = [
     ],
   },
   {
+    id: "escoba",
+    nombre: "Escoba de 15",
+    bajada: "Sumá 15 y barré la mesa",
+    jugadores: "2 a 4 jugadores",
+    colores: ["#8e44ad", "#3b1650"],
+    arte: "juego-escoba",
+    muestra: ["7-oro", "5-espada", "3-copa"],
+    modos: PRONTO,
+    reglas: [
+      "Mazo de 40. Las cartas valen su número; la sota 8, el caballo 9 y el rey 10.",
+      "3 cartas cada uno y 4 boca arriba en la mesa.",
+      "Tirás una carta: si con cartas de la mesa sumás justo 15, te las llevás todas juntas.",
+      "Si dejás la mesa vacía, ¡escoba! Es un punto.",
+      "Al final se cuentan puntos por escobas, más cartas, más oros, el 7 de oro y más sietes. Se juega a 15.",
+    ],
+  },
+  {
     id: "tutti-frutti",
     nombre: "Tutti-Frutti",
     bajada: "¡Basta para mí, basta para todos!",

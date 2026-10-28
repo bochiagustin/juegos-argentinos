@@ -20,6 +20,7 @@ Memoria de trabajo del proyecto: lo que el usuario pidió, prefirió o decidió 
 - Mandó 3 PDFs de **Mazo Argento** (Nuevo, Memes, Campeón del Mundo) y **declaró tener licencia** de sus autores.
   Se recortaron provisoriamente de los PDFs; quedan como mazos desbloqueables. Falta el permiso escrito y los originales
   (`docs/licencias/mazo-argento.md`). Tienen personas reales: confirmar derechos de imagen antes de publicar.
+- 2026-10-28 · Pidió sumar la **Escoba de 15** (referencia https://www.ludoteka.com/juegos/escoba/reglas, bloqueada por la red del entorno).
 - Mazos temáticos con palos cambiados están bien siempre que cada palo mantenga su color y el índice grande.
 - Fuentes de referencia que pasó (no se pudieron leer: la red del entorno bloquea esos dominios):
   - Truco: https://es.wikihow.com/jugar-al-truco
@@ -37,7 +38,8 @@ Memoria de trabajo del proyecto: lo que el usuario pidió, prefirió o decidió 
 - 2026-10-28 · Paleta por palo: espada azul, basto verde, oro dorado, copa rojo. Marco con pausas tradicionales (oro 0, copa 1, espada 2, basto 3).
 - 2026-10-28 · Motion (`motion/react`) en lugar del paquete viejo `framer-motion` (es la misma librería, renombrada).
 
-- 2026-10-28 · Reorientación aprobada: fases nuevas (1 app · 2 Truco vs IA · 3 carrera · 4 Chinchón · 5 Casita · 6 Tutti-Frutti · 7 online · 8 pulido).
+- 2026-10-28 · Reorientación aprobada: fases nuevas (1 app · 2 Truco vs IA · 3 carrera · 4 Chinchón · 5 Casita · 6 Escoba · 7 Tutti-Frutti · 8 online · 9 pulido).
+- 2026-10-28 · Escoba entra como Fase 6, después de Casita Robada (comparten la mecánica de levantar de la mesa).
 - 2026-10-28 · Paquetes renombrados a `@juegos-argentinos/*`.
 - 2026-10-28 · Sin router: navegación por pila + historial del navegador. Guardado en localStorage versionado (v1: perfil, ajustes, mazo).
 - 2026-10-28 · Sonidos sintetizados con Web Audio (cero archivos). PWA con vite-plugin-pwa; imágenes de mazos/arte con caché en runtime.
@@ -63,6 +65,13 @@ Memoria de trabajo del proyecto: lo que el usuario pidió, prefirió o decidió 
 11. ¿Se puede "agrandar" la propia casita tirando una carta igual a la de arriba de tu casita?
 12. Si dos rivales tienen arriba el mismo número, ¿elegís a cuál robar?
 13. En parejas, ¿una casita por pareja o una por jugador?
+
+### Escoba de 15
+16. ¿Levantar es obligatorio si se puede sumar 15? Propuesta: no, es opcional.
+17. Las 4 de la mesa del reparto inicial que suman 15: ¿escoba para el que reparte? Propuesta: sí (y dos si suman 30). ¿Y en los repartos siguientes?
+18. Bonus: ¿"todos los oros" (los 10) o "los cuatro sietes" valen más de 1? Propuesta: no, 1 punto común; variante configurable.
+19. ¿Se juega a 15, 21 o 31 por defecto? Propuesta: 15.
+20. En 3 jugadores, ¿se saca alguna carta del mazo para que el reparto cierre? Con 40 cartas, 4 a la mesa y 3 por cabeza cierra justo (36 = 4×9): no hace falta.
 
 ### Tutti-Frutti
 14. Si nadie aprieta BASTA y se acaba el tiempo, ¿se puntúa normal? Propuesta: sí.

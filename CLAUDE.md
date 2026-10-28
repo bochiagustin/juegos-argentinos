@@ -1,6 +1,6 @@
-# Juegos Argentinos — truco, chinchón, casita robada y tutti-frutti
+# Juegos Argentinos — truco, chinchón, casita robada, escoba y tutti-frutti
 
-Web app mobile-first (PWA, anda sin internet) para jugar a **Truco, Chinchón, Casita Robada y Tutti-Frutti**:
+Web app mobile-first (PWA, anda sin internet) para jugar a **Truco, Chinchón, Casita Robada, Escoba de 15 y Tutti-Frutti**:
 **contra la IA offline** (que se vuelve más competitiva a medida que ganás), en un **modo carrera** ("Gira Nacional",
 con rivales, regiones y logros para desbloquear) y, al final, **online con amigos**.
 Tiene que sentirse como una juntada de verdad: rápida, divertida, con animaciones, sonidos y onda argentina.
@@ -40,7 +40,7 @@ Monorepo pnpm (`@juegos-argentinos/*`), TypeScript estricto en todo (`tsconfig.b
 packages/engine   Motor de reglas puro (sin UI, sin red) + bots. Vitest.
 packages/career   (Fase 3) Gira Nacional, logros y fósforos. Lógica pura.
 apps/web          React 19 + Vite + Tailwind v4 + Motion + vite-plugin-pwa. Deploy en Vercel. Corre el motor en el navegador (offline).
-apps/server       (Fase 7) Servidor autoritativo de salas online.
+apps/server       (Fase 8) Servidor autoritativo de salas online.
 tools/            Scripts sueltos (extraer mazos de PDF).
 docs/             arte.md (checklist de ilustraciones), licencias/.
 ```
@@ -98,7 +98,7 @@ docs/             arte.md (checklist de ilustraciones), licencias/.
   al elegir un mazo se precargan sus 51 imágenes. Íconos provisorios en `public/icons/` (hasta que llegue `arte/icono.png`).
 - Mobile-first: blancos táctiles ≥ 44px, sin scroll horizontal, `100dvh`, safe areas.
 
-### Servidor (`apps/server`, Fase 7) — decisión: PartyServer + Cloudflare Durable Objects
+### Servidor (`apps/server`, Fase 8) — decisión: PartyServer + Cloudflare Durable Objects
 
 - Una sala = un Durable Object. Es el **único** que tiene el estado completo; valida toda acción contra `getValidActions`
   y manda a cada conexión solo su `getPlayerView`. Chat, reacciones y señas aparte (señas solo al compañero).
@@ -160,6 +160,27 @@ docs/             arte.md (checklist de ilustraciones), licencias/.
 - Gana quien tiene más cartas en su casita.
 - UX: casitas visibles con la carta de arriba grande y el contador; animación dramática al robar.
 
+### Escoba de 15
+
+*(El usuario pasó https://www.ludoteka.com/juegos/escoba/reglas pero la red del entorno bloquea ese dominio; reglas del
+reglamento rioplatense estándar, dudas en `MEMORY.md`.)*
+
+- Mazo de 40. **Valores**: 1 a 7 su número; sota (10) = 8, caballo (11) = 9, rey (12) = 10.
+- 2, 3 o 4 jugadores individuales, o 4 por parejas (compañeros enfrentados). Configurable.
+- Reparto: 3 cartas a cada uno y 4 boca arriba en la mesa. Si las 4 de la mesa suman 15 (o 30, dos grupos de 15),
+  el que reparte se las lleva y cuenta como escoba (dos, si son 30).
+- Turno: tirás una carta. Si con esa carta y **una o más** cartas de la mesa sumás exactamente 15, levantás ese grupo
+  (tu carta + las de la mesa). Si hay varias combinaciones posibles, elegís cuál. Si no levantás, la carta queda en la mesa.
+- **Escoba**: si al levantar dejás la mesa vacía, 1 punto (se marca dejando una carta boca arriba en tu pila).
+- Cuando todos se quedan sin cartas se reparten 3 más (la mesa no se repone) hasta terminar el mazo.
+  Al final, lo que queda en la mesa se lo lleva el último que levantó (**no** cuenta como escoba).
+- **Puntos de la ronda**: 1 por cada escoba; 1 a quien tiene más cartas; 1 a quien tiene más oros; 1 por el **7 de oro**
+  ("el siete bello"); 1 a quien tiene más sietes. En empate de una categoría, nadie la cobra.
+- La mano (quien reparte) rota en sentido antihorario. Partida a **15** puntos (configurable 21/31);
+  si dos pasan la meta en la misma ronda, gana el que más tiene.
+- UX: resaltar las combinaciones que suman 15 con la carta elegida, elegir grupo tocando cartas de la mesa,
+  contador de escobas visible, animación de "¡ESCOBA!" con la mesa barriéndose.
+
 ### Tutti-Frutti (Basta)
 
 - 2 a 10 jugadores. Categorías por defecto: Nombre, Apellido, País, Ciudad, Animal, Fruta o Verdura, Color, Cosa, Marca, Comida; se pueden agregar propias.
@@ -180,7 +201,7 @@ docs/             arte.md (checklist de ilustraciones), licencias/.
 ## Estado de avance
 
 - [x] **Fase 0** — Monorepo, modelo de cartas, RNG con semilla, mezclar/repartir (24 tests), primera baraja SVG.
-- [x] **Fase 1** — App "Juegos Argentinos": Inicio, Elegí un juego, ficha de cada juego con modos ("Próximamente") y
+- [x] **Fase 1** — App "Juegos Argentinos": Inicio, Elegí un juego, ficha de cada juego (5, Escoba incluida) con modos ("Próximamente") y
   "Cómo se juega", Perfil (apodo + avatar), Ajustes (sonido, vibración, tema paño/claro/auto, mazo, borrar datos),
   Mazos (Criolla + 3 Mazo Argento), guardado versionado (7 tests), sonidos Web Audio, PWA offline, placeholders de arte.
   *Esperando OK del usuario.*
@@ -188,6 +209,7 @@ docs/             arte.md (checklist de ilustraciones), licencias/.
 - [ ] **Fase 3** — Gira Nacional del Truco + fósforos + logros (`packages/career`).
 - [ ] **Fase 4** — Chinchón (motor, bot, gira).
 - [ ] **Fase 5** — Casita Robada (motor, bot, gira).
-- [ ] **Fase 6** — Tutti-Frutti (motor, bot con diccionario, gira).
-- [ ] **Fase 7** — Online con amigos: salas con código + WhatsApp, lobby, reconexión, timer, chat/reacciones/señas, revancha.
-- [ ] **Fase 8** — Pulido, resultados con momentos destacados, accesibilidad, deploy final (Vercel + Cloudflare).
+- [ ] **Fase 6** — Escoba de 15 (motor, bot, gira).
+- [ ] **Fase 7** — Tutti-Frutti (motor, bot con diccionario, gira).
+- [ ] **Fase 8** — Online con amigos: salas con código + WhatsApp, lobby, reconexión, timer, chat/reacciones/señas, revancha.
+- [ ] **Fase 9** — Pulido, resultados con momentos destacados, accesibilidad, deploy final (Vercel + Cloudflare).

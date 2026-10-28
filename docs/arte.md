@@ -19,6 +19,7 @@ placeholder del mismo tamaño, así que se puede ir sumando de a poco.
 | ☐ | `arte/juegos/truco.png` | 800×500 | lleno | Tarjeta del Truco, sin texto |
 | ☐ | `arte/juegos/chinchon.png` | 800×500 | lleno | Tarjeta del Chinchón, sin texto |
 | ☐ | `arte/juegos/casita-robada.png` | 800×500 | lleno | Tarjeta de la Casita Robada, sin texto |
+| ☐ | `arte/juegos/escoba.png` | 800×500 | lleno | Tarjeta de la Escoba de 15, sin texto |
 | ☐ | `arte/juegos/tutti-frutti.png` | 800×500 | lleno | Tarjeta del Tutti-Frutti, sin texto |
 | ☐ | `arte/mapa/base.png` | 1080×2400 | lleno | Mapa de Argentina con Malvinas, sin textos ni candados |
 | ☐ | `arte/mapa/region-<id>.png` ×6 | 1080×2400 | transparente | Cada región sola, alineada exacto sobre el mapa base |
