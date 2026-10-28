@@ -1,0 +1,13 @@
+{
+  "name": "@la-mesa/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "echo \"(server: se implementa en la Fase 1)\"",
+    "typecheck": "echo \"(server: se implementa en la Fase 1)\""
+  },
+  "dependencies": {
+    "@la-mesa/engine": "workspace:*"
+  }
+}

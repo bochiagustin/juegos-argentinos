@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Nunito Variable", system-ui, sans-serif;
+  --font-display: "Fraunces Variable", Georgia, serif;
+  --color-pano-900: #072a1d;
+  --color-pano-800: #0d3b2a;
+  --color-pano-700: #13513a;
+  --color-pano-600: #1b6b4c;
+  --color-crema: #fbf6ea;
+  --color-oro: #f2b705;
+  --color-bordo: #7b1e2b;
+}
+
+html,
+body {
+  background: var(--color-pano-800);
+  color: var(--color-crema);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pano {
+  background:
+    radial-gradient(ellipse at 50% 35%, rgb(255 255 255 / 0.07), transparent 65%),
+    var(--color-pano-800);
+}
