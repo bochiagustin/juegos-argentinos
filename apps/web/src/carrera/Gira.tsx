@@ -2,6 +2,7 @@ import { estadoGira, GIRAS, progresoDe, type CareerGame, type EstadoRival, type 
 import { casita } from "@juegos-argentinos/engine/casita";
 import { DEFAULT_CASITA_CONFIG, type CasitaConfig } from "@juegos-argentinos/engine/casita";
 import { chinchon, DEFAULT_CHINCHON_CONFIG, type ChinchonConfig } from "@juegos-argentinos/engine/chinchon";
+import { DEFAULT_ESCOBA_CONFIG, escoba, type EscobaConfig } from "@juegos-argentinos/engine/escoba";
 import { DEFAULT_TRUCO_CONFIG, type TrucoConfig } from "@juegos-argentinos/engine/truco";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
@@ -48,6 +49,10 @@ export function Gira({ game }: { game: CareerGame }) {
       const config: ChinchonConfig = { ...DEFAULT_CHINCHON_CONFIG, ...(def.config as Partial<ChinchonConfig>), players: 2 };
       saveBotMatch(newBotMatch(chinchon, { config, players: 2, botSkill: r.skill, adaptativo: false, yo, rival }) as never);
       push({ name: "chinchon-mesa" });
+    } else if (game === "escoba") {
+      const config: EscobaConfig = { ...DEFAULT_ESCOBA_CONFIG, ...(def.config as Partial<EscobaConfig>), players: 2, parejas: false };
+      saveBotMatch(newBotMatch(escoba, { config, players: 2, botSkill: r.skill, adaptativo: false, yo, rival }) as never);
+      push({ name: "escoba-mesa" });
     } else {
       const config: CasitaConfig = { ...DEFAULT_CASITA_CONFIG, ...(def.config as Partial<CasitaConfig>), players: 2, parejas: false };
       saveBotMatch(newBotMatch(casita, { config, players: 2, botSkill: r.skill, adaptativo: false, yo, rival }) as never);

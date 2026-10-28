@@ -156,6 +156,12 @@ function cumple(id: string, s: CareerState, r: Reporte): boolean {
       return hecho(r, "casita-robos").some((h) => h.cantidad >= 3);
     case "intocable":
       return r.ganada && r.game === "casita-robada" && hecho(r, "casita-me-robaron").some((h) => h.cantidad === 0);
+    case "barrendero":
+      return hecho(r, "escoba-escobas").some((h) => h.cantidad >= 5);
+    case "escoba-de-mano":
+      return hecho(r, "escoba-de-mano").length > 0;
+    case "la-setenta":
+      return hecho(r, "escoba-cuatro-sietes").length > 0;
     case "casa-grande":
       return hecho(r, "casita-cartas").some((h) => h.cantidad >= 25);
     default:

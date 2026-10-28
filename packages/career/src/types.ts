@@ -3,8 +3,8 @@ export type RegionId = (typeof REGION_IDS)[number];
 export type Slot = "1" | "2" | "jefe";
 /** Estilo de juego del rival (ajusta el bot: cuánto miente, cuánto se arriesga). */
 export type Estilo = "parejo" | "mentiroso" | "conservador" | "agresivo";
-export type CareerGame = "truco" | "chinchon" | "casita-robada";
-export const CAREER_GAMES: readonly CareerGame[] = ["truco", "chinchon", "casita-robada"];
+export type CareerGame = "truco" | "chinchon" | "casita-robada" | "escoba";
+export const CAREER_GAMES: readonly CareerGame[] = ["truco", "chinchon", "casita-robada", "escoba"];
 
 export interface Personaje {
   /** `${region}-${slot}` (coincide con el arte en arte/rivales/). */
@@ -72,10 +72,13 @@ export type Hecho =
   | { tipo: "ligadas"; cantidad: number }
   | { tipo: "casita-robos"; cantidad: number }
   | { tipo: "casita-me-robaron"; cantidad: number }
-  | { tipo: "casita-cartas"; cantidad: number };
+  | { tipo: "casita-cartas"; cantidad: number }
+  | { tipo: "escoba-escobas"; cantidad: number }
+  | { tipo: "escoba-de-mano" }
+  | { tipo: "escoba-cuatro-sietes" };
 
 export interface Reporte {
-  game: CareerGame | "escoba" | "tutti-frutti";
+  game: CareerGame | "tutti-frutti";
   ganada: boolean;
   /** Si fue una partida de la gira: contra quién. */
   rivalId?: string;

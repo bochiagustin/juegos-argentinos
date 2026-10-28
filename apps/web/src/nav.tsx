@@ -15,6 +15,8 @@ export type Route =
   | { name: "chinchon-mesa" }
   | { name: "casita-setup" }
   | { name: "casita-mesa" }
+  | { name: "escoba-setup" }
+  | { name: "escoba-mesa" }
   | { name: "gira"; game: CareerGame }
   | { name: "logros" };
 

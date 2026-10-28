@@ -73,6 +73,10 @@ docs/             arte.md (checklist de ilustraciones), licencias/.
 - Casita Robada (`src/casita/`): jugadas por carta (`jugadasPara`: mesa / robar a cada rival / propia / dejar); levantar es
   obligatorio si se puede. Bot: ganancia menos riesgo relativo de quedar expuesto; es un juego de mucha suerte
   (nivel 10 vs 1 ≈ 54% de victorias, 44% derrotas).
+- Escoba (`src/escoba/`): `combinaciones(mesa, valor)` lista todos los grupos de la mesa que suman 15 con la carta tirada
+  (la acción lleva `levanta: CardId[]`, vacío = dejarla). Escoba de mano al dar cada ronda (15 → 1, 30 partible → 2).
+  Puntaje por bando (individual o parejas); empate en una categoría no la cobra nadie. Bot: valor de lo levantado +
+  bonus de escoba − riesgo de dejarle escoba al rival (con las cartas que no vio). Nivel 10 vs 1 ≈ 87%, 10 vs 5 ≈ 72%.
 
 ### Truco: decisiones de implementación
 
@@ -133,6 +137,8 @@ docs/             arte.md (checklist de ilustraciones), licencias/.
   espada 2 / basto 3, ases fileteados, dorso fileteado), `suits.tsx` (oro con Sol de Mayo, copa con filete, espada con gavilanes,
   basto de algarrobo), `figures.tsx` (Sota = peón con boina, Caballo = gaucho en un overo, Rey = patrón con bigotón y rastra;
   caricatura, el color del palo en la ropa), `filete.tsx` (voluta, hoja, cinta celeste y blanca, borla).
+- **Escoba en la web** (`src/escoba/`): `EscobaSetup.tsx`, `EscobaMesa.tsx` (sobre `useBotMatch`: tocás una carta y aparecen
+  los grupos que suman 15 para elegir, cartel de escoba, resumen de ronda por categorías, hechos para los logros).
 - **Truco en la web** (`src/truco/`): `partida.ts` (partida contra la IA guardada en localStorage para retomarla, nombres de rivales),
   `useTrucoMatch.ts` (controlador: el motor en el navegador, los bots piensan 0,75–1,5 s, globos, voz y sonidos por evento,
   pausa con el resumen de cada mano), `TrucoMesa.tsx` (mesa 1v1/2v2/3v3, marcador con fósforos, solo botones válidos,
@@ -262,8 +268,10 @@ reglamento rioplatense estándar, dudas en `MEMORY.md`.)*
   reenganche, rebarajar), bot, mesa con mano reordenable y combinaciones resaltadas, gira.
 - [x] **Fase 5** — Casita Robada: motor (levantar una/todas, robar con elección o prioridad, agrandar propia, parejas,
   sobrantes), bot, mesa con robos dramáticos, gira. 127 tests en total.
-  *Fases 3, 4 y 5 hechas juntas a pedido del usuario. Esperando OK.*
-- [ ] **Fase 6** — Escoba de 15 (motor, bot, gira).
+  *Fases 3, 4 y 5 hechas juntas a pedido del usuario.*
+- [x] **Fase 6** — Escoba de 15: motor (combinaciones a elección, escoba de mano, sobrantes al último que levantó, 2/3/4 o
+  parejas, a 15/21/31, levantar obligatorio opcional), bot, mesa con combinaciones y "¡ESCOBA!", resumen por categorías,
+  gira y 3 logros. 146 tests en total. *Esperando OK.*
 - [ ] **Fase 7** — Tutti-Frutti (motor, bot con diccionario, gira).
 - [ ] **Fase 8** — Online con amigos: salas con código + WhatsApp, lobby, reconexión, timer, chat/reacciones/señas, revancha.
 - [ ] **Fase 9** — Pulido, resultados con momentos destacados, accesibilidad, deploy final (Vercel + Cloudflare).

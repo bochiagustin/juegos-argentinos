@@ -55,6 +55,9 @@ Memoria de trabajo del proyecto: lo que el usuario pidió, prefirió o decidió 
   en la casita levantar es obligatorio si se puede; no se puede tirar la carta recién levantada del pozo.
 - 2026-10-28 · Los Mazo Argento pasaron a ser desbloqueables (fósforos o premio de la gira). Se arranca con 100 fósforos.
 - 2026-10-28 · Las giras de chinchón y casita son mano a mano (2 jugadores) en todas las regiones.
+- 2026-10-28 · Fase 6 (Escoba) sin respuesta a las dudas 16–20 → defaults: levantar opcional (configurable), escoba de mano
+  en cada reparto de ronda (no en los repartos de 3 a mitad de ronda), sin bonus especiales, a 15. La gira sube a 21 y 31
+  y en algunas regiones levantar es obligatorio. Mano a mano en toda la gira.
 
 ## Dudas abiertas (preguntar antes de implementar la fase correspondiente)
 

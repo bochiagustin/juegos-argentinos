@@ -92,7 +92,7 @@ export const GAMES: readonly GameInfo[] = [
     cuero: "cuero-violeta",
     arte: "juego-escoba",
     muestra: ["7-oro", "5-espada", "3-copa"],
-    modos: PRONTO,
+    modos: { ia: "disponible", carrera: "disponible", amigos: "proximamente" },
     reglas: [
       "Mazo de 40. Las cartas valen su número; la sota 8, el caballo 9 y el rey 10.",
       "3 cartas cada uno y 4 boca arriba en la mesa.",

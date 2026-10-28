@@ -1,5 +1,6 @@
 import type { CasitaConfig } from "@juegos-argentinos/engine/casita";
 import type { ChinchonConfig } from "@juegos-argentinos/engine/chinchon";
+import type { EscobaConfig } from "@juegos-argentinos/engine/escoba";
 import type { TrucoConfig } from "@juegos-argentinos/engine/truco";
 import type { CareerGame, GiraDef, LogroDef, Personaje, RegionDef, Slot } from "./types.ts";
 
@@ -81,10 +82,20 @@ export const GIRA_CASITA = gira<CasitaConfig>("casita-robada", "Gira de la Casit
   { reglas: "Mano a mano, robar es obligatorio", config: { players: 2, prioridad: "robar" } },
 ]);
 
+export const GIRA_ESCOBA = gira<EscobaConfig>("escoba", "Gira de la Escoba", [
+  { reglas: "Mano a mano, a 15", config: { players: 2, target: 15 } },
+  { reglas: "Mano a mano, a 15, levantar es obligatorio", config: { players: 2, target: 15, levantarObligatorio: true } },
+  { reglas: "Mano a mano, a 21", config: { players: 2, target: 21 } },
+  { reglas: "Mano a mano, a 21, levantar es obligatorio", config: { players: 2, target: 21, levantarObligatorio: true } },
+  { reglas: "Mano a mano, a 31", config: { players: 2, target: 31 } },
+  { reglas: "Mano a mano, a 31, levantar es obligatorio", config: { players: 2, target: 31, levantarObligatorio: true } },
+]);
+
 export const GIRAS: Record<CareerGame, GiraDef<unknown>> = {
   truco: GIRA_TRUCO as GiraDef<unknown>,
   chinchon: GIRA_CHINCHON as GiraDef<unknown>,
   "casita-robada": GIRA_CASITA as GiraDef<unknown>,
+  escoba: GIRA_ESCOBA as GiraDef<unknown>,
 };
 
 /** Puntos de gira por ganarle a un rival (el jefe vale el doble). */
@@ -101,7 +112,7 @@ export const LOGROS: LogroDef[] = [
   { id: "paliza", nombre: "Paliza", descripcion: "Ganá una partida por amplia diferencia.", icono: "💪", fosforos: 30 },
   { id: "pasaporte", nombre: "Pasaporte", descripcion: "Desbloqueá Cuyo en cualquier gira.", icono: "🛂", fosforos: 30 },
   { id: "gira-completa", nombre: "Gira Nacional", descripcion: "Ganale al Capitán de la Fragata en cualquier gira.", icono: "🇦🇷", fosforos: 300 },
-  { id: "campeon-nacional", nombre: "Campeón nacional", descripcion: "Completá las tres giras.", icono: "👑", fosforos: 1000 },
+  { id: "campeon-nacional", nombre: "Campeón nacional", descripcion: "Completá todas las giras.", icono: "👑", fosforos: 1000 },
   { id: "coleccionista", nombre: "Coleccionista", descripcion: "Conseguí un Mazo Argento.", icono: "🃏", fosforos: 20 },
   { id: "treinta-y-tres", nombre: "Treinta y tres", descripcion: "Cantá 33 de envido.", icono: "🎯", fosforos: 30, juego: "truco" },
   { id: "vale-cuatro", nombre: "¡Vale cuatro!", descripcion: "Ganá una mano con el vale cuatro querido.", icono: "4️⃣", fosforos: 30, juego: "truco" },
@@ -111,6 +122,9 @@ export const LOGROS: LogroDef[] = [
   { id: "ligador", nombre: "Ligador", descripcion: "Ligá 3 o más cartas al corte de otro.", icono: "🔗", fosforos: 20, juego: "chinchon" },
   { id: "ladron", nombre: "Ladrón de casitas", descripcion: "Robá 3 casitas en una misma partida.", icono: "🦹", fosforos: 30, juego: "casita-robada" },
   { id: "intocable", nombre: "Intocable", descripcion: "Ganá sin que te roben la casita ni una vez.", icono: "🛡️", fosforos: 30, juego: "casita-robada" },
+  { id: "barrendero", nombre: "Barrendero", descripcion: "Hacé 5 escobas en una misma partida.", icono: "🧹", fosforos: 30, juego: "escoba" },
+  { id: "escoba-de-mano", nombre: "Escoba de mano", descripcion: "Que te toque la escoba al repartir.", icono: "🍀", fosforos: 20, juego: "escoba" },
+  { id: "la-setenta", nombre: "Los cuatro sietes", descripcion: "Llevate los cuatro sietes en una ronda.", icono: "7️⃣", fosforos: 30, juego: "escoba" },
   { id: "casa-grande", nombre: "Casa grande", descripcion: "Terminá con 25 cartas o más en tu casita.", icono: "🏠", fosforos: 40, juego: "casita-robada" },
 ];
 

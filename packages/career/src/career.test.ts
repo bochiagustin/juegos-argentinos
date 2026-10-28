@@ -109,6 +109,15 @@ describe("logros y fósforos", () => {
     expect(state.fosforos).toBe(FOSFOROS_INICIALES + 15 + 20 + 30 + 15);
   });
 
+  it("logros de la escoba", () => {
+    const r = registrarPartida(defaultCareer(), { game: "escoba", ganada: false, ahora: AHORA, hechos: [{ tipo: "escoba-escobas", cantidad: 5 }, { tipo: "escoba-de-mano" }, { tipo: "escoba-cuatro-sietes" }] });
+    expect(r.premio.logros.map((l) => l.id).sort()).toEqual(["barrendero", "escoba-de-mano", "la-setenta"]);
+  });
+
+  it("hay una gira de escoba con sus 6 regiones", () => {
+    expect(GIRAS.escoba.regiones).toHaveLength(6);
+  });
+
   it("intocable: solo si ganaste la casita sin que te roben", () => {
     const base = { game: "casita-robada" as const, ahora: AHORA };
     expect(registrarPartida(defaultCareer(), { ...base, ganada: true, hechos: [{ tipo: "casita-me-robaron", cantidad: 0 }] }).premio.logros.map((l) => l.id)).toContain("intocable");
