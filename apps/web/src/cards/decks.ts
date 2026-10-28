@@ -1,3 +1,4 @@
+import { tiene, type CareerState } from "@juegos-argentinos/career";
 import type { Card } from "@juegos-argentinos/engine";
 
 /**
@@ -71,4 +72,9 @@ export function prefetchDeck(deck: DeckId, cards: readonly Card[]): void {
       // Sin red: se va a ver la Criolla como respaldo para esa carta.
     });
   }
+}
+
+/** La Criolla viene de entrada; los demás se compran con fósforos o se ganan en la gira. */
+export function deckDisponible(deck: DeckId, carrera: CareerState): boolean {
+  return deck === "criolla" || tiene(carrera, `mazo:${deck}`);
 }

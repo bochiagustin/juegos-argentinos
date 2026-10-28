@@ -1,0 +1,96 @@
+import type { EstadoRegion, RegionId } from "@juegos-argentinos/career";
+
+/**
+ * Mapa de la Gira Nacional dibujado en código (estilizado, no cartográfico). Cuando llegue el arte
+ * del usuario (arte/mapa/*), se puede poner de fondo y estas regiones quedan como zonas tocables.
+ */
+const FORMAS: Record<RegionId, string[]> = {
+  norte: ["M118,30 L170,22 L232,30 L252,58 L246,118 L238,170 L226,236 L112,236 L104,170 L98,110 Z"],
+  mesopotamia: ["M246,118 L276,96 L312,64 L342,52 L346,80 L326,120 L304,164 L292,214 L276,252 L250,262 L232,246 L226,236 L238,170 Z"],
+  "buenos-aires": ["M170,236 L226,236 L250,262 L276,252 L300,296 L326,330 L318,372 L292,404 L248,424 L206,430 L172,420 L168,340 Z"],
+  cuyo: ["M104,236 L170,236 L168,340 L172,420 L132,424 L96,420 L90,330 L98,280 Z"],
+  patagonia: [
+    "M96,420 L132,424 L172,420 L206,430 L230,446 L226,476 L196,500 L198,540 L176,560 L184,606 L160,640 L166,690 L146,720 L150,770 L132,800 L120,820 L106,790 L104,720 L98,640 L92,560 L88,480 Z",
+    "M128,836 L170,840 L190,856 L160,868 L132,858 Z",
+  ],
+  malvinas: ["M262,792 C272,780 292,782 296,794 C292,806 274,810 262,802 Z", "M302,790 C314,778 334,784 336,796 C330,810 310,810 302,800 Z"],
+};
+
+const ETIQUETA: Record<RegionId, { x: number; y: number }> = {
+  norte: { x: 172, y: 128 },
+  mesopotamia: { x: 300, y: 150 },
+  "buenos-aires": { x: 246, y: 336 },
+  cuyo: { x: 132, y: 318 },
+  patagonia: { x: 146, y: 600 },
+  malvinas: { x: 300, y: 762 },
+};
+
+export function MapaGira({ regiones, seleccion, onSelect }: { regiones: EstadoRegion[]; seleccion: RegionId; onSelect: (id: RegionId) => void }) {
+  return (
+    <svg viewBox="0 0 400 900" className="h-auto w-full" role="group" aria-label="Mapa de la gira">
+      <defs>
+        <linearGradient id="mar" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#d9cfae" />
+          <stop offset="0.55" stopColor="#c9d4c6" />
+          <stop offset="1" stopColor="#9fbfc4" />
+        </linearGradient>
+      </defs>
+      <rect width="400" height="900" fill="url(#mar)" />
+      <image href={`${import.meta.env.BASE_URL}texturas/papel.webp`} width="400" height="900" preserveAspectRatio="none" opacity="0.55" style={{ mixBlendMode: "multiply" }} />
+      {/* rosa de los vientos */}
+      <g transform="translate(330 860)" stroke="#3b2a1a" fill="none" opacity="0.7">
+        <circle r="22" />
+        <path d="M0,-30 L5,0 L0,30 L-5,0 Z M-30,0 L0,5 L30,0 L0,-5 Z" fill="#3b2a1a" />
+        <text y="-34" textAnchor="middle" fontSize="12" fill="#3b2a1a" stroke="none" fontFamily="Rye, serif">
+          N
+        </text>
+      </g>
+      <text x="300" y="470" textAnchor="middle" fontSize="13" fill="#3b4a5a" fontStyle="italic" fontFamily="Fraunces Variable, serif" opacity="0.8">
+        Mar Argentino
+      </text>
+      {regiones.map((r) => {
+        const sel = r.id === seleccion;
+        const fill = r.completa ? "#e6c45c" : r.abierta ? "#9fbf6a" : "#d6ccb8";
+        const e = ETIQUETA[r.id];
+        return (
+          <g
+            key={r.id}
+            role="button"
+            tabIndex={0}
+            aria-label={`${r.nombre}${r.abierta ? "" : " (bloqueada)"}`}
+            aria-pressed={sel}
+            onClick={() => onSelect(r.id)}
+            onKeyDown={(ev) => (ev.key === "Enter" || ev.key === " ") && onSelect(r.id)}
+            className="cursor-pointer outline-none"
+          >
+            {FORMAS[r.id].map((d, i) => (
+              <path key={i} d={d} fill={fill} stroke={sel ? "#f59e0b" : "#4a3420"} strokeWidth={sel ? 5 : 2.5} strokeLinejoin="round" opacity={r.abierta ? 1 : 0.85} />
+            ))}
+            <g transform={`translate(${e.x} ${e.y})`}>
+              <rect x="-58" y="-15" width="116" height="26" rx="4" fill="#1f160f" opacity="0.88" />
+              <text y="4" textAnchor="middle" fontSize="13" fill="#fbf6ea" fontFamily="Rye, serif">
+                {r.nombre.toUpperCase()}
+              </text>
+              {r.completa ? (
+                <text y="34" textAnchor="middle" fontSize="20">
+                  ⭐
+                </text>
+              ) : !r.abierta ? (
+                <>
+                  <circle cy="34" r="13" fill="#3b2a1a" />
+                  <text y="40" textAnchor="middle" fontSize="15">
+                    🔒
+                  </text>
+                </>
+              ) : (
+                <text y="34" textAnchor="middle" fontSize="12" fill="#1f160f" fontWeight="800">
+                  {r.rivales.filter((x) => x.victorias > 0).length}/3
+                </text>
+              )}
+            </g>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}

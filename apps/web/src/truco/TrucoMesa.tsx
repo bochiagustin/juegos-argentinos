@@ -4,10 +4,13 @@ import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { useState } from "react";
 import { playSfx } from "../audio/sfx.ts";
 import { SpanishCard } from "../cards/SpanishCard.tsx";
-import { nivelNombre, skillForRating, updateRating } from "../ia/nivel.ts";
+import { useCerrarPartida, type ResultadoCierre } from "../carrera/useCerrarPartida.ts";
+import { skillForRating } from "../ia/nivel.ts";
 import { useNav } from "../nav.tsx";
+import { FinPartida } from "../partidas/FinPartida.tsx";
 import { statsDe } from "../save/save.ts";
 import { useSave } from "../save/SaveContext.tsx";
+import { Modal } from "../ui/Modal.tsx";
 import { IconButton } from "../ui/ui.tsx";
 import { Fosforos } from "./Fosforos.tsx";
 import { clearMatch, HUMAN_SEAT, loadMatch, newMatch, saveMatch, type TrucoMatch } from "./partida.ts";
@@ -88,31 +91,38 @@ export function TrucoMesa() {
   return <Mesa key={partida.n} initial={partida.m} onRevancha={(m) => setPartida((p) => ({ m, n: p.n + 1 }))} />;
 }
 
-interface Final {
-  gane: boolean;
-  antes: number;
-  despues: number;
-}
-
 function Mesa({ initial, onRevancha }: { initial: TrucoMatch; onRevancha: (m: TrucoMatch) => void }) {
   const { back } = useNav();
-  const { save, update } = useSave();
-  const [final, setFinal] = useState<Final | null>(null);
+  const { save } = useSave();
+  const cerrar = useCerrarPartida();
+  const [final, setFinal] = useState<ResultadoCierre | null>(null);
   const [reglas, setReglas] = useState(false);
   const [confirmarMazo, setConfirmarMazo] = useState(false);
 
   const onFin = (m: TrucoMatch) => {
     clearMatch();
     const gane = m.state.winner === 0;
-    const stats = statsDe(save, "truco");
-    const botSkill = Math.max(...m.skills.filter((_, i) => i % 2 === 1));
-    const rating = m.adaptativo ? updateRating(stats.rating, botSkill, gane) : stats.rating;
-    update((s) => ({ ...s, juegos: { ...s.juegos, truco: { rating, jugadas: stats.jugadas + 1, ganadas: stats.ganadas + (gane ? 1 : 0) } } }));
-    setFinal({ gane, antes: botSkill, despues: m.adaptativo ? skillForRating(rating) : botSkill });
+    const rival = m.state.score[1];
+    const tercio = Math.round(m.config.target / 3);
+    setFinal(
+      cerrar({
+        game: "truco",
+        ganada: gane,
+        botSkill: Math.max(...m.skills.filter((_, i) => i % 2 === 1)),
+        adaptativo: m.adaptativo,
+        ...(m.carrera ? { rivalId: m.carrera.rivalId } : {}),
+        remontada: gane && m.peorDiferencia <= -tercio,
+        paliza: gane && rival < tercio,
+        hechos: m.hechos,
+      }),
+    );
     playSfx(gane ? "turno" : "error");
   };
 
   const { match, view, valid, jugar, globos, resumen, cerrarResumen } = useTrucoMatch(initial, onFin);
+  // Resúmenes de mano ya vistos: el fin de partida aparece recién después de ver el de la última mano.
+  const [vistos, setVistos] = useState(initial.state.history.length);
+  const verFin = final !== null && !resumen && vistos >= match.state.history.length;
   const n = view.config.players;
   const layout = LAYOUT[n];
   const rel = (seat: Seat) => (seat - HUMAN_SEAT + n) % n;
@@ -139,7 +149,8 @@ function Mesa({ initial, onRevancha }: { initial: TrucoMatch; onRevancha: (m: Tr
 
   const revancha = () => {
     const skill = match.adaptativo ? skillForRating(statsDe(save, "truco").rating) : match.skills[1]!;
-    const m = newMatch(match.config, skill, match.adaptativo, match.jugadores[0]!);
+    const rival = match.carrera ? { id: match.carrera.rivalId, jugador: match.jugadores[1]!, skill: match.skills[1]! } : undefined;
+    const m = newMatch(match.config, skill, match.adaptativo, match.jugadores[0]!, rival);
     saveMatch(m);
     playSfx("barajar");
     onRevancha(m);
@@ -235,9 +246,29 @@ function Mesa({ initial, onRevancha }: { initial: TrucoMatch; onRevancha: (m: Tr
       </LayoutGroup>
 
       <AnimatePresence>
-        {resumen && <Resumen key="resumen" r={resumen} nombre={nombre} equipo={equipo} view={view} onSeguir={cerrarResumen} terminado={view.winner !== null} />}
-        {!resumen && final && (
-          <FinPartida key="fin" final={final} score={view.score} equipo={equipo} adaptativo={match.adaptativo} onRevancha={revancha} onSalir={back} />
+        {resumen && (
+          <Resumen
+            key="resumen"
+            r={resumen}
+            nombre={nombre}
+            equipo={equipo}
+            view={view}
+            onSeguir={() => {
+              cerrarResumen();
+              setVistos((v) => Math.max(v + 1, match.state.history.length));
+            }}
+            terminado={view.winner !== null}
+          />
+        )}
+        {verFin && final && (
+          <FinPartida
+            key="fin"
+            r={final}
+            marcador={`${equipo(0)} ${view.score[0]} · ${equipo(1)} ${view.score[1]}`}
+            onRevancha={revancha}
+            onSalir={back}
+            salirTexto={match.carrera ? "Volver a la gira" : "Volver al menú"}
+          />
         )}
         {confirmarMazo && (
           <Modal key="mazo" onClose={() => setConfirmarMazo(false)}>
@@ -394,22 +425,6 @@ function Burbuja({ globo, pos }: { globo: Globo; pos: Punto }) {
   );
 }
 
-function Modal({ children, onClose, grande = false }: { children: React.ReactNode; onClose: () => void; grande?: boolean }) {
-  return (
-    <motion.div className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
-      <motion.div
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        onClick={(e) => e.stopPropagation()}
-        className={`cuero w-full rounded-3xl p-5 ${grande ? "max-h-[85dvh] max-w-lg overflow-y-auto" : "max-w-sm"}`}
-      >
-        <div className="relative z-[1]">{children}</div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
 function Resumen({ r, nombre, equipo, view, onSeguir, terminado }: { r: RoundSummary; nombre: (s: Seat) => string; equipo: (t: 0 | 1) => string; view: TrucoView; onSeguir: () => void; terminado: boolean }) {
   const ganamos = r.truco.team === view.team;
   const lineas: string[] = [];
@@ -457,36 +472,6 @@ function Resumen({ r, nombre, equipo, view, onSeguir, terminado }: { r: RoundSum
       <button className="btn-criollo min-h-14 w-full rounded-2xl font-criolla text-xl" onClick={onSeguir}>
         <span className="relative z-[1]">{terminado ? "Ver resultado" : "Siguiente mano"}</span>
       </button>
-    </Modal>
-  );
-}
-
-function FinPartida({ final, score, equipo, adaptativo, onRevancha, onSalir }: { final: Final; score: [number, number]; equipo: (t: 0 | 1) => string; adaptativo: boolean; onRevancha: () => void; onSalir: () => void }) {
-  return (
-    <Modal onClose={() => {}}>
-      <motion.h2 initial={{ scale: 0.5, rotate: -6 }} animate={{ scale: 1, rotate: -3 }} className="titulo-criollo mb-2 text-center text-5xl">
-        {final.gane ? "¡Ganaste!" : "Perdiste…"}
-      </motion.h2>
-      <p className="mb-3 text-center text-lg font-bold">
-        {equipo(0)} {score[0]} · {equipo(1)} {score[1]}
-      </p>
-      {adaptativo && (
-        <p className="mb-4 rounded-xl bg-black/30 px-3 py-2 text-center text-sm font-semibold">
-          {final.despues > final.antes
-            ? `La máquina se puso más brava: ahora juega en nivel ${final.despues} (${nivelNombre(final.despues)}).`
-            : final.despues < final.antes
-              ? `La máquina afloja un poco: nivel ${final.despues} (${nivelNombre(final.despues)}).`
-              : `La máquina sigue en nivel ${final.despues} (${nivelNombre(final.despues)}).`}
-        </p>
-      )}
-      <div className="flex flex-col gap-2">
-        <button className="btn-criollo min-h-14 rounded-2xl font-criolla text-2xl" onClick={onRevancha}>
-          <span className="relative z-[1]">Revancha</span>
-        </button>
-        <button className="min-h-12 rounded-xl bg-black/35 font-bold" onClick={onSalir}>
-          Volver al menú
-        </button>
-      </div>
     </Modal>
   );
 }

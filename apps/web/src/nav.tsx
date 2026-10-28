@@ -1,3 +1,4 @@
+import type { CareerGame } from "@juegos-argentinos/career";
 import type { GameId } from "@juegos-argentinos/engine";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
@@ -9,7 +10,13 @@ export type Route =
   | { name: "ajustes" }
   | { name: "mazos" }
   | { name: "truco-setup" }
-  | { name: "truco-mesa" };
+  | { name: "truco-mesa" }
+  | { name: "chinchon-setup" }
+  | { name: "chinchon-mesa" }
+  | { name: "casita-setup" }
+  | { name: "casita-mesa" }
+  | { name: "gira"; game: CareerGame }
+  | { name: "logros" };
 
 interface Nav {
   route: Route;

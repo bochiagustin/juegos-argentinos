@@ -50,6 +50,12 @@ Memoria de trabajo del proyecto: lo que el usuario pidió, prefirió o decidió 
 - 2026-10-28 · Fase 2 arrancó sin respuesta a las dudas del truco: se usaron las propuestas como default (configurables las que
   tienen variante). Fuerza medida de los bots (300 partidas a 15): nivel 10 vs 1 gana 76%, 10 vs 5 60%, 5 vs 1 62%.
 
+- 2026-10-28 · Pidió las fases 3, 4 y 5 juntas. Dudas de chinchón y casita sin responder → se usaron las propuestas como
+  default y casi todo quedó configurable. Decisiones nuevas: ligar automático al corte; reenganche automático una vez;
+  en la casita levantar es obligatorio si se puede; no se puede tirar la carta recién levantada del pozo.
+- 2026-10-28 · Los Mazo Argento pasaron a ser desbloqueables (fósforos o premio de la gira). Se arranca con 100 fósforos.
+- 2026-10-28 · Las giras de chinchón y casita son mano a mano (2 jugadores) en todas las regiones.
+
 ## Dudas abiertas (preguntar antes de implementar la fase correspondiente)
 
 ### Truco (implementado con la propuesta; confirmar)

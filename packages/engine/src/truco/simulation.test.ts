@@ -111,6 +111,13 @@ describe("simulación de partidas completas", () => {
     expect(wins / games).toBeGreaterThan(0.55);
   }, LONG);
 
+  it("los estilos cambian la personalidad, no el nivel", () => {
+    expect(botProfile(5, "mentiroso").bluff).toBeGreaterThan(botProfile(5).bluff);
+    expect(botProfile(5, "conservador").aggression).toBeLessThan(botProfile(5).aggression);
+    expect(botProfile(5, "agresivo").aggression).toBeGreaterThan(botProfile(5).aggression);
+    expect(botProfile(5, "mentiroso").errorRate).toBe(botProfile(5).errorRate);
+  });
+
   it("el perfil escala con el nivel", () => {
     expect(botProfile(1).errorRate).toBeGreaterThan(botProfile(10).errorRate);
     expect(botProfile(10).samples).toBeGreaterThan(botProfile(3).samples);

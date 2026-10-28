@@ -38,7 +38,7 @@ Monorepo pnpm (`@juegos-argentinos/*`), TypeScript estricto en todo (`tsconfig.b
 
 ```
 packages/engine   Motor de reglas puro (sin UI, sin red) + bots. Vitest.
-packages/career   (Fase 3) Gira Nacional, logros y fósforos. Lógica pura.
+packages/career   Gira Nacional, logros, fósforos y tienda. Lógica pura (depende del motor solo por tipos).
 apps/web          React 19 + Vite + Tailwind v4 + Motion + vite-plugin-pwa. Deploy en Vercel. Corre el motor en el navegador (offline).
 apps/server       (Fase 8) Servidor autoritativo de salas online.
 tools/            Scripts sueltos (extraer mazos de PDF).
@@ -57,12 +57,22 @@ docs/             arte.md (checklist de ilustraciones), licencias/.
 - `getPlayerView` **nunca** incluye cartas ocultas de otros jugadores ni el orden del mazo (solo cantidades).
 - Archivos: `core/cards.ts`, `core/deck.ts` (mazos 40/48 + comodines, Fisher–Yates, repartir), `core/rng.ts`, `core/game.ts`,
   `core/clone.ts` (copia profunda: `applyAction` trabaja sobre una copia, así el motor sigue puro).
-- Subpaths por juego: `@juegos-argentinos/engine/truco` (`src/truco/`): `cards.ts` (jerarquía, tanto, flor), `types.ts`,
+- Subpaths por juego: `@juegos-argentinos/engine/{truco,chinchon,casita}`. Cada carpeta: `types.ts`, `game.ts` (la máquina de
+  estados), `bot.ts` (`choose…Action`, perfil por nivel, `play…BotGame`), tests de reglas y simulaciones.
+- Truco (`src/truco/`): `cards.ts` (jerarquía, tanto, flor), `types.ts`,
   `game.ts` (la máquina de estados `truco`), `bot.ts` (`chooseTrucoAction`, `botProfile`, `playBotGame`), tests
   (`game.test.ts`: reglas y casos borde; `simulation.test.ts`: 600 partidas al azar con invariantes en cada paso + fuerza de los bots).
 - Cada juego irá en `src/<juego>/` con tests al lado, un bot (`bot.ts`) y una simulación de miles de partidas bot vs bot.
 - `applyAction` devuelve `events` públicos (cantos, jugadas, bazas, tantos, puntos, fin de ronda/partida): la UI los usa para
   animar y sonar, y la carrera los va a usar para logros.
+
+- Chinchón (`src/chinchon/`): `melds.ts` busca la mejor combinación exacta (DP sobre subconjuntos: grupos, escaleras,
+  comodines con límite por combinación, 7-10 seguidos con 40 cartas) y el ligar (`bestWithLayoff`). El ligar al corte es
+  **automático** (el motor elige lo mejor para cada uno). Reenganche automático (una vez) si está habilitado.
+  Bot: peso del "futuro" de las cartas medido en simulación (~1): más alto o más bajo juega peor.
+- Casita Robada (`src/casita/`): jugadas por carta (`jugadasPara`: mesa / robar a cada rival / propia / dejar); levantar es
+  obligatorio si se puede. Bot: ganancia menos riesgo relativo de quedar expuesto; es un juego de mucha suerte
+  (nivel 10 vs 1 ≈ 54% de victorias, 44% derrotas).
 
 ### Truco: decisiones de implementación
 
@@ -85,7 +95,18 @@ docs/             arte.md (checklist de ilustraciones), licencias/.
 - Carrera: skill fijo por rival, sube por región; el jefe tiene +2 y estilo propio. Partida rápida: skill adaptativo por rating tipo Elo.
 - Tutti-Frutti offline: diccionarios rioplatenses por categoría y letra (`src/tutti-frutti/data/`).
 
-### Carrera y logros (Fase 3, `packages/career`)
+### Carrera y logros (`packages/career`)
+
+- `data.ts`: 6 regiones con umbrales (0/300/900/1700/2700/3900), 18 personajes inventados (id = `${region}-${slot}`,
+  con frase y estilo: parejo/mentiroso/conservador/agresivo), giras de truco/chinchón/casita (reglas por región,
+  niveles 2→10), 18 logros, tienda (Mazo Argento 250/400/600 fósforos; el Nuevo se regala al ganarle al jefe de Buenos Aires).
+- `career.ts`: `estadoGira`, `registrarPartida(state, reporte)` → `{state, premio}` (puntos, fósforos, logros, región
+  desbloqueada, regalo), `comprar`, `normalizeCareer`. Los juegos mandan `Hecho`s (ej. `truco-tanto`, `menos-diez`, `casita-robos`).
+- En la web: `src/carrera/` (`Gira.tsx` con mapa SVG propio `MapaGira.tsx`, `Logros.tsx`, `useCerrarPartida.ts`),
+  `src/partidas/` (partida contra bots genérica `match.ts` + `useBotMatch.ts`, `FinPartida.tsx` común).
+  Guardado v3 con `carrera`. Los Mazo Argento están bloqueados hasta comprarlos o ganarlos.
+
+### Carrera y logros (diseño original)
 
 - Una **gira por juego**: Buenos Aires → Cuyo → Mesopotamia → Norte → Patagonia → Malvinas; 2 rivales + 1 jefe por región.
   Región se desbloquea por puntos de gira **y** ganándole al jefe anterior. Config de cada gira como datos.
@@ -235,10 +256,13 @@ reglamento rioplatense estándar, dudas en `MEMORY.md`.)*
 - [x] **Fase 2** — Truco contra la IA: motor completo (truco/retruco/vale 4, envido con cadenas y falta, "el envido está primero",
   flor opcional, pardas, mazo, malas y buenas), bot de niveles 1–10 con Monte Carlo, 1v1/2v2/3v3, nivel adaptativo,
   partida guardada, voz y lavado de cara (cuero, paño, madera, bronce, pestañas). 64 tests del motor + 14 de la web.
-  *Esperando OK del usuario.*
-- [ ] **Fase 3** — Gira Nacional del Truco + fósforos + logros (`packages/career`).
-- [ ] **Fase 4** — Chinchón (motor, bot, gira).
-- [ ] **Fase 5** — Casita Robada (motor, bot, gira).
+- [x] **Fase 3** — Gira Nacional (truco, chinchón y casita), 18 rivales con estilo, fósforos, 18 logros, tienda de mazos,
+  pestaña Logros, mapa de la gira.
+- [x] **Fase 4** — Chinchón: motor completo (combinaciones exactas, comodines, ligar, menos diez, chinchón, eliminación,
+  reenganche, rebarajar), bot, mesa con mano reordenable y combinaciones resaltadas, gira.
+- [x] **Fase 5** — Casita Robada: motor (levantar una/todas, robar con elección o prioridad, agrandar propia, parejas,
+  sobrantes), bot, mesa con robos dramáticos, gira. 127 tests en total.
+  *Fases 3, 4 y 5 hechas juntas a pedido del usuario. Esperando OK.*
 - [ ] **Fase 6** — Escoba de 15 (motor, bot, gira).
 - [ ] **Fase 7** — Tutti-Frutti (motor, bot con diccionario, gira).
 - [ ] **Fase 8** — Online con amigos: salas con código + WhatsApp, lobby, reconexión, timer, chat/reacciones/señas, revancha.

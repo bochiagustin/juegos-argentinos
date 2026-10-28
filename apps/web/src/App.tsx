@@ -1,5 +1,12 @@
 import { AnimatePresence, motion } from "motion/react";
+import { deckDisponible } from "./cards/decks.ts";
 import { DeckContext } from "./cards/SpanishCard.tsx";
+import { Gira } from "./carrera/Gira.tsx";
+import { Logros } from "./carrera/Logros.tsx";
+import { CasitaMesa } from "./casita/CasitaMesa.tsx";
+import { CasitaSetup } from "./casita/CasitaSetup.tsx";
+import { ChinchonMesa } from "./chinchon/ChinchonMesa.tsx";
+import { ChinchonSetup } from "./chinchon/ChinchonSetup.tsx";
 import { NavProvider, useNav, type Route } from "./nav.tsx";
 import { SaveProvider, useSave } from "./save/SaveContext.tsx";
 import { Ajustes } from "./screens/Ajustes.tsx";
@@ -12,7 +19,7 @@ import { TrucoMesa } from "./truco/TrucoMesa.tsx";
 import { TrucoSetup } from "./truco/TrucoSetup.tsx";
 
 function routeKey(r: Route): string {
-  return r.name === "juego" ? `juego-${r.id}` : r.name;
+  return r.name === "juego" ? `juego-${r.id}` : r.name === "gira" ? `gira-${r.game}` : r.name;
 }
 
 function CurrentScreen({ route }: { route: Route }) {
@@ -33,6 +40,18 @@ function CurrentScreen({ route }: { route: Route }) {
       return <TrucoSetup />;
     case "truco-mesa":
       return <TrucoMesa />;
+    case "chinchon-setup":
+      return <ChinchonSetup />;
+    case "chinchon-mesa":
+      return <ChinchonMesa />;
+    case "casita-setup":
+      return <CasitaSetup />;
+    case "casita-mesa":
+      return <CasitaMesa />;
+    case "gira":
+      return <Gira game={route.game} />;
+    case "logros":
+      return <Logros />;
   }
 }
 
@@ -40,7 +59,7 @@ function Shell() {
   const { route } = useNav();
   const { save } = useSave();
   return (
-    <DeckContext.Provider value={save.ajustes.mazo}>
+    <DeckContext.Provider value={deckDisponible(save.ajustes.mazo, save.carrera) ? save.ajustes.mazo : "criolla"}>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={routeKey(route)}

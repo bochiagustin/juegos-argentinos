@@ -1,11 +1,13 @@
+import { comprar, TIENDA } from "@juegos-argentinos/career";
 import { cardFromId, createDeck, SUITS, SUIT_NAMES } from "@juegos-argentinos/engine";
 import { useMemo, useState } from "react";
 import { playSfx } from "../audio/sfx.ts";
-import { DECK_IDS, DECKS, prefetchDeck, type DeckId } from "../cards/decks.ts";
+import { DECK_IDS, DECKS, deckDisponible, prefetchDeck, type DeckId } from "../cards/decks.ts";
 import { SpanishCard } from "../cards/SpanishCard.tsx";
 import { SuitBadge } from "../cards/suits.tsx";
 import { useNav } from "../nav.tsx";
 import { useSave } from "../save/SaveContext.tsx";
+import { FosforoIcono, Fosforos } from "../ui/Modal.tsx";
 import { FileteEsquinas, Screen, Section } from "../ui/ui.tsx";
 
 const PREVIEW = ["1-espada", "1-basto", "7-espada", "7-oro"].map(cardFromId);
@@ -14,7 +16,8 @@ const FULL_DECK = createDeck({ size: 48, jokers: 2 });
 export function Mazos() {
   const { back } = useNav();
   const { save, update } = useSave();
-  const enUso = save.ajustes.mazo;
+  const enUso = deckDisponible(save.ajustes.mazo, save.carrera) ? save.ajustes.mazo : "criolla";
+  const [error, setError] = useState<string | null>(null);
   const [viendo, setViendo] = useState<DeckId>(enUso);
   const skin = DECKS[viendo];
   const bySuit = useMemo(() => SUITS.map((suit) => ({ suit, cards: FULL_DECK.filter((c) => c.kind === "suited" && c.suit === suit) })), []);
@@ -26,12 +29,31 @@ export function Mazos() {
     playSfx("barajar");
   };
 
+  const comprarMazo = (id: DeckId) => {
+    const r = comprar(save.carrera, `mazo:${id}`);
+    if (!r.ok) {
+      setError(r.error);
+      playSfx("error");
+      return;
+    }
+    setError(null);
+    update((s) => ({ ...s, carrera: r.state }));
+    usar(id);
+  };
+
   return (
-    <Screen title="Mazos" onBack={back} tab="mazos">
+    <Screen title="Mazos" onBack={back} tab="mazos" right={<Fosforos n={save.carrera.fosforos} />}>
+      {error && (
+        <p role="alert" className="mb-3 rounded-xl bg-bordo/80 px-4 py-2 text-sm font-bold">
+          {error}. Ganá partidas y logros para juntar fósforos.
+        </p>
+      )}
       <div className="flex flex-col gap-3">
         {DECK_IDS.map((id) => {
           const d = DECKS[id];
           const activo = id === enUso;
+          const disponible = deckDisponible(id, save.carrera);
+          const precio = TIENDA.find((t) => t.id === `mazo:${id}`)?.precio;
           return (
             <div
               key={id}
@@ -61,6 +83,10 @@ export function Mazos() {
               <div className="relative z-[1] mt-3 flex justify-end">
                 {activo ? (
                   <span className="rounded-full bg-pano px-4 py-2 text-sm font-black text-crema">✓ En uso</span>
+                ) : !disponible ? (
+                  <button onClick={() => comprarMazo(id)} className="flex min-h-11 items-center gap-1.5 rounded-full bg-black/45 px-4 text-sm font-black text-crema active:scale-95">
+                    🔒 Comprar · <FosforoIcono /> {precio}
+                  </button>
                 ) : (
                   <button onClick={() => usar(id)} className="min-h-11 rounded-full bg-naranja px-5 text-sm font-black text-tinta active:scale-95">
                     Usar este mazo

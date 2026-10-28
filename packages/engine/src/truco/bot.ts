@@ -23,10 +23,13 @@ export interface BotProfile {
   samples: number;
 }
 
-export function botProfile(skill: number): BotProfile {
+/** Personalidad del rival: cambia cuánto miente y cuánto se arriesga, no cuánto sabe. */
+export type BotEstilo = "parejo" | "mentiroso" | "conservador" | "agresivo";
+
+export function botProfile(skill: number, estilo: BotEstilo = "parejo"): BotProfile {
   const k = Math.min(10, Math.max(1, Math.round(skill)));
   const t = (k - 1) / 9;
-  return {
+  const p: BotProfile = {
     skill: k,
     errorRate: 0.32 * (1 - t) + 0.02,
     bluff: 0.03 + 0.12 * t,
@@ -34,6 +37,17 @@ export function botProfile(skill: number): BotProfile {
     envidoMin: 28 - Math.round(2 * t),
     samples: k <= 2 ? 0 : 8 + k * 10,
   };
+  if (estilo === "mentiroso") p.bluff = Math.min(0.4, p.bluff * 2.2);
+  if (estilo === "conservador") {
+    p.bluff *= 0.5;
+    p.aggression = Math.max(0.1, p.aggression - 0.15);
+    p.envidoMin += 1;
+  }
+  if (estilo === "agresivo") {
+    p.aggression = Math.min(0.95, p.aggression + 0.2);
+    p.envidoMin -= 1;
+  }
+  return p;
 }
 
 const rankOf = (c: SuitedCard) => trucoRank(c);
@@ -131,9 +145,9 @@ function envidoAction(valid: readonly TrucoAction[], call: "envido" | "real-envi
   return valid.find((a) => a.type === "envido" && a.call === call);
 }
 
-export function chooseTrucoAction(view: TrucoView, valid: readonly TrucoAction[], rngIn: RngState, skill: number): [TrucoAction, RngState] {
+export function chooseTrucoAction(view: TrucoView, valid: readonly TrucoAction[], rngIn: RngState, skill: number, estilo: BotEstilo = "parejo"): [TrucoAction, RngState] {
   if (valid.length === 0) throw new Error("El bot no tiene nada para hacer");
-  const prof = botProfile(skill);
+  const prof = botProfile(skill, estilo);
   let rng = rngIn;
   const roll = () => {
     const [v, next] = nextFloat(rng);

@@ -1,4 +1,5 @@
-import { actorSeat, chooseTrucoAction, truco, type RoundSummary, type Seat, type TrucoAction, type TrucoEvent } from "@juegos-argentinos/engine/truco";
+import { personaje, type Hecho } from "@juegos-argentinos/career";
+import { actorSeat, chooseTrucoAction, teamOf, truco, type BotEstilo, type RoundSummary, type Seat, type TrucoAction, type TrucoEvent } from "@juegos-argentinos/engine/truco";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { playSfx, vibrate } from "../audio/sfx.ts";
 import { decir, enPalabras } from "../audio/voz.ts";
@@ -93,7 +94,9 @@ export function useTrucoMatch(initial: TrucoMatch, onFin: (m: TrucoMatch) => voi
         playSfx("error");
         return;
       }
-      const next: TrucoMatch = { ...m, state: res.state, rng };
+      const hechos = hechosDe(res.events);
+      const dif = res.state.score[0] - res.state.score[1];
+      const next: TrucoMatch = { ...m, state: res.state, rng, hechos: hechos.length ? [...m.hechos, ...hechos] : m.hechos, peorDiferencia: Math.min(m.peorDiferencia, dif) };
       matchRef.current = next;
       setMatch(next);
       handleEvents(res.events);
@@ -120,7 +123,8 @@ export function useTrucoMatch(initial: TrucoMatch, onFin: (m: TrucoMatch) => voi
     const id = m.state.players[actor]!;
     const delay = (m.state.round.pending ? 1100 : 750) + ((m.state.round.number * 37 + actor * 113) % 400);
     const t = window.setTimeout(() => {
-      const [action, rng] = chooseTrucoAction(truco.getPlayerView(m.state, id), truco.getValidActions(m.state, id), m.rng, m.skills[actor]!);
+      const estilo: BotEstilo = m.carrera && actor === 1 ? personaje(m.carrera.rivalId).estilo : "parejo";
+      const [action, rng] = chooseTrucoAction(truco.getPlayerView(m.state, id), truco.getValidActions(m.state, id), m.rng, m.skills[actor]!, estilo);
       apply(actor, action, rng);
     }, delay);
     return () => clearTimeout(t);
@@ -135,4 +139,22 @@ export function useTrucoMatch(initial: TrucoMatch, onFin: (m: TrucoMatch) => voi
   }, [miTurno, match.state.round.pending]);
 
   return { match, view, valid, jugar, globos, resumen, cerrarResumen: () => setResumen(null) };
+}
+
+/** Lo que pasó en estos eventos que cuenta para logros (siempre desde el punto de vista del jugador). */
+function hechosDe(events: readonly TrucoEvent[]): Hecho[] {
+  const out: Hecho[] = [];
+  for (const e of events) {
+    if (e.type === "tantos" && e.kind === "envido") {
+      for (const d of e.declarations) if (d.seat === HUMAN_SEAT && d.value !== null) out.push({ tipo: "truco-tanto", valor: d.value });
+    }
+    if (e.type === "fin-ronda") {
+      const r = e.summary;
+      if (r.truco.level === 4 && r.truco.how === "bazas" && r.truco.team === teamOf(HUMAN_SEAT)) out.push({ tipo: "truco-vale-cuatro-ganado" });
+      const tercera = r.tricks[2];
+      const mia = tercera?.plays.find((p) => p.seat === HUMAN_SEAT);
+      if (tercera?.winnerSeat === HUMAN_SEAT && mia?.card.id === "1-espada") out.push({ tipo: "truco-ancho-en-tercera" });
+    }
+  }
+  return out;
 }

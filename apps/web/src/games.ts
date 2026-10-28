@@ -38,7 +38,7 @@ export const GAMES: readonly GameInfo[] = [
     cuero: "cuero-verde",
     arte: "juego-truco",
     muestra: ["1-espada", "1-basto", "7-espada"],
-    modos: { ia: "disponible", carrera: "proximamente", amigos: "proximamente" },
+    modos: { ia: "disponible", carrera: "disponible", amigos: "proximamente" },
     reglas: [
       "Mazo de 40 cartas, 3 para cada uno. Gana la mano quien gana 2 de las 3 bazas.",
       "Las más fuertes: ancho de espada, ancho de basto, 7 de espada, 7 de oro, los 3 y los 2.",
@@ -56,7 +56,7 @@ export const GAMES: readonly GameInfo[] = [
     cuero: "cuero-rojo",
     arte: "juego-chinchon",
     muestra: ["4-copa", "5-copa", "6-copa", "7-copa"],
-    modos: PRONTO,
+    modos: { ia: "disponible", carrera: "disponible", amigos: "proximamente" },
     reglas: [
       "7 cartas cada uno. En tu turno robás (del mazo o del pozo) y tirás una.",
       "Armá escaleras del mismo palo (3 o más seguidas) o grupos de 3 o 4 del mismo número.",
@@ -74,7 +74,7 @@ export const GAMES: readonly GameInfo[] = [
     cuero: "cuero-azul",
     arte: "juego-casita-robada",
     muestra: ["5-oro", "5-copa", "5-basto"],
-    modos: PRONTO,
+    modos: { ia: "disponible", carrera: "disponible", amigos: "proximamente" },
     reglas: [
       "3 cartas cada uno y 4 boca arriba en la mesa.",
       "Si tirás una carta del mismo número que una de la mesa, te la llevás a tu casita.",

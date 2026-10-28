@@ -5,6 +5,7 @@ import { playSfx, vibrate } from "../audio/sfx.ts";
 import { SpanishCard } from "../cards/SpanishCard.tsx";
 import { useNav } from "../nav.tsx";
 import { useSave } from "../save/SaveContext.tsx";
+import { Fosforos } from "../ui/Modal.tsx";
 
 /** Pampa al atardecer dibujada en código, hasta que esté la ilustración de la portada. */
 function PampaFallback() {
@@ -150,6 +151,9 @@ export function Inicio() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/60" />
       </div>
 
+      <div className="absolute right-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-10">
+        <Fosforos n={save.carrera.fosforos} />
+      </div>
       <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col px-5">
         <motion.div className="mt-10" initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
           <Art id="logo" alt="Juegos Argentinos" className="mx-auto w-full max-w-sm" fallback={<LogoFallback />} />

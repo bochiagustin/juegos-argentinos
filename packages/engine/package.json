@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./truco": "./src/truco/index.ts"
+    "./truco": "./src/truco/index.ts",
+    "./chinchon": "./src/chinchon/index.ts",
+    "./casita": "./src/casita/index.ts"
   },
   "scripts": {
     "test": "vitest run",

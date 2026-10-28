@@ -6,12 +6,13 @@
  * si no se puede leer, se arranca con los valores por defecto.
  */
 
+import { defaultCareer, normalizeCareer, type CareerState } from "@juegos-argentinos/career";
 import type { GameId } from "@juegos-argentinos/engine";
 import { isDeckId, type DeckId } from "../cards/decks.ts";
 import { DEFAULT_RATING } from "../ia/nivel.ts";
 
 export const SAVE_KEY = "juegos-argentinos:save";
-export const CURRENT_VERSION = 2;
+export const CURRENT_VERSION = 3;
 
 export type Tema = "pano" | "claro" | "auto";
 
@@ -42,6 +43,8 @@ export interface Save {
   perfil: Perfil;
   ajustes: Ajustes;
   juegos: Partial<Record<GameId, StatsJuego>>;
+  /** Gira Nacional, fósforos, logros y lo desbloqueado. */
+  carrera: CareerState;
 }
 
 const GAME_IDS: readonly GameId[] = ["truco", "chinchon", "casita-robada", "escoba", "tutti-frutti"];
@@ -59,6 +62,7 @@ export function defaultSave(): Save {
     perfil: { apodo: "", avatar: "🧉", creado: false },
     ajustes: { sonido: true, vibracion: true, tema: "pano", mazo: "criolla" },
     juegos: {},
+    carrera: defaultCareer(),
   };
 }
 
@@ -74,6 +78,8 @@ export function sanitizeApodo(raw: string): string {
 const MIGRATIONS: Record<number, (s: UnknownRecord) => UnknownRecord> = {
   // v2: estadísticas y rating por juego (para la IA que se adapta).
   1: (s) => ({ ...s, version: 2, juegos: {} }),
+  // v3: modo carrera (arranca vacío; los mazos que ya se usaban se respetan abajo en normalize).
+  2: (s) => ({ ...s, version: 3, carrera: defaultCareer() }),
 };
 
 const num = (v: unknown, fallback: number, min = 0) => (typeof v === "number" && Number.isFinite(v) && v >= min ? v : fallback);
@@ -111,6 +117,7 @@ function normalize(s: UnknownRecord): Save {
       mazo: isDeckId(ajustes.mazo) ? ajustes.mazo : d.ajustes.mazo,
     },
     juegos: normalizeJuegos(s.juegos),
+    carrera: normalizeCareer(s.carrera),
   };
 }
 

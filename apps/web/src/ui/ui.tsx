@@ -2,11 +2,12 @@ import type { ReactNode } from "react";
 import { playSfx } from "../audio/sfx.ts";
 import { useNav, type Route } from "../nav.tsx";
 
-export type Tab = "inicio" | "juegos" | "mazos" | "ajustes";
+export type Tab = "inicio" | "juegos" | "logros" | "mazos" | "ajustes";
 
 const TABS: { id: Tab; label: string; icon: string; route: Route }[] = [
   { id: "inicio", label: "Inicio", icon: "🏠", route: { name: "inicio" } },
   { id: "juegos", label: "Jugar", icon: "▶️", route: { name: "juegos" } },
+  { id: "logros", label: "Logros", icon: "🏆", route: { name: "logros" } },
   { id: "mazos", label: "Mazos", icon: "🃏", route: { name: "mazos" } },
   { id: "ajustes", label: "Ajustes", icon: "⚙️", route: { name: "ajustes" } },
 ];
@@ -14,7 +15,7 @@ const TABS: { id: Tab; label: string; icon: string; route: Route }[] = [
 function TabBar({ active }: { active: Tab }) {
   const { goTo } = useNav();
   return (
-    <nav className="cuero cuero-oscuro sticky bottom-0 z-10 grid grid-cols-4 rounded-t-2xl pb-[env(safe-area-inset-bottom)]" aria-label="Secciones">
+    <nav className="cuero cuero-oscuro sticky bottom-0 z-10 grid grid-cols-5 rounded-t-2xl pb-[env(safe-area-inset-bottom)]" aria-label="Secciones">
       {TABS.map((t) => (
         <button
           key={t.id}
@@ -24,7 +25,7 @@ function TabBar({ active }: { active: Tab }) {
             goTo(t.route);
           }}
           aria-current={t.id === active ? "page" : undefined}
-          className={`relative z-[1] flex min-h-16 flex-col items-center justify-center gap-0.5 text-xs font-black uppercase tracking-wider ${
+          className={`relative z-[1] flex min-h-16 flex-col items-center justify-center gap-0.5 text-[11px] font-black uppercase tracking-wide ${
             t.id === active ? "text-naranja" : "text-crema/75"
           }`}
         >
@@ -32,7 +33,7 @@ function TabBar({ active }: { active: Tab }) {
             {t.icon}
           </span>
           {t.label}
-          {t.id === active && <span className="absolute inset-x-6 top-1.5 h-1 rounded-full bg-naranja" />}
+          {t.id === active && <span className="absolute inset-x-4 top-1.5 h-1 rounded-full bg-naranja" />}
         </button>
       ))}
     </nav>
