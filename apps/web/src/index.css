@@ -1,12 +1,51 @@
 @import "tailwindcss";
 
-@theme {
+/* Tema: tokens semánticos. "pano" (oscuro, mesa de paño) es el default; "claro" se elige en Ajustes. */
+:root {
+  --fondo: #0d3b2a;
+  --fondo-2: #072a1d;
+  --superficie: #0a3324;
+  --superficie-2: #124430;
+  --texto: #fbf6ea;
+  --texto-suave: rgb(251 246 234 / 0.72);
+  --borde: rgb(251 246 234 / 0.14);
+  --sombra: rgb(0 0 0 / 0.35);
+  color-scheme: dark;
+}
+
+:root[data-theme="claro"] {
+  --fondo: #f6efe0;
+  --fondo-2: #eadfc8;
+  --superficie: #fffaf0;
+  --superficie-2: #f1e7d3;
+  --texto: #1f2937;
+  --texto-suave: #4b5563;
+  --borde: rgb(31 41 55 / 0.14);
+  --sombra: rgb(91 58 30 / 0.18);
+  color-scheme: light;
+}
+
+@theme inline {
   --font-sans: "Nunito Variable", system-ui, sans-serif;
   --font-display: "Fraunces Variable", Georgia, serif;
-  --color-pano-900: #072a1d;
-  --color-pano-800: #0d3b2a;
-  --color-pano-700: #13513a;
-  --color-pano-600: #1b6b4c;
+  --font-criolla: Rye, "Fraunces Variable", Georgia, serif;
+  --color-fondo: var(--fondo);
+  --color-fondo-2: var(--fondo-2);
+  --color-superficie: var(--superficie);
+  --color-superficie-2: var(--superficie-2);
+  --color-texto: var(--texto);
+  --color-texto-suave: var(--texto-suave);
+  --color-borde: var(--borde);
+}
+
+@theme {
+  /* Paleta criolla (fija, igual en los dos temas). */
+  --color-tierra: #5b3a1e;
+  --color-pano: #1b5e3a;
+  --color-pano-oscuro: #0d3b2a;
+  --color-celeste: #63b3ed;
+  --color-naranja: #f59e0b;
+  --color-tinta: #1f2937;
   --color-crema: #fbf6ea;
   --color-oro: #f2b705;
   --color-bordo: #7b1e2b;
@@ -14,13 +53,43 @@
 
 html,
 body {
-  background: var(--color-pano-800);
-  color: var(--color-crema);
+  background: var(--fondo);
+  color: var(--texto);
   -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+body {
+  font-family: var(--font-sans);
 }
 
 .pano {
   background:
-    radial-gradient(ellipse at 50% 35%, rgb(255 255 255 / 0.07), transparent 65%),
-    var(--color-pano-800);
+    radial-gradient(ellipse at 50% 30%, rgb(255 255 255 / 0.07), transparent 65%),
+    var(--fondo);
+}
+
+/* Botón principal verde paño con relieve, como en el mockup. */
+.btn-criollo {
+  background: linear-gradient(#2e8b57, #1b5e3a);
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 0.25),
+    0 4px 0 #0d3b2a,
+    0 8px 18px rgb(0 0 0 / 0.35);
+  color: #fbf6ea;
+}
+.btn-criollo:active {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 0.2),
+    0 1px 0 #0d3b2a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

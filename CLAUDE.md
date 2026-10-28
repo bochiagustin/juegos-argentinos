@@ -1,10 +1,14 @@
-# La Mesa — juegos de cartas argentinos online con amigos
+# Juegos Argentinos — truco, chinchón, casita robada y tutti-frutti
 
-Web app mobile-first (PWA) para jugar online con amigos a **Truco, Chinchón, Casita Robada y Tutti-Frutti**.
+Web app mobile-first (PWA, anda sin internet) para jugar a **Truco, Chinchón, Casita Robada y Tutti-Frutti**:
+**contra la IA offline** (que se vuelve más competitiva a medida que ganás), en un **modo carrera** ("Gira Nacional",
+con rivales, regiones y logros para desbloquear) y, al final, **online con amigos**.
 Tiene que sentirse como una juntada de verdad: rápida, divertida, con animaciones, sonidos y onda argentina.
-Textos de la UI en **español rioplatense con voseo** ("Tirá una carta", "¿Querés?", "Te toca").
+Textos de la UI en **español rioplatense con voseo** ("Tirá una carta", "¿Querés?", "Te toca"), sin marcar género
+cuando no hace falta ("¡Hola!" en vez de "¡Bienvenido!").
 
 > Leé también `MEMORY.md`: preferencias del usuario, decisiones tomadas en conversación y dudas pendientes.
+> Plan aprobado de la reorientación: IA offline + carrera + rediseño criollo (resumen en "Estado de avance").
 
 ## Cómo trabajamos
 
@@ -21,18 +25,24 @@ pnpm install          # instala todo el monorepo (pnpm 10, Node >= 22)
 pnpm dev              # levanta la web (apps/web) en http://localhost:5173
 pnpm test             # tests de todos los paquetes (Vitest)
 pnpm typecheck        # tsc estricto en todos los paquetes
-pnpm --filter @la-mesa/engine test:watch
+pnpm build            # build de producción (incluye service worker de la PWA)
+pnpm --filter @juegos-argentinos/web preview   # sirve el build: para probar offline/instalable
+pnpm --filter @juegos-argentinos/engine test:watch
+python3 tools/extraer-mazos.py <pdf> <id>      # recorta un Mazo Argento de su PDF (poppler + Pillow)
 ```
 
 ## Arquitectura
 
-Monorepo pnpm, TypeScript estricto en todo (`tsconfig.base.json`: `strict`, `noUncheckedIndexedAccess`,
+Monorepo pnpm (`@juegos-argentinos/*`), TypeScript estricto en todo (`tsconfig.base.json`: `strict`, `noUncheckedIndexedAccess`,
 `exactOptionalPropertyTypes`). Los paquetes se consumen como fuente TS (sin build intermedio; imports con extensión `.ts`).
 
 ```
-packages/engine   Motor de reglas puro (sin UI, sin red). Vitest.
-apps/server       Servidor autoritativo de salas (Fase 1).
-apps/web          React 19 + Vite + Tailwind v4 + Motion (ex Framer Motion). Deploy en Vercel.
+packages/engine   Motor de reglas puro (sin UI, sin red) + bots. Vitest.
+packages/career   (Fase 3) Gira Nacional, logros y fósforos. Lógica pura.
+apps/web          React 19 + Vite + Tailwind v4 + Motion + vite-plugin-pwa. Deploy en Vercel. Corre el motor en el navegador (offline).
+apps/server       (Fase 7) Servidor autoritativo de salas online.
+tools/            Scripts sueltos (extraer mazos de PDF).
+docs/             arte.md (checklist de ilustraciones), licencias/.
 ```
 
 ### Motor (`packages/engine`)
@@ -42,34 +52,57 @@ apps/web          React 19 + Vite + Tailwind v4 + Motion (ex Framer Motion). Dep
   `getPlayerView(state, playerId)`, `isGameOver(state)`.
 - **Puro y determinístico**: prohibido `Math.random`, `Date.now`, mutar el estado recibido o tener I/O.
   El azar sale de `RngState` (sfc32 sembrado con cyrb128, `src/core/rng.ts`), que vive **dentro del estado** y es JSON.
-  Una partida se reproduce con semilla + lista de acciones. El tiempo (timeouts de turno) entra como acciones que manda el servidor.
-- Estado 100% serializable a JSON (se guarda en el storage del Durable Object).
-- Cartas: objetos planos con `id` estable (`"1-espada"`, `"12-copa"`, `"comodin-1"`). Las acciones referencian cartas por id.
+  Una partida se reproduce con semilla + lista de acciones. El tiempo (timeouts de turno) entra como acciones.
+- Estado 100% serializable a JSON. Cartas: objetos planos con `id` estable (`"1-espada"`, `"12-copa"`, `"comodin-1"`).
 - `getPlayerView` **nunca** incluye cartas ocultas de otros jugadores ni el orden del mazo (solo cantidades).
-- Archivos actuales: `core/cards.ts` (modelo), `core/deck.ts` (mazos 40/48 + comodines, Fisher–Yates, repartir), `core/rng.ts`, `core/game.ts`.
-- Cada juego irá en `src/<juego>/` con sus tests al lado (`*.test.ts`), más un bot (`src/<juego>/bot.ts`) y un test de simulación de partidas completas bot vs bot.
+- Archivos actuales: `core/cards.ts`, `core/deck.ts` (mazos 40/48 + comodines, Fisher–Yates, repartir), `core/rng.ts`, `core/game.ts`.
+- Cada juego irá en `src/<juego>/` con tests al lado, un bot (`bot.ts`) y una simulación de miles de partidas bot vs bot.
+- `applyAction` va a devolver también `events` (para logros de la carrera: "cantaste 33", "chinchón", "robaste una casita").
 
-### Servidor (`apps/server`) — decisión: PartyServer + Cloudflare Durable Objects
+### IA (bots, desde la Fase 2)
 
-- Una sala = un Durable Object (id derivado del código de sala). Es el **único** que tiene el estado completo.
-- Por qué: WebSockets con hibernación (barato cuando la sala está quieta), `alarm()` para temporizadores de turno y
-  timeout de reconexión, storage transaccional por sala, latencia baja en Sudamérica (edge), cero servidores que mantener,
-  free tier generoso. Colyseus en Fly.io queda como alternativa si algo de DO nos limita.
-- Protocolo: el cliente manda `{type: "action", action}`; el servidor valida contra `getValidActions` (nunca confiar en el cliente),
-  aplica, persiste y manda a cada conexión **solo** su `getPlayerView`. Chat, reacciones y señas son mensajes aparte
-  (las señas y el chat de equipo solo se reenvían al compañero).
-- Identidad sin registro: el cliente genera y guarda en `localStorage` un `playerToken` secreto + apodo + avatar; con eso se reconecta a su lugar.
+- `chooseAction(view, valid, rng, skill)`: **juega limpio**, solo con la vista de su jugador (nunca ve cartas ocultas).
+- `skill` 1–10 combina `errorRate`, `memory` (recuerda cartas jugadas), `bluff` (mentir truco/envido), `aggression`, `lookahead`.
+  Niveles altos de Truco/Chinchón: Monte Carlo con determinización (reparte con semilla las cartas que no ve y simula).
+- Carrera: skill fijo por rival, sube por región; el jefe tiene +2 y estilo propio. Partida rápida: skill adaptativo por rating tipo Elo.
+- Tutti-Frutti offline: diccionarios rioplatenses por categoría y letra (`src/tutti-frutti/data/`).
+
+### Carrera y logros (Fase 3, `packages/career`)
+
+- Una **gira por juego**: Buenos Aires → Cuyo → Mesopotamia → Norte → Patagonia → Malvinas; 2 rivales + 1 jefe por región.
+  Región se desbloquea por puntos de gira **y** ganándole al jefe anterior. Config de cada gira como datos.
+- **Fósforos** (moneda del juego, sin pagos) para cosmética: mazos, dorsos, paños, avatares. Los Mazo Argento se desbloquean acá.
+- **Logros** compartidos entre juegos, como predicados sobre los `events` del motor.
 
 ### Web (`apps/web`)
 
-- React 19 + Vite + Tailwind v4 (`@tailwindcss/vite`, tema en `src/index.css`) + `motion` (`import { motion } from "motion/react"`).
-- Fuentes empaquetadas (sin CDN, para PWA offline): Fraunces (display, índices de cartas) y Nunito (UI).
-- Cartas: `src/cards/` — `SpanishCard.tsx` (SVG 200×300), `suits.tsx` (íconos de palos en caja 100×100),
-  `figures.tsx` (Sota, Caballo, Rey en caja 108×240), `palette.ts` (colores por palo).
-  Diseño propio: índice grande en dos esquinas, marco con **pausas** (oro 0, copa 1, espada 2, basto 3),
-  pips de espada/basto levemente cruzados, aces con medallón (los anchos con rayos dorados), dorso bordó con sol "La Mesa".
-- Mobile-first: blancos táctiles ≥ 44px, sin scroll horizontal, `100dvh`.
-- Actualización optimista solo visual (animar la carta saliendo); el estado real lo decide el servidor.
+- Navegación por pila sin router (`src/nav.tsx`), integrada con el historial (el "atrás" de Android funciona).
+  Pantallas en `src/screens/`: Inicio, Juegos, Juego (modos + "Cómo se juega"), Perfil, Ajustes, Mazos.
+- Catálogo de juegos y modos en `src/games.ts` (`modos.ia/carrera/amigos`: "disponible" | "proximamente").
+- Guardado local en `src/save/` (`save.ts`): una clave de localStorage, esquema versionado con `MIGRATIONS`, todo en try/catch,
+  normaliza lo leído. `SaveContext.tsx` lo expone (`useSave`) y aplica tema, sonido y vibración. Tests en `save.test.ts`.
+- Tema por tokens CSS en `src/index.css` (`--fondo`, `--superficie`, `--texto`…; `data-theme="claro"`), expuestos a Tailwind con
+  `@theme inline` (`bg-fondo`, `text-texto-suave`, …). Paleta criolla fija: tierra, paño, celeste, naranja, tinta.
+- Fuentes empaquetadas (sin CDN): Rye (títulos, `font-criolla`), Fraunces (índices de cartas), Nunito (UI).
+- Sonidos sintetizados con Web Audio en `src/audio/sfx.ts` (`playSfx`, `vibrate`); sin archivos de audio.
+- **Arte del usuario**: `src/art/manifest.ts` (ids → `public/arte/...`), `<Art id fallback>` muestra un placeholder o un dibujo
+  propio mientras falte el archivo. Checklist en `docs/arte.md`.
+- **Mazos** (`src/cards/decks.ts`): `criolla` (SVG propio) y los tres **Mazo Argento** (`argento-nuevo`, `argento-memes`,
+  `argento-campeon`, imágenes en `public/mazos/<id>/<cardId>.webp` + `dorso.webp`, usados con licencia: `docs/licencias/mazo-argento.md`).
+  `<SpanishCard card width deck?>` dibuja con el mazo del `DeckContext` (el elegido en Ajustes); si falta una imagen, cae a la Criolla.
+- **La Criolla** (`src/cards/`): `SpanishCard.tsx` (SVG 200×300, índice en dos esquinas, marco con pausas oro 0 / copa 1 /
+  espada 2 / basto 3, ases fileteados, dorso fileteado), `suits.tsx` (oro con Sol de Mayo, copa con filete, espada con gavilanes,
+  basto de algarrobo), `figures.tsx` (Sota = peón con boina, Caballo = gaucho en un overo, Rey = patrón con bigotón y rastra;
+  caricatura, el color del palo en la ropa), `filete.tsx` (voluta, hoja, cinta celeste y blanca, borla).
+- **PWA** (`vite.config.ts`): precachea app y fuentes; `mazos/` y `arte/` van con caché en tiempo de ejecución (CacheFirst) y
+  al elegir un mazo se precargan sus 51 imágenes. Íconos provisorios en `public/icons/` (hasta que llegue `arte/icono.png`).
+- Mobile-first: blancos táctiles ≥ 44px, sin scroll horizontal, `100dvh`, safe areas.
+
+### Servidor (`apps/server`, Fase 7) — decisión: PartyServer + Cloudflare Durable Objects
+
+- Una sala = un Durable Object. Es el **único** que tiene el estado completo; valida toda acción contra `getValidActions`
+  y manda a cada conexión solo su `getPlayerView`. Chat, reacciones y señas aparte (señas solo al compañero).
+- Identidad sin registro: `playerToken` secreto + apodo + avatar en el guardado local, para reconectar.
 
 ## Reglas de los juegos (fuente de verdad para el motor)
 
@@ -146,10 +179,15 @@ apps/web          React 19 + Vite + Tailwind v4 + Motion (ex Framer Motion). Dep
 
 ## Estado de avance
 
-- [x] **Fase 0** — Monorepo, CLAUDE.md/MEMORY.md, modelo de cartas, RNG con semilla, mezclar/repartir (24 tests), diseño SVG de las 50 cartas + dorso, página de muestra en `apps/web`.
-- [ ] **Fase 1** — Común: inicio, salas con código + WhatsApp, lobby, reconexión, timer, chat/reacciones, bots, revancha, sonidos, animaciones, tutorial, PWA.
-- [ ] **Fase 2** — Truco.
-- [ ] **Fase 3** — Chinchón.
-- [ ] **Fase 4** — Casita Robada.
-- [ ] **Fase 5** — Tutti-Frutti.
-- [ ] **Fase 6** — Pulido, resultados con momentos destacados, temas, deploy final.
+- [x] **Fase 0** — Monorepo, modelo de cartas, RNG con semilla, mezclar/repartir (24 tests), primera baraja SVG.
+- [x] **Fase 1** — App "Juegos Argentinos": Inicio, Elegí un juego, ficha de cada juego con modos ("Próximamente") y
+  "Cómo se juega", Perfil (apodo + avatar), Ajustes (sonido, vibración, tema paño/claro/auto, mazo, borrar datos),
+  Mazos (Criolla + 3 Mazo Argento), guardado versionado (7 tests), sonidos Web Audio, PWA offline, placeholders de arte.
+  *Esperando OK del usuario.*
+- [ ] **Fase 2** — Truco: motor completo + bot con niveles + jugar contra la IA (1v1 y 2v2 con compañero bot).
+- [ ] **Fase 3** — Gira Nacional del Truco + fósforos + logros (`packages/career`).
+- [ ] **Fase 4** — Chinchón (motor, bot, gira).
+- [ ] **Fase 5** — Casita Robada (motor, bot, gira).
+- [ ] **Fase 6** — Tutti-Frutti (motor, bot con diccionario, gira).
+- [ ] **Fase 7** — Online con amigos: salas con código + WhatsApp, lobby, reconexión, timer, chat/reacciones/señas, revancha.
+- [ ] **Fase 8** — Pulido, resultados con momentos destacados, accesibilidad, deploy final (Vercel + Cloudflare).

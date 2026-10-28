@@ -1,0 +1,103 @@
+import type { GameId } from "@juegos-argentinos/engine";
+import type { ArtId } from "./art/manifest.ts";
+
+export type ModoId = "ia" | "carrera" | "amigos";
+export type ModoEstado = "disponible" | "proximamente";
+
+export interface GameInfo {
+  id: GameId;
+  nombre: string;
+  bajada: string;
+  jugadores: string;
+  /** Degradé de la tarjeta (desde, hasta). */
+  colores: readonly [string, string];
+  arte: ArtId;
+  /** Cartas de muestra para la tarjeta mientras no esté la ilustración (vacío = juego sin cartas). */
+  muestra: readonly string[];
+  modos: Record<ModoId, ModoEstado>;
+  reglas: readonly string[];
+}
+
+export const MODOS: Record<ModoId, { nombre: string; bajada: string; icono: string }> = {
+  ia: { nombre: "Contra la IA", bajada: "Partida rápida, sin internet. La máquina se pone brava a medida que ganás.", icono: "🤖" },
+  carrera: { nombre: "Gira Nacional", bajada: "Recorré el país de Buenos Aires a Malvinas desbloqueando rivales y logros.", icono: "🗺️" },
+  amigos: { nombre: "Con amigos", bajada: "Armá una sala y pasales el código por WhatsApp.", icono: "👥" },
+};
+
+const PRONTO: Record<ModoId, ModoEstado> = { ia: "proximamente", carrera: "proximamente", amigos: "proximamente" };
+
+export const GAMES: readonly GameInfo[] = [
+  {
+    id: "truco",
+    nombre: "Truco",
+    bajada: "El clásico de siempre",
+    jugadores: "2, 4 o 6 jugadores",
+    colores: ["#2e8b57", "#0d3b2a"],
+    arte: "juego-truco",
+    muestra: ["1-espada", "1-basto", "7-espada"],
+    modos: PRONTO,
+    reglas: [
+      "Mazo de 40 cartas, 3 para cada uno. Gana la mano quien gana 2 de las 3 bazas.",
+      "Las más fuertes: ancho de espada, ancho de basto, 7 de espada, 7 de oro, los 3 y los 2.",
+      "Truco, retruco y vale cuatro suben lo que vale la mano. Si no querés, el otro cobra lo anterior.",
+      "En la primera baza se puede cantar envido: dos cartas del mismo palo suman 20 más sus valores.",
+      "Se juega a 15 o a 30 puntos (malas y buenas).",
+    ],
+  },
+  {
+    id: "chinchon",
+    nombre: "Chinchón",
+    bajada: "Formá tu mano ideal",
+    jugadores: "2 a 6 jugadores",
+    colores: ["#b5502c", "#5b1f12"],
+    arte: "juego-chinchon",
+    muestra: ["4-copa", "5-copa", "6-copa", "7-copa"],
+    modos: PRONTO,
+    reglas: [
+      "7 cartas cada uno. En tu turno robás (del mazo o del pozo) y tirás una.",
+      "Armá escaleras del mismo palo (3 o más seguidas) o grupos de 3 o 4 del mismo número.",
+      "Cortás cuando lo que te queda suelto suma 5 o menos. Si cortás con todo ligado, ¡menos diez!",
+      "Cada mano sumás lo que te quedó suelto. Llegás a 100 y quedás afuera.",
+      "Escalera de 7 del mismo palo sin comodín: ¡Chinchón! Ganás la partida en el acto.",
+    ],
+  },
+  {
+    id: "casita-robada",
+    nombre: "Casita Robada",
+    bajada: "Robale la casita al de al lado",
+    jugadores: "2 a 4 jugadores",
+    colores: ["#2f6db5", "#13325e"],
+    arte: "juego-casita-robada",
+    muestra: ["5-oro", "5-copa", "5-basto"],
+    modos: PRONTO,
+    reglas: [
+      "3 cartas cada uno y 4 boca arriba en la mesa.",
+      "Si tirás una carta del mismo número que una de la mesa, te la llevás a tu casita.",
+      "Si coincide con la de arriba de la casita de otro… ¡le robás toda la casita!",
+      "Si no coincide con nada, tu carta queda en la mesa.",
+      "Gana quien junta más cartas en su casita.",
+    ],
+  },
+  {
+    id: "tutti-frutti",
+    nombre: "Tutti-Frutti",
+    bajada: "¡Basta para mí, basta para todos!",
+    jugadores: "2 a 10 jugadores",
+    colores: ["#f59e0b", "#a4470b"],
+    arte: "juego-tutti-frutti",
+    muestra: [],
+    modos: PRONTO,
+    reglas: [
+      "Sale una letra y todos completan las categorías: nombre, país, animal, fruta, color…",
+      "El primero que termina grita ¡BASTA! y los demás tienen unos segundos para cerrar.",
+      "10 puntos por respuesta única, 5 si alguien puso lo mismo, 20 si sos el único en la categoría.",
+      "Las respuestas dudosas se votan entre todos.",
+    ],
+  },
+];
+
+export function gameInfo(id: GameId): GameInfo {
+  const g = GAMES.find((x) => x.id === id);
+  if (!g) throw new Error(`Juego desconocido: ${id}`);
+  return g;
+}

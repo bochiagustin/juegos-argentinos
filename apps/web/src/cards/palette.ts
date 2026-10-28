@@ -1,4 +1,4 @@
-import type { Suit } from "@la-mesa/engine";
+import type { Suit } from "@juegos-argentinos/engine";
 
 /** Colores por palo, como en la baraja española tradicional. */
 export const SUIT_COLORS: Record<Suit, { main: string; dark: string; light: string; ink: string }> = {
@@ -13,7 +13,16 @@ export const GOLD = "#f2b705";
 export const GOLD_DARK = "#9a6a00";
 export const CREAM = "#fbf6ea";
 export const SKIN = "#f2c9a0";
-export const HAIR = "#5a3a1f";
+export const NOSE = "#e89a78";
+export const BLUSH = "#ef8f7a";
+export const HAIR = "#4a2f1a";
+export const HAT = "#3b2a1a";
+export const SHIRT = "#fffaf0";
+export const BOMBACHA = "#cdbb93";
 export const WOOD = "#8d5a2b";
 export const WOOD_DARK = "#4e2e10";
-export const STEEL = "#d7dfe9";
+export const STEEL = "#dbe4ee";
+export const SILVER = "#cfd8dc";
+export const GRASS = "#8bc34a";
+export const CELESTE = "#63b3ed";
+export const BORDO = "#7b1e2b";

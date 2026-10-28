@@ -1,14 +1,16 @@
-import { cardName, type Card, type Rank, type Suit } from "@la-mesa/engine";
-import { useId } from "react";
+import { cardName, type Card, type Rank, type Suit } from "@juegos-argentinos/engine";
+import { createContext, useContext, useId, useState } from "react";
+import { DECKS, deckImageUrl, type DeckId } from "./decks.ts";
 import { Figure } from "./figures.tsx";
-import { CREAM, GOLD, GOLD_DARK, INK, SUIT_COLORS } from "./palette.ts";
+import { Borla, Cinta, Hoja, Voluta } from "./filete.tsx";
+import { BORDO, CELESTE, CREAM, GOLD, GOLD_DARK, INK, SUIT_COLORS } from "./palette.ts";
 import { SuitIcon } from "./suits.tsx";
 
 /**
- * Carta española en SVG (viewBox 200×300). Diseño propio:
+ * Carta española criolla en SVG (viewBox 200×300). Diseño propio:
  * - Índice grande arriba-izquierda y abajo-derecha (legible a 48px de ancho).
  * - Marco con "pausas" como la baraja tradicional: oro 0, copa 1, espada 2, basto 3.
- * - Pips del 1 al 9; figuras ilustradas para 10, 11 y 12.
+ * - Pips del 2 al 9; ases fileteados; figuras criollas para 10, 11 y 12.
  */
 
 export const CARD_W = 200;
@@ -103,24 +105,45 @@ function Corners({ label, suit, color }: { label: string; suit?: Suit; color: st
   );
 }
 
-function AceDecoration({ suit }: { suit: Suit }) {
+/** Ases con fileteado porteño. Los anchos (espada y basto) van cruzados, con rayos y cintas celeste y blanca. */
+function Ace({ suit }: { suit: Suit }) {
   const c = SUIT_COLORS[suit];
   const ancho = suit === "espada" || suit === "basto";
   return (
     <g>
-      <circle cx={100} cy={150} r={70} fill={c.light} />
-      <circle cx={100} cy={150} r={70} fill="none" stroke={c.main} strokeWidth={1.5} strokeDasharray="2 5" />
       {ancho &&
-        Array.from({ length: 16 }, (_, i) => (
+        Array.from({ length: 20 }, (_, i) => (
           <path
             key={i}
-            d="M100,72 L103,84 L97,84 Z"
+            d={i % 2 === 0 ? "M100,70 L104,90 L96,90 Z" : "M100,80 L102.5,92 L97.5,92 Z"}
             fill={GOLD}
             stroke={GOLD_DARK}
             strokeWidth={0.8}
-            transform={`rotate(${i * 22.5} 100 150)`}
+            transform={`rotate(${i * 18} 100 150)`}
           />
         ))}
+      <circle cx={100} cy={150} r={ancho ? 56 : 64} fill={c.light} stroke={c.main} strokeWidth={1.5} />
+      <Voluta x={96} y={70} scale={0.75} flipX color={c.main} />
+      <Voluta x={104} y={70} scale={0.75} color={c.main} />
+      <Voluta x={96} y={230} scale={0.75} flipX flipY color={c.main} />
+      <Voluta x={104} y={230} scale={0.75} flipY color={c.main} />
+      {ancho ? (
+        <>
+          <SuitIcon suit={suit} x={100} y={150} size={152} rotate={suit === "espada" ? -22 : 22} />
+          <Cinta d="M50,120 C80,100 120,140 150,118" />
+          <Cinta d="M52,196 C82,176 118,214 150,190" />
+          <Cinta d="M50,120 C40,128 40,140 47,148" width={8} />
+          <Cinta d="M150,190 C158,198 156,208 149,214" width={8} />
+          <Borla x={47} y={150} color={GOLD} />
+          <Borla x={149} y={216} color={GOLD} />
+        </>
+      ) : (
+        <>
+          <Hoja x={44} y={150} scale={0.9} rotate={-150} color={SUIT_COLORS.basto.main} />
+          <Hoja x={156} y={150} scale={0.9} rotate={-30} flipY color={SUIT_COLORS.basto.main} />
+          <SuitIcon suit={suit} x={100} y={150} size={112} />
+        </>
+      )}
     </g>
   );
 }
@@ -138,10 +161,10 @@ function SuitedFace({ rank, suit }: { rank: Rank; suit: Suit }) {
       </>
     );
   }
+  if (rank === 1) return <Ace suit={suit} />;
   const layout = PIP_LAYOUTS[rank];
   return (
     <>
-      {rank === 1 && <AceDecoration suit={suit} />}
       {layout.pips.map(([x, y], i) => (
         <SuitIcon key={i} suit={suit} x={x} y={y} size={layout.size} rotate={pipRotation(suit, x)} />
       ))}
@@ -170,7 +193,7 @@ function JokerFace() {
       <circle cx={118} cy={176} r={4} fill="#e8957a" stroke="none" opacity={0.7} />
       {/* gorguera */}
       <path d="M64,200 L76,192 L82,206 L92,196 L100,210 L108,196 L118,206 L124,192 L136,200 L126,218 H74 Z" fill={GOLD} />
-      <text x={100} y={240} textAnchor="middle" stroke="none" fontFamily="'Fraunces Variable', Georgia, serif" fontWeight={800} fontSize={20} fill={INK} letterSpacing={1.5}>
+      <text x={100} y={240} textAnchor="middle" stroke="none" fontFamily="Rye, 'Fraunces Variable', Georgia, serif" fontSize={20} fill={INK} letterSpacing={1}>
         COMODÍN
       </text>
     </g>
@@ -183,7 +206,7 @@ function CardBack({ patternId }: { patternId: string }) {
     <g>
       <defs>
         <pattern id={patternId} width={16} height={16} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <rect width={16} height={16} fill="#7b1e2b" />
+          <rect width={16} height={16} fill={BORDO} />
           <rect x={5} y={5} width={6} height={6} fill="#9b2d3c" />
           <circle cx={0} cy={0} r={1.5} fill={GOLD} opacity={0.7} />
           <circle cx={16} cy={16} r={1.5} fill={GOLD} opacity={0.7} />
@@ -192,23 +215,30 @@ function CardBack({ patternId }: { patternId: string }) {
       <rect x={10} y={10} width={180} height={280} rx={10} fill={`url(#${patternId})`} />
       <rect x={10} y={10} width={180} height={280} rx={10} fill="none" stroke={GOLD} strokeWidth={3} />
       <rect x={17} y={17} width={166} height={266} rx={7} fill="none" stroke={GOLD} strokeWidth={1} opacity={0.7} />
-      <circle cx={100} cy={150} r={50} fill="#5c1520" stroke={GOLD} strokeWidth={2.5} />
+      {/* volutas de filete en las cuatro esquinas */}
+      <Voluta x={24} y={30} scale={0.6} rotate={0} color={GOLD} />
+      <Voluta x={176} y={30} scale={0.6} flipX color={GOLD} />
+      <Voluta x={24} y={270} scale={0.6} flipY color={GOLD} />
+      <Voluta x={176} y={270} scale={0.6} flipX flipY color={GOLD} />
+      {/* Sol de Mayo */}
       {rays.map((deg, i) => (
         <path
           key={deg}
-          d={i % 2 === 0 ? "M100,104 L104,122 L96,122 Z" : "M100,110 Q105,116 100,122 Q95,128 100,124"}
+          d={i % 2 === 0 ? "M100,92 L105,116 L95,116 Z" : "M100,98 C106,104 94,110 100,118"}
           fill={i % 2 === 0 ? GOLD : "none"}
-          stroke={GOLD}
-          strokeWidth={i % 2 === 0 ? 0 : 2}
-          transform={`rotate(${deg} 100 150)`}
+          stroke={i % 2 === 0 ? GOLD_DARK : GOLD}
+          strokeWidth={i % 2 === 0 ? 1 : 3}
+          strokeLinecap="round"
+          transform={`rotate(${deg} 100 140)`}
         />
       ))}
-      <circle cx={100} cy={150} r={22} fill={GOLD} stroke={GOLD_DARK} strokeWidth={2} />
-      <text x={100} y={156} textAnchor="middle" fontFamily="'Fraunces Variable', Georgia, serif" fontWeight={900} fontSize={17} fill="#5c1520">
-        LM
+      <SuitIcon suit="oro" x={100} y={140} size={52} />
+      <rect x={30} y={204} width={140} height={52} rx={10} fill="#5c1520" stroke={GOLD} strokeWidth={2} />
+      <text x={100} y={226} textAnchor="middle" fontFamily="Rye, 'Fraunces Variable', Georgia, serif" fontSize={18} fill={GOLD}>
+        Juegos
       </text>
-      <text x={100} y={232} textAnchor="middle" fontFamily="'Fraunces Variable', Georgia, serif" fontWeight={700} fontStyle="italic" fontSize={20} fill={GOLD}>
-        La Mesa
+      <text x={100} y={248} textAnchor="middle" fontFamily="Rye, 'Fraunces Variable', Georgia, serif" fontSize={18} fill={CELESTE}>
+        Argentinos
       </text>
     </g>
   );
@@ -224,9 +254,11 @@ export interface SpanishCardProps {
   /** Resalta la carta (jugada válida, selección). */
   highlight?: boolean;
   dimmed?: boolean;
+  /** Mazo a usar; si no se pasa, el del contexto (el elegido en Ajustes). */
+  deck?: DeckId;
 }
 
-export function SpanishCard({ card, faceDown = false, width = 120, className, highlight = false, dimmed = false }: SpanishCardProps) {
+function CriollaCard({ card, faceDown = false, width = 120, className, highlight = false, dimmed = false }: SpanishCardProps) {
   const id = svgId(useId());
   const showBack = faceDown || card === null;
   const label = showBack ? "Carta boca abajo" : cardName(card);
@@ -268,4 +300,50 @@ export function SpanishCard({ card, faceDown = false, width = 120, className, hi
       )}
     </svg>
   );
+}
+
+/** Mazo activo para todas las cartas de la app (lo setea el guardado). */
+export const DeckContext = createContext<DeckId>("criolla");
+
+/** Alto en px de una carta de `width` px en ese mazo. */
+export function cardHeight(width: number, deck: DeckId): number {
+  return width / DECKS[deck].aspecto;
+}
+
+function ImageCard({ card, faceDown = false, width = 120, className, highlight = false, dimmed = false, deck }: SpanishCardProps & { deck: DeckId }) {
+  // Si falta una imagen (offline sin caché, archivo faltante) se cae a la Criolla para esa carta.
+  const [failed, setFailed] = useState<string | null>(null);
+  const showBack = faceDown || card === null;
+  const url = deckImageUrl(deck, showBack ? null : card);
+  if (failed === url) {
+    return <CriollaCard card={card} faceDown={faceDown} width={width} highlight={highlight} dimmed={dimmed} {...(className ? { className } : {})} />;
+  }
+  const label = showBack ? "Carta boca abajo" : cardName(card);
+  return (
+    <img
+      src={url}
+      alt={label}
+      title={label}
+      width={width}
+      height={Math.round(cardHeight(width, deck))}
+      draggable={false}
+      onError={() => setFailed(url)}
+      className={className}
+      style={{
+        display: "block",
+        borderRadius: width * 0.07,
+        background: "#fff",
+        boxShadow: highlight ? `0 0 0 ${Math.max(2, width * 0.03)}px ${GOLD}` : "0 0 0 1px #cbbd9e",
+        filter: dimmed ? "grayscale(0.6) brightness(0.7)" : undefined,
+        objectFit: "cover",
+      }}
+    />
+  );
+}
+
+export function SpanishCard(props: SpanishCardProps) {
+  const contextDeck = useContext(DeckContext);
+  const deck = props.deck ?? contextDeck;
+  if (DECKS[deck].tipo === "imagen") return <ImageCard {...props} deck={deck} />;
+  return <CriollaCard {...props} />;
 }

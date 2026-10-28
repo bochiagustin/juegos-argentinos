@@ -1,4 +1,4 @@
-# MEMORY — La Mesa
+# MEMORY — Juegos Argentinos
 
 Memoria de trabajo del proyecto: lo que el usuario pidió, prefirió o decidió en conversación, y lo que falta definir.
 `CLAUDE.md` tiene la arquitectura y las reglas; acá va el contexto que no es obvio leyendo el código.
@@ -9,7 +9,18 @@ Memoria de trabajo del proyecto: lo que el usuario pidió, prefirió o decidió 
 - Trabajo por fases, frenando al final de cada una para mostrar cómo probar y esperar su OK.
 - Quiere reglas correctas y completas, no versiones simplificadas; ante la duda, preguntar.
 - Variantes regionales: la de Buenos Aires por defecto, la otra configurable.
-- Cartas españolas dibujadas por nosotros en SVG, nada de imágenes de mazos comerciales.
+- La app se llama **Juegos Argentinos**. Al entrar se elige el juego.
+- Prioridad: **offline contra la IA primero**, después modo carrera con logros, y el online con amigos al final.
+- La IA tiene que volverse más competitiva a medida que el jugador avanza.
+- Modo carrera tipo "Gira Nacional" (referencia: mapa de Argentina por regiones con candados "En N pts"): **una gira por juego**,
+  logros y fósforos compartidos.
+- Estética: referencia del mockup "Truco Argentino" (gaucho con mate, paño verde, madera, paleta tierra/paño/celeste/naranja,
+  títulos tipo western). Cartas: **criollo caricatura** (peón, gaucho a caballo, patrón; fileteado porteño en los ases).
+- Las **ilustraciones grandes las provee el usuario** (portada, tarjetas de juegos, mapa, 18 rivales). Checklist en `docs/arte.md`.
+- Mandó 3 PDFs de **Mazo Argento** (Nuevo, Memes, Campeón del Mundo) y **declaró tener licencia** de sus autores.
+  Se recortaron provisoriamente de los PDFs; quedan como mazos desbloqueables. Falta el permiso escrito y los originales
+  (`docs/licencias/mazo-argento.md`). Tienen personas reales: confirmar derechos de imagen antes de publicar.
+- Mazos temáticos con palos cambiados están bien siempre que cada palo mantenga su color y el índice grande.
 - Fuentes de referencia que pasó (no se pudieron leer: la red del entorno bloquea esos dominios):
   - Truco: https://es.wikihow.com/jugar-al-truco
   - Chinchón: https://www.nhfournier.es/como-jugar/chinchon/
@@ -20,11 +31,17 @@ Memoria de trabajo del proyecto: lo que el usuario pidió, prefirió o decidió 
 ## Decisiones tomadas
 
 - 2026-10-28 · Monorepo con pnpm workspaces; paquetes consumidos como fuente TS (sin build del motor).
-- 2026-10-28 · Servidor: PartyServer + Cloudflare Durable Objects (pendiente de confirmación del usuario; alternativa Colyseus en Fly.io).
+- 2026-10-28 · Servidor (Fase 7): PartyServer + Cloudflare Durable Objects (alternativa Colyseus en Fly.io).
 - 2026-10-28 · RNG: sfc32 + cyrb128, estado `[u32,u32,u32,u32]` guardado en el estado del juego. Fisher–Yates con rechazo para evitar sesgo de módulo.
 - 2026-10-28 · Ids de carta legibles: `"7-oro"`, `"comodin-1"`.
 - 2026-10-28 · Paleta por palo: espada azul, basto verde, oro dorado, copa rojo. Marco con pausas tradicionales (oro 0, copa 1, espada 2, basto 3).
 - 2026-10-28 · Motion (`motion/react`) en lugar del paquete viejo `framer-motion` (es la misma librería, renombrada).
+
+- 2026-10-28 · Reorientación aprobada: fases nuevas (1 app · 2 Truco vs IA · 3 carrera · 4 Chinchón · 5 Casita · 6 Tutti-Frutti · 7 online · 8 pulido).
+- 2026-10-28 · Paquetes renombrados a `@juegos-argentinos/*`.
+- 2026-10-28 · Sin router: navegación por pila + historial del navegador. Guardado en localStorage versionado (v1: perfil, ajustes, mazo).
+- 2026-10-28 · Sonidos sintetizados con Web Audio (cero archivos). PWA con vite-plugin-pwa; imágenes de mazos/arte con caché en runtime.
+- 2026-10-28 · Hasta la Fase 3 (carrera) todos los mazos están disponibles; después los Mazo Argento se desbloquean con fósforos/logros.
 
 ## Dudas abiertas (preguntar antes de implementar la fase correspondiente)
 

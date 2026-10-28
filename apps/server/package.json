@@ -1,13 +1,13 @@
 {
-  "name": "@la-mesa/server",
+  "name": "@juegos-argentinos/server",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "echo \"(server: se implementa en la Fase 1)\"",
-    "typecheck": "echo \"(server: se implementa en la Fase 1)\""
+    "test": "echo \"(server: se implementa en la Fase 7)\"",
+    "typecheck": "echo \"(server: se implementa en la Fase 7)\""
   },
   "dependencies": {
-    "@la-mesa/engine": "workspace:*"
+    "@juegos-argentinos/engine": "workspace:*"
   }
 }
