@@ -310,5 +310,5 @@ reglamento rioplatense estándar, dudas en `MEMORY.md`.)*
 - [x] **Fase 8** — Online con amigos: servidor de salas (Cloudflare Durable Objects + Node para desarrollo), los cinco juegos,
   salas con código + WhatsApp, lobby con máquinas y equipos, reconexión, reloj de turno, chat/reacciones/señas, revancha.
 - [x] **Fase 9** — Pulido: momentos destacados, accesibilidad (diálogos, foco, menos animaciones, letra grande), CI, configs de
-  deploy (`vercel.json`, `wrangler.jsonc`, GitHub Actions) y guía `docs/deploy.md`. 177 tests. Falta publicar con las cuentas del usuario.
+  deploy (`vercel.json` + `tools/copiar-dist.mjs`: el build queda también en `./dist`, `wrangler.jsonc`, GitHub Actions) y guía `docs/deploy.md`. 177 tests. Falta publicar con las cuentas del usuario.
   *Fases 7, 8 y 9 hechas seguidas a pedido del usuario ("completá todas las fases"). Esperando correcciones.*
