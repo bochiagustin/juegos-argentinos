@@ -1,10 +1,32 @@
 import { motion } from "motion/react";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
+/** Ventana encima de la pantalla: diálogo accesible (foco adentro, Escape cierra si se puede cerrar). */
 export function Modal({ children, onClose, grande = false }: { children: ReactNode; onClose: () => void; grande?: boolean }) {
+  const caja = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useEffect(() => {
+    const antes = document.activeElement as HTMLElement | null;
+    // El foco va al primer botón (o a la caja) para que el lector de pantalla y el teclado arranquen acá.
+    const primero = caja.current?.querySelector<HTMLElement>("button:not([disabled]), input, [href]");
+    (primero ?? caja.current)?.focus({ preventScroll: true });
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCloseRef.current();
+    };
+    addEventListener("keydown", onKey);
+    return () => {
+      removeEventListener("keydown", onKey);
+      antes?.focus?.({ preventScroll: true });
+    };
+  }, []);
   return (
     <motion.div className="fixed inset-0 z-40 grid place-items-center bg-black/60 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
       <motion.div
+        ref={caja}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}

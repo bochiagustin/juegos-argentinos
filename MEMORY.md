@@ -64,6 +64,12 @@ Memoria de trabajo del proyecto: lo que el usuario pidió, prefirió o decidió 
   votación = se acepta. Contra la IA la votación viene apagada: lo que la máquina no conoce vale (marcado 🤔 "dudosa");
   con "Votar las dudosas" la máquina puede rechazarlo. Tiempo por ronda 2:30, cuenta de 5 s, 5 rondas por defecto.
 
+- 2026-10-29 · Online: si a alguien se le vence el turno juega la máquina por él (nivel 3); desconectado, a los 12 s.
+  En el lobby el que se va libera el lugar; en partida lo conserva (vuelve con el mismo token). Revancha: la piden todos.
+  Señas: lista fija de 9 (ancho de espada, de basto, 7 de espada, 7 de oro, un tres, un dos, nada, flor, envido).
+- 2026-10-29 · Deploy: la app en Vercel y el servidor en Cloudflare quedaron configurados pero **sin publicar**: hacen falta
+  las cuentas del usuario (GitHub, Vercel, Cloudflare). Pasos en `docs/deploy.md`.
+
 ## Dudas abiertas (preguntar antes de implementar la fase correspondiente)
 
 ### Truco (implementado con la propuesta; confirmar)

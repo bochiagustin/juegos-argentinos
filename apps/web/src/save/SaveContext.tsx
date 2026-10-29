@@ -27,6 +27,7 @@ export function SaveProvider({ children }: { children: ReactNode }) {
     setVozEnabled(save.ajustes.sonido);
     setVibrationEnabled(save.ajustes.vibracion);
     applyTheme(save.ajustes.tema);
+    document.documentElement.dataset.texto = save.ajustes.textoGrande ? "grande" : "normal";
   }, [save]);
 
   useEffect(() => {

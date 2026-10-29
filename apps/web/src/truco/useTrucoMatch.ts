@@ -1,8 +1,10 @@
 import { personaje, type Hecho } from "@juegos-argentinos/career";
-import { actorSeat, chooseTrucoAction, teamOf, truco, type BotEstilo, type RoundSummary, type Seat, type TrucoAction, type TrucoEvent } from "@juegos-argentinos/engine/truco";
+import { actorSeat, chooseTrucoAction, teamOf, truco, type BotEstilo, type RoundSummary, type Seat, type TrucoAction, type TrucoEvent, type TrucoView } from "@juegos-argentinos/engine/truco";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { playSfx, vibrate } from "../audio/sfx.ts";
 import { decir, enPalabras } from "../audio/voz.ts";
+import type { Remoto } from "../partidas/remoto.ts";
+import { useLotes } from "../partidas/useBotMatch.ts";
 import { HUMAN_ID, HUMAN_SEAT, saveMatch, type TrucoMatch } from "./partida.ts";
 import { CANTO_TEXTO } from "./textos.ts";
 
@@ -15,23 +17,13 @@ export interface Globo {
 
 let globoId = 0;
 
-/**
- * Controla una partida contra la IA en el navegador: el motor tiene el estado completo,
- * la UI solo ve la vista del jugador, y los bots juegan con su propia vista (sin trampa).
- */
-export function useTrucoMatch(initial: TrucoMatch, onFin: (m: TrucoMatch) => void) {
-  const [match, setMatch] = useState(initial);
+/** Globos, voz y resumen de cada mano: lo mismo contra la máquina que online. */
+function useEfectos(yo: Seat) {
   const [globos, setGlobos] = useState<Globo[]>([]);
   const [resumen, setResumen] = useState<RoundSummary | null>(null);
+  // Terminó una mano y su resumen todavía no se cerró (el fin de partida espera).
+  const [pendiente, setPendiente] = useState(false);
   const timers = useRef<number[]>([]);
-  // onFin en una ref: así `apply` no cambia en cada render (y no reinicia el "pensar" de los bots).
-  const onFinRef = useRef(onFin);
-  onFinRef.current = onFin;
-  const matchRef = useRef(match);
-  matchRef.current = match;
-
-  const view = useMemo(() => truco.getPlayerView(match.state, HUMAN_ID), [match.state]);
-  const valid = useMemo(() => truco.getValidActions(match.state, HUMAN_ID), [match.state]);
 
   const later = useCallback((ms: number, fn: () => void) => {
     timers.current.push(window.setTimeout(fn, ms));
@@ -57,7 +49,7 @@ export function useTrucoMatch(initial: TrucoMatch, onFin: (m: TrucoMatch) => voi
         switch (e.type) {
           case "canto":
             globo(e.seat, CANTO_TEXTO[e.canto], "canto");
-            decir(CANTO_TEXTO[e.canto].replace(/[¡!]/g, ""), { pitch: e.seat === HUMAN_SEAT ? 1.05 : 0.9 + (e.seat % 3) * 0.08 });
+            decir(CANTO_TEXTO[e.canto].replace(/[¡!]/g, ""), { pitch: e.seat === yo ? 1.05 : 0.9 + (e.seat % 3) * 0.08 });
             break;
           case "jugada":
             playSfx("carta");
@@ -70,21 +62,77 @@ export function useTrucoMatch(initial: TrucoMatch, onFin: (m: TrucoMatch) => voi
             }
             break;
           case "fin-ronda":
+            setPendiente(true);
             later(delay + 650, () => setResumen(e.summary));
             break;
           case "nueva-ronda":
             later(delay + 700, () => playSfx("repartir"));
             break;
           case "fin-partida":
-            break;
           case "baza":
           case "puntos":
             break;
         }
       }
     },
-    [globo, later],
+    [globo, later, yo],
   );
+
+  const cerrarResumen = useCallback(() => {
+    setResumen(null);
+    setPendiente(false);
+  }, []);
+
+  return { globos, resumen, pendiente, handleEvents, cerrarResumen };
+}
+
+export interface TrucoCtl {
+  match: Pick<TrucoMatch, "jugadores" | "config" | "carrera" | "adaptativo" | "skills"> & { state: TrucoMatch["state"] | null };
+  view: TrucoView;
+  valid: TrucoAction[];
+  jugar: (a: TrucoAction) => void;
+  globos: Globo[];
+  resumen: RoundSummary | null;
+  pendiente: boolean;
+  cerrarResumen: () => void;
+  yo: Seat;
+}
+
+/**
+ * Controla una mesa de truco: contra la IA (el motor tiene el estado completo en el navegador y los bots juegan
+ * con su propia vista, sin trampa) u online (el estado está en el servidor y acá llega la vista).
+ */
+export function useTrucoMatch(initial: TrucoMatch | null, onFin: (m: TrucoMatch) => void, remoto?: Remoto): TrucoCtl {
+  return remoto ? useTrucoRemoto(remoto) : useTrucoLocal(initial!, onFin);
+}
+
+function useTrucoRemoto(r: Remoto): TrucoCtl {
+  const ef = useEfectos(r.yo);
+  useLotes(r.lotes, (events) => ef.handleEvents(events as TrucoEvent[]));
+  const view = r.view as TrucoView;
+  const valid = r.valid as TrucoAction[];
+  const miTurno = view.actor === r.yo && !ef.resumen && !r.terminado;
+  useEffect(() => {
+    if (!miTurno) return;
+    vibrate(25);
+    if (view.pending) playSfx("turno");
+  }, [miTurno, view.pending]);
+  const match = useMemo(() => ({ jugadores: r.jugadores, config: view.config, adaptativo: false, skills: [], state: null }), [r.jugadores, view.config]);
+  return { match, view, valid, jugar: (a) => r.jugar(a), ...ef, yo: r.yo };
+}
+
+function useTrucoLocal(initial: TrucoMatch, onFin: (m: TrucoMatch) => void): TrucoCtl {
+  const [match, setMatch] = useState(initial);
+  const ef = useEfectos(HUMAN_SEAT);
+  const { handleEvents } = ef;
+  // onFin en una ref: así `apply` no cambia en cada render (y no reinicia el "pensar" de los bots).
+  const onFinRef = useRef(onFin);
+  onFinRef.current = onFin;
+  const matchRef = useRef(match);
+  matchRef.current = match;
+
+  const view = useMemo(() => truco.getPlayerView(match.state, HUMAN_ID), [match.state]);
+  const valid = useMemo(() => truco.getValidActions(match.state, HUMAN_ID), [match.state]);
 
   const apply = useCallback(
     (seat: Seat, action: TrucoAction, rng = matchRef.current.rng) => {
@@ -116,7 +164,7 @@ export function useTrucoMatch(initial: TrucoMatch, onFin: (m: TrucoMatch) => voi
 
   // Turno de los bots: piensan un ratito (más si tienen que contestar un canto).
   const actor = actorSeat(match.state);
-  const pausado = resumen !== null;
+  const pausado = ef.resumen !== null;
   useEffect(() => {
     if (actor === null || actor === HUMAN_SEAT || pausado) return;
     const m = match;
@@ -138,7 +186,7 @@ export function useTrucoMatch(initial: TrucoMatch, onFin: (m: TrucoMatch) => voi
     if (match.state.round.pending) playSfx("turno");
   }, [miTurno, match.state.round.pending]);
 
-  return { match, view, valid, jugar, globos, resumen, cerrarResumen: () => setResumen(null) };
+  return { match, view, valid, jugar, ...ef, yo: HUMAN_SEAT };
 }
 
 /** Lo que pasó en estos eventos que cuenta para logros (siempre desde el punto de vista del jugador). */

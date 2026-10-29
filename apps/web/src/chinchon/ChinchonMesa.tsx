@@ -24,6 +24,8 @@ import { useNav } from "../nav.tsx";
 import { FinPartida } from "../partidas/FinPartida.tsx";
 import { HUMAN_SEAT } from "../partidas/jugadores.ts";
 import { clearBotMatch, loadBotMatch, newBotMatch, saveBotMatch, type BotMatch } from "../partidas/match.ts";
+import { momentosChinchon } from "../partidas/momentos.ts";
+import type { Remoto } from "../partidas/remoto.ts";
 import { useBotMatch } from "../partidas/useBotMatch.ts";
 import { statsDe } from "../save/save.ts";
 import { useSave } from "../save/SaveContext.tsx";
@@ -55,7 +57,13 @@ export function ChinchonMesa() {
   return <Mesa key={partida.n} initial={partida.m} onRevancha={(m) => setPartida((p) => ({ m, n: p.n + 1 }))} />;
 }
 
-function Mesa({ initial, onRevancha }: { initial: CMatch; onRevancha: (m: CMatch) => void }) {
+export function ChinchonMesaOnline({ remoto }: { remoto: Remoto }) {
+  return <Mesa initial={null} remoto={remoto} />;
+}
+
+function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevancha?: (m: CMatch) => void; remoto?: Remoto }) {
+  const yo = remoto?.yo ?? HUMAN_SEAT;
+  const [pendiente, setPendiente] = useState(false);
   const { back } = useNav();
   const { save } = useSave();
   const cerrar = useCerrarPartida();
@@ -66,11 +74,12 @@ function Mesa({ initial, onRevancha }: { initial: CMatch; onRevancha: (m: CMatch
   const [sel, setSel] = useState<string | null>(null);
   const [orden, setOrden] = useState<string[]>([]);
 
-  const nombre = (seat: number, m: CMatch) => (seat === HUMAN_SEAT ? "Vos" : m.jugadores[seat]!.nombre);
+  const nombre = (seat: number, m: CMatch) => (seat === yo ? "Vos" : m.jugadores[seat]!.nombre);
 
   const { match, view, valid, jugar, miTurno } = useBotMatch({
     def: chinchon,
     initial,
+    remoto,
     actor: (s) => (s.winner === null ? s.turn : null),
     choose: (v, va, rng, skill) => chooseChinchonAction(v, va, rng, skill),
     pausa: resumen !== null || cartel !== null,
@@ -86,12 +95,13 @@ function Mesa({ initial, onRevancha }: { initial: CMatch; onRevancha: (m: CMatch
           setCartel(texto);
           decir(e.chinchon ? "Chinchón" : e.menosDiez ? "Menos diez" : "Corto");
           window.setTimeout(() => setCartel(null), 1300);
-          if (e.seat === HUMAN_SEAT && e.chinchon) hechos.push({ tipo: "chinchon" });
-          if (e.seat === HUMAN_SEAT && e.menosDiez) hechos.push({ tipo: "menos-diez" });
+          if (e.seat === yo && e.chinchon) hechos.push({ tipo: "chinchon" });
+          if (e.seat === yo && e.menosDiez) hechos.push({ tipo: "menos-diez" });
         }
         if (e.type === "fin-ronda") {
-          const mio = e.summary.results.find((r) => r.seat === HUMAN_SEAT);
-          if (mio && e.summary.cutter !== HUMAN_SEAT && mio.laid.length > 0) hechos.push({ tipo: "ligadas", cantidad: mio.laid.length });
+          const mio = e.summary.results.find((r) => r.seat === yo);
+          if (mio && e.summary.cutter !== yo && mio.laid.length > 0) hechos.push({ tipo: "ligadas", cantidad: mio.laid.length });
+          setPendiente(true);
           window.setTimeout(() => setResumen(e.summary), 1350);
         }
         if (e.type === "nueva-ronda") window.setTimeout(() => playSfx("repartir"), 1500);
@@ -100,8 +110,8 @@ function Mesa({ initial, onRevancha }: { initial: CMatch; onRevancha: (m: CMatch
     },
     onFin: (m) => {
       clearBotMatch("chinchon");
-      const gane = m.state.winner === HUMAN_SEAT;
-      const peor = Math.max(...m.state.history.map((h) => h.scores[HUMAN_SEAT] ?? 0), 0);
+      const gane = m.state.winner === yo;
+      const peor = Math.max(...m.state.history.map((h) => h.scores[yo] ?? 0), 0);
       setFinal(
         cerrar({
           game: "chinchon",
@@ -110,15 +120,14 @@ function Mesa({ initial, onRevancha }: { initial: CMatch; onRevancha: (m: CMatch
           adaptativo: m.adaptativo,
           ...(m.carrera ? { rivalId: m.carrera.rivalId } : {}),
           remontada: gane && peor >= m.config.limite - 15,
-          paliza: gane && (m.state.scores[HUMAN_SEAT] ?? 0) < m.config.limite / 2,
+          paliza: gane && (m.state.scores[yo] ?? 0) < m.config.limite / 2,
           hechos: m.hechos,
         }),
       );
     },
   });
 
-  const [vistos, setVistos] = useState(initial.state.history.length);
-  const verFin = final !== null && !resumen && vistos >= match.state.history.length;
+  const verFin = !resumen && !pendiente;
   const rules = rulesOf(view.config);
   // Orden de la mano: el que eligió el jugador; las cartas nuevas van al final.
   const mano = useMemo(() => {
@@ -168,7 +177,7 @@ function Mesa({ initial, onRevancha }: { initial: CMatch; onRevancha: (m: CMatch
     const m = newBotMatch(chinchon, { config: match.config, players: match.config.players, botSkill: skill, adaptativo: match.adaptativo, yo: match.jugadores[0]!, ...(rival ? { rival } : {}) });
     saveBotMatch(m as never);
     playSfx("barajar");
-    onRevancha(m);
+    onRevancha?.(m);
   };
 
   const estado =
@@ -182,12 +191,12 @@ function Mesa({ initial, onRevancha }: { initial: CMatch; onRevancha: (m: CMatch
             : "Elegí una carta y tirala al pozo."
         : `Juega ${nombre(view.turn, match)}…`;
 
-  const rivales = view.players.filter((p) => p.seat !== HUMAN_SEAT);
+  const rivales = view.players.filter((p) => p.seat !== yo);
 
   return (
     <div className="pano flex h-dvh flex-col overflow-hidden">
       <header className="cuero cuero-oscuro z-20 flex items-center gap-2 rounded-b-2xl px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)]">
-        <IconButton label="Salir (la partida queda guardada)" onClick={back}>
+        <IconButton label={remoto ? "Salir de la sala" : "Salir (la partida queda guardada)"} onClick={back}>
           ←
         </IconButton>
         <div className="relative z-[1] flex-1 text-center">
@@ -261,7 +270,7 @@ function Mesa({ initial, onRevancha }: { initial: CMatch; onRevancha: (m: CMatch
         <div className="relative z-[1]">
           <div className="mb-1 flex items-center justify-between gap-2 px-1 text-xs font-bold">
             <span className="rounded-full bg-black/35 px-2 py-1">
-              Vos: <span className="text-naranja">{view.players[HUMAN_SEAT]!.score} pts</span>
+              Vos: <span className="text-naranja">{view.players[yo]!.score} pts</span>
             </span>
             <span className={`rounded-full px-2 py-1 ${arreglo.looseSum <= view.config.corteMax ? "bg-pano" : "bg-black/35"}`}>Sueltas: {arreglo.looseSum}</span>
             <span className="flex gap-1">
@@ -331,17 +340,20 @@ function Mesa({ initial, onRevancha }: { initial: CMatch; onRevancha: (m: CMatch
             key="resumen"
             r={resumen}
             match={match}
+            yo={yo}
             onSeguir={() => {
               setResumen(null);
-              setVistos((v) => Math.max(v + 1, match.state.history.length));
+              setPendiente(false);
             }}
             terminado={view.winner !== null}
           />
         )}
+        {remoto && verFin && view.winner !== null && remoto.fin({ gane: view.winner === yo, empate: false, momentos: momentosChinchon(view.history, yo), marcador: view.players.map((p) => `${nombre(p.seat, match)} ${p.score}`).join(" · ") })}
         {verFin && final && (
           <FinPartida
             key="fin"
             r={final}
+            momentos={momentosChinchon(view.history, yo)}
             marcador={view.players.map((p) => `${nombre(p.seat, match)} ${p.score}`).join(" · ")}
             onRevancha={revancha}
             onSalir={back}
@@ -396,8 +408,8 @@ function MiniMano({ melds, loose, laid }: { melds: Meld[]; loose: Card[]; laid: 
   );
 }
 
-function ResumenRonda({ r, match, onSeguir, terminado }: { r: ChinchonRoundSummary; match: CMatch; onSeguir: () => void; terminado: boolean }) {
-  const nombre = (seat: number) => (seat === HUMAN_SEAT ? "Vos" : match.jugadores[seat]!.nombre);
+function ResumenRonda({ r, match, yo, onSeguir, terminado }: { r: ChinchonRoundSummary; match: CMatch; yo: number; onSeguir: () => void; terminado: boolean }) {
+  const nombre = (seat: number) => (seat === yo ? "Vos" : match.jugadores[seat]!.nombre);
   return (
     <Modal onClose={onSeguir} grande>
       <h2 className="titulo-criollo mb-1 text-center text-3xl">{r.chinchon ? "¡Chinchón!" : r.menosDiez ? "¡Menos diez!" : `Cortó ${nombre(r.cutter)}`}</h2>

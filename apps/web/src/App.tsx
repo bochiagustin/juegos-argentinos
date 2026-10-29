@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { deckDisponible } from "./cards/decks.ts";
 import { DeckContext } from "./cards/SpanishCard.tsx";
 import { Gira } from "./carrera/Gira.tsx";
@@ -9,6 +9,8 @@ import { ChinchonMesa } from "./chinchon/ChinchonMesa.tsx";
 import { ChinchonSetup } from "./chinchon/ChinchonSetup.tsx";
 import { EscobaMesa } from "./escoba/EscobaMesa.tsx";
 import { EscobaSetup } from "./escoba/EscobaSetup.tsx";
+import { Amigos } from "./online/Amigos.tsx";
+import { Sala } from "./online/Sala.tsx";
 import { TuttiMesa } from "./tutti/TuttiMesa.tsx";
 import { TuttiSetup } from "./tutti/TuttiSetup.tsx";
 import { NavProvider, useNav, type Route } from "./nav.tsx";
@@ -23,7 +25,7 @@ import { TrucoMesa } from "./truco/TrucoMesa.tsx";
 import { TrucoSetup } from "./truco/TrucoSetup.tsx";
 
 function routeKey(r: Route): string {
-  return r.name === "juego" ? `juego-${r.id}` : r.name === "gira" ? `gira-${r.game}` : r.name;
+  return r.name === "juego" ? `juego-${r.id}` : r.name === "gira" ? `gira-${r.game}` : r.name === "sala" ? `sala-${r.codigo}` : r.name;
 }
 
 function CurrentScreen({ route }: { route: Route }) {
@@ -62,6 +64,10 @@ function CurrentScreen({ route }: { route: Route }) {
       return <TuttiMesa />;
     case "gira":
       return <Gira game={route.game} />;
+    case "amigos":
+      return <Amigos game={route.game} />;
+    case "sala":
+      return <Sala codigo={route.codigo} game={route.game} />;
     case "logros":
       return <Logros />;
   }
@@ -72,6 +78,8 @@ function Shell() {
   const { save } = useSave();
   return (
     <DeckContext.Provider value={deckDisponible(save.ajustes.mazo, save.carrera) ? save.ajustes.mazo : "criolla"}>
+      {/* Respeta "reducir movimiento" del sistema, o el ajuste propio. */}
+      <MotionConfig reducedMotion={save.ajustes.menosAnimaciones ? "always" : "user"}>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={routeKey(route)}
@@ -83,6 +91,7 @@ function Shell() {
           <CurrentScreen route={route} />
         </motion.div>
       </AnimatePresence>
+      </MotionConfig>
     </DeckContext.Provider>
   );
 }

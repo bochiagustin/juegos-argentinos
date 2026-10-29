@@ -1,12 +1,17 @@
 import type { GameDefinition, RngState } from "@juegos-argentinos/engine";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { playSfx, vibrate } from "../audio/sfx.ts";
+import type { Lote } from "../online/conexion.ts";
 import { HUMAN_ID, HUMAN_SEAT } from "./jugadores.ts";
 import { saveBotMatch, type BotMatch } from "./match.ts";
+import type { Remoto } from "./remoto.ts";
 
 export interface BotMatchOptions<Config, State, Action, View, Event> {
   def: GameDefinition<Config, State, Action, View, Event>;
-  initial: BotMatch<Config, State>;
+  /** Partida local (null si es online). */
+  initial: BotMatch<Config, State> | null;
+  /** Partida online: el estado está en el servidor. */
+  remoto?: Remoto | undefined;
   /** Quién tiene que jugar (null si terminó). */
   actor: (s: State) => number | null;
   choose: (view: View, valid: Action[], rng: RngState, skill: number, seat: number) => [Action, RngState];
@@ -19,9 +24,71 @@ export interface BotMatchOptions<Config, State, Action, View, Event> {
   pensar?: (s: State, seat: number) => number;
 }
 
-/** Controlador genérico de una partida contra bots, con el motor corriendo en el navegador. */
-export function useBotMatch<Config, State, Action, View, Event>(o: BotMatchOptions<Config, State, Action, View, Event>) {
-  const [match, setMatch] = useState(o.initial);
+export interface MesaCtl<Config, State, Action, View> {
+  match: BotMatch<Config, State>;
+  view: View;
+  valid: Action[];
+  jugar: (a: Action) => void;
+  miTurno: boolean;
+  /** Mi asiento (0 contra la máquina). */
+  yo: number;
+}
+
+/**
+ * Controlador de una mesa: contra bots (el motor corre en el navegador) u online (el motor corre en el servidor).
+ * Si una mesa es online lo es toda su vida, así que el orden de los hooks no cambia.
+ */
+export function useBotMatch<Config, State, Action, View, Event>(o: BotMatchOptions<Config, State, Action, View, Event>): MesaCtl<Config, State, Action, View> {
+  return o.remoto ? useRemoteMatch(o, o.remoto) : useLocalMatch(o, o.initial!);
+}
+
+/** Procesa los lotes de eventos nuevos que manda el servidor (sin repetir los que ya estaban al montar). */
+export function useLotes(lotes: readonly Lote[], fn: (events: readonly unknown[]) => void) {
+  const visto = useRef(lotes.at(-1)?.n ?? 0);
+  const fnRef = useRef(fn);
+  fnRef.current = fn;
+  useEffect(() => {
+    for (const l of lotes) {
+      if (l.n <= visto.current) continue;
+      visto.current = l.n;
+      fnRef.current(l.events);
+    }
+  }, [lotes]);
+}
+
+function useRemoteMatch<Config, State, Action, View, Event>(o: BotMatchOptions<Config, State, Action, View, Event>, r: Remoto): MesaCtl<Config, State, Action, View> {
+  const view = r.view as View;
+  const match = useMemo(
+    (): BotMatch<Config, State> => ({
+      version: 1,
+      game: r.game,
+      config: (view as { config: Config }).config,
+      state: null as unknown as State,
+      skills: [],
+      adaptativo: false,
+      rng: [0, 0, 0, 0],
+      jugadores: r.jugadores,
+      hechos: [],
+      contada: r.terminado,
+    }),
+    [r.game, r.jugadores, r.terminado, view],
+  );
+  const matchRef = useRef(match);
+  matchRef.current = match;
+  const opts = useRef(o);
+  opts.current = o;
+  useLotes(r.lotes, (events) => opts.current.onEvents?.(events as Event[], matchRef.current));
+  const valid = r.valid as Action[];
+  const miTurno = valid.length > 0 && !o.pausa && !r.terminado;
+  useEffect(() => {
+    if (miTurno) vibrate(20);
+  }, [miTurno]);
+  return { match, view, valid, jugar: (a: Action) => r.jugar(a), miTurno, yo: r.yo };
+}
+
+/** Partida contra bots, con el motor corriendo en el navegador. */
+function useLocalMatch<Config, State, Action, View, Event>(o: BotMatchOptions<Config, State, Action, View, Event>, initial: BotMatch<Config, State>): MesaCtl<Config, State, Action, View> {
+  const [match, setMatch] = useState(initial);
   const ref = useRef(match);
   ref.current = match;
   const opts = useRef(o);
@@ -75,7 +142,7 @@ export function useBotMatch<Config, State, Action, View, Event>(o: BotMatchOptio
     if (miTurno) vibrate(20);
   }, [miTurno]);
 
-  return { match, view, valid, jugar, miTurno };
+  return { match, view, valid, jugar, miTurno, yo: HUMAN_SEAT };
 }
 
 function seatId(m: BotMatch<unknown, unknown>, seat: number): string {

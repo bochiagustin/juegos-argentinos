@@ -36,7 +36,7 @@ export const GAMES: readonly GameInfo[] = [
     cuero: "cuero-verde",
     arte: "juego-truco",
     muestra: ["1-espada", "1-basto", "7-espada"],
-    modos: { ia: "disponible", carrera: "disponible", amigos: "proximamente" },
+    modos: { ia: "disponible", carrera: "disponible", amigos: "disponible" },
     reglas: [
       "Mazo de 40 cartas, 3 para cada uno. Gana la mano quien gana 2 de las 3 bazas.",
       "Las más fuertes: ancho de espada, ancho de basto, 7 de espada, 7 de oro, los 3 y los 2.",
@@ -54,7 +54,7 @@ export const GAMES: readonly GameInfo[] = [
     cuero: "cuero-rojo",
     arte: "juego-chinchon",
     muestra: ["4-copa", "5-copa", "6-copa", "7-copa"],
-    modos: { ia: "disponible", carrera: "disponible", amigos: "proximamente" },
+    modos: { ia: "disponible", carrera: "disponible", amigos: "disponible" },
     reglas: [
       "7 cartas cada uno. En tu turno robás (del mazo o del pozo) y tirás una.",
       "Armá escaleras del mismo palo (3 o más seguidas) o grupos de 3 o 4 del mismo número.",
@@ -72,7 +72,7 @@ export const GAMES: readonly GameInfo[] = [
     cuero: "cuero-azul",
     arte: "juego-casita-robada",
     muestra: ["5-oro", "5-copa", "5-basto"],
-    modos: { ia: "disponible", carrera: "disponible", amigos: "proximamente" },
+    modos: { ia: "disponible", carrera: "disponible", amigos: "disponible" },
     reglas: [
       "3 cartas cada uno y 4 boca arriba en la mesa.",
       "Si tirás una carta del mismo número que una de la mesa, te la llevás a tu casita.",
@@ -90,7 +90,7 @@ export const GAMES: readonly GameInfo[] = [
     cuero: "cuero-violeta",
     arte: "juego-escoba",
     muestra: ["7-oro", "5-espada", "3-copa"],
-    modos: { ia: "disponible", carrera: "disponible", amigos: "proximamente" },
+    modos: { ia: "disponible", carrera: "disponible", amigos: "disponible" },
     reglas: [
       "Mazo de 40. Las cartas valen su número; la sota 8, el caballo 9 y el rey 10.",
       "3 cartas cada uno y 4 boca arriba en la mesa.",
@@ -108,7 +108,7 @@ export const GAMES: readonly GameInfo[] = [
     cuero: "cuero-mostaza",
     arte: "juego-tutti-frutti",
     muestra: [],
-    modos: { ia: "disponible", carrera: "disponible", amigos: "proximamente" },
+    modos: { ia: "disponible", carrera: "disponible", amigos: "disponible" },
     reglas: [
       "Sale una letra y todos completan las categorías: nombre, país, animal, fruta, color…",
       "El primero que termina grita ¡BASTA! y los demás tienen unos segundos para cerrar.",

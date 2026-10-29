@@ -1,0 +1,12 @@
+{
+  // Servidor de salas de Juegos Argentinos en Cloudflare (una sala = un Durable Object).
+  // Deploy: pnpm --filter @juegos-argentinos/server run deploy  (necesita `wrangler login`).
+  "name": "juegos-argentinos-salas",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [{ "name": "Sala", "class_name": "SalaServer" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SalaServer"] }]
+}

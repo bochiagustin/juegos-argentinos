@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { guardarServidor, servidorSalas } from "../online/conexion.ts";
 import { playSfx, vibrate } from "../audio/sfx.ts";
 import { DECKS } from "../cards/decks.ts";
 import { useNav } from "../nav.tsx";
@@ -16,6 +17,8 @@ export function Ajustes() {
   const { back, push } = useNav();
   const { save, update, reset } = useSave();
   const [confirmando, setConfirmando] = useState(false);
+  const [servidor, setServidor] = useState(() => servidorSalas() ?? "");
+  const [servidorOk, setServidorOk] = useState(false);
   const set = <K extends keyof typeof save.ajustes>(key: K, value: (typeof save.ajustes)[K]) =>
     update((s) => ({ ...s, ajustes: { ...s.ajustes, [key]: value } }));
 
@@ -42,6 +45,11 @@ export function Ajustes() {
         />
       </Section>
 
+      <Section title="Accesibilidad">
+        <Toggle label="Menos animaciones" detail="Cartas y carteles sin tanto movimiento" checked={save.ajustes.menosAnimaciones} onChange={(v) => set("menosAnimaciones", v)} />
+        <Toggle label="Letra más grande" detail="Agranda todos los textos" checked={save.ajustes.textoGrande} onChange={(v) => set("textoGrande", v)} />
+      </Section>
+
       <Section title="Mesa">
         <Segmented label="Tema" value={save.ajustes.tema} options={TEMAS} onChange={(v) => set("tema", v)} />
         <button
@@ -57,6 +65,39 @@ export function Ajustes() {
           </span>
           <span className="bronce relative z-[1] grid size-9 place-items-center rounded-full text-xl font-black">›</span>
         </button>
+      </Section>
+
+      <Section title="Online">
+        <div className="cuero rounded-2xl p-3">
+          <label className="relative z-[1] block">
+            <span className="mb-1 block font-bold">Servidor de salas</span>
+            <span className="mb-2 block text-sm text-crema/75">Para jugar con amigos. Ej.: wss://juegos-argentinos-salas.tucuenta.workers.dev</span>
+            <span className="flex gap-2">
+              <input
+                value={servidor}
+                onChange={(e) => {
+                  setServidor(e.target.value);
+                  setServidorOk(false);
+                }}
+                placeholder="wss://…"
+                inputMode="url"
+                autoCapitalize="off"
+                autoComplete="off"
+                className="min-h-11 min-w-0 flex-1 rounded-xl bg-crema px-3 text-sm text-tinta placeholder:text-tinta/40"
+              />
+              <button
+                className="btn-criollo min-h-11 rounded-xl px-3 font-black"
+                onClick={() => {
+                  guardarServidor(servidor);
+                  setServidorOk(true);
+                  playSfx("click");
+                }}
+              >
+                <span className="relative z-[1]">{servidorOk ? "✔" : "Guardar"}</span>
+              </button>
+            </span>
+          </label>
+        </div>
       </Section>
 
       <Section title="Datos">

@@ -19,6 +19,8 @@ export type Route =
   | { name: "escoba-mesa" }
   | { name: "tutti-setup" }
   | { name: "tutti-mesa" }
+  | { name: "amigos"; game?: GameId }
+  | { name: "sala"; codigo: string; game?: GameId }
   | { name: "gira"; game: CareerGame }
   | { name: "logros" };
 
@@ -40,7 +42,11 @@ const NavContext = createContext<Nav | null>(null);
  * para que el botón "atrás" de Android funcione como se espera.
  */
 export function NavProvider({ children }: { children: ReactNode }) {
-  const [stack, setStack] = useState<Route[]>([{ name: "inicio" }]);
+  const [stack, setStack] = useState<Route[]>(() => {
+    // Link de invitación (…?sala=ABCDE): se entra directo a la sala.
+    const codigo = new URLSearchParams(location.search).get("sala")?.toUpperCase() ?? "";
+    return /^[A-Z]{5}$/.test(codigo) ? [{ name: "inicio" }, { name: "sala", codigo }] : [{ name: "inicio" }];
+  });
   const stackRef = useRef(stack);
   stackRef.current = stack;
   // La pila interna manda; el historial del navegador es un extra (en algunos visores embebidos no está disponible).
@@ -57,7 +63,10 @@ export function NavProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    tryHistory(() => history.replaceState({ depth: 0 }, ""));
+    tryHistory(() => {
+      history.replaceState({ depth: 0 }, "", location.pathname);
+      if (stackRef.current.length > 1) history.pushState({ depth: 1 }, "");
+    });
     const onPop = (e: PopStateEvent) => {
       if (ignorePops.current > 0) {
         ignorePops.current--;

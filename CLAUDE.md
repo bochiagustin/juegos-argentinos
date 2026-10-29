@@ -28,6 +28,8 @@ pnpm typecheck        # tsc estricto en todos los paquetes
 pnpm build            # build de producción (incluye service worker de la PWA)
 pnpm --filter @juegos-argentinos/web preview   # sirve el build: para probar offline/instalable
 pnpm --filter @juegos-argentinos/engine test:watch
+pnpm --filter @juegos-argentinos/server dev     # servidor de salas local (ws://localhost:8787), para "Con amigos"
+pnpm --filter @juegos-argentinos/server run deploy   # sube el servidor a Cloudflare (ver docs/deploy.md)
 python3 tools/extraer-mazos.py <pdf> <id>      # recorta un Mazo Argento de su PDF (poppler + Pillow)
 ```
 
@@ -40,9 +42,9 @@ Monorepo pnpm (`@juegos-argentinos/*`), TypeScript estricto en todo (`tsconfig.b
 packages/engine   Motor de reglas puro (sin UI, sin red) + bots. Vitest.
 packages/career   Gira Nacional, logros, fósforos y tienda. Lógica pura (depende del motor solo por tipos).
 apps/web          React 19 + Vite + Tailwind v4 + Motion + vite-plugin-pwa. Deploy en Vercel. Corre el motor en el navegador (offline).
-apps/server       (Fase 8) Servidor autoritativo de salas online.
+apps/server       Servidor autoritativo de salas online (Cloudflare Durable Objects con PartyServer; en desarrollo, Node + ws).
 tools/            Scripts sueltos (extraer mazos de PDF).
-docs/             arte.md (checklist de ilustraciones), licencias/.
+docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publicar), licencias/, capturas por fase.
 ```
 
 ### Motor (`packages/engine`)
@@ -57,7 +59,7 @@ docs/             arte.md (checklist de ilustraciones), licencias/.
 - `getPlayerView` **nunca** incluye cartas ocultas de otros jugadores ni el orden del mazo (solo cantidades).
 - Archivos: `core/cards.ts`, `core/deck.ts` (mazos 40/48 + comodines, Fisher–Yates, repartir), `core/rng.ts`, `core/game.ts`,
   `core/clone.ts` (copia profunda: `applyAction` trabaja sobre una copia, así el motor sigue puro).
-- Subpaths por juego: `@juegos-argentinos/engine/{truco,chinchon,casita}`. Cada carpeta: `types.ts`, `game.ts` (la máquina de
+- Subpaths por juego: `@juegos-argentinos/engine/{truco,chinchon,casita,escoba,tutti-frutti}`. Cada carpeta: `types.ts`, `game.ts` (la máquina de
   estados), `bot.ts` (`choose…Action`, perfil por nivel, `play…BotGame`), tests de reglas y simulaciones.
 - Truco (`src/truco/`): `cards.ts` (jerarquía, tanto, flor), `types.ts`,
   `game.ts` (la máquina de estados `truco`), `bot.ts` (`chooseTrucoAction`, `botProfile`, `playBotGame`), tests
@@ -149,6 +151,16 @@ docs/             arte.md (checklist de ilustraciones), licencias/.
   resumen por categoría; controlador propio porque es en tiempo real).
 - **Escoba en la web** (`src/escoba/`): `EscobaSetup.tsx`, `EscobaMesa.tsx` (sobre `useBotMatch`: tocás una carta y aparecen
   los grupos que suman 15 para elegir, cartel de escoba, resumen de ronda por categorías, hechos para los logros).
+- **Online** (`src/online/`): `conexion.ts` (`ConexionSala`: WebSocket con reconexión y backoff, snapshot para
+  `useSyncExternalStore`, lotes de eventos numerados para no perder ninguno), `Amigos.tsx` (crear / entrar con código),
+  `Sala.tsx` (presentarse si no hay apodo, lobby, mesa online, reloj de turno, chat/reacciones/señas, fin con revancha).
+  Servidor: `VITE_SERVIDOR_SALAS`, o Ajustes → Online, o en la red local `ws://<host>:8787`.
+- **Mesas online**: las mismas mesas de cada juego con un `Remoto` (`partidas/remoto.ts`: vista, acciones válidas, lotes de
+  eventos, mi asiento, relojes). `useBotMatch` y `useTrucoMatch` tienen modo local y remoto; `yo` reemplaza al asiento 0
+  (el truco dibuja la mesa relativa a mi asiento). El fin espera a que se cierre el último resumen (`pendiente`).
+- **Accesibilidad**: `Modal` es un diálogo (foco adentro, Escape), foco visible, `MotionConfig` respeta "reducir movimiento"
+  y Ajustes → Accesibilidad (menos animaciones, letra más grande con `html[data-texto=grande]`).
+- **Momentos de la partida** (`partidas/momentos.ts`): lo destacado de cada juego en la pantalla final (local y online).
 - **Truco en la web** (`src/truco/`): `partida.ts` (partida contra la IA guardada en localStorage para retomarla, nombres de rivales),
   `useTrucoMatch.ts` (controlador: el motor en el navegador, los bots piensan 0,75–1,5 s, globos, voz y sonidos por evento,
   pausa con el resumen de cada mano), `TrucoMesa.tsx` (mesa 1v1/2v2/3v3, marcador con fósforos, solo botones válidos,
@@ -163,11 +175,22 @@ docs/             arte.md (checklist de ilustraciones), licencias/.
   al elegir un mazo se precargan sus 51 imágenes. Íconos provisorios en `public/icons/` (hasta que llegue `arte/icono.png`).
 - Mobile-first: blancos táctiles ≥ 44px, sin scroll horizontal, `100dvh`, safe areas.
 
-### Servidor (`apps/server`, Fase 8) — decisión: PartyServer + Cloudflare Durable Objects
+### Servidor (`apps/server`) — PartyServer + Cloudflare Durable Objects
 
-- Una sala = un Durable Object. Es el **único** que tiene el estado completo; valida toda acción contra `getValidActions`
-  y manda a cada conexión solo su `getPlayerView`. Chat, reacciones y señas aparte (señas solo al compañero).
-- Identidad sin registro: `playerToken` secreto + apodo + avatar en el guardado local, para reconectar.
+- Una sala = un Durable Object (`worker.ts`, `SalaServer`, sin hibernación porque los relojes viven en memoria).
+  `sala.ts` tiene toda la lógica y no sabe de red (recibe `mensaje(conn, texto)`, manda con `enviar`): la misma clase corre en
+  Cloudflare y en Node (`dev.ts` con `ws`, mismas URLs `/parties/sala/<CODIGO>`). Tests con reloj falso (`sala.test.ts`).
+- Es el **único** que tiene el estado completo: valida toda acción con `applyAction` del motor y manda a cada conexión solo su
+  `getPlayerView` + `getValidActions` (no reenvía si la vista no cambió: cada tecla del tutti-frutti).
+- `juegos.ts`: por juego, cantidades válidas, `sanear` (la config del host se limpia campo por campo), quién juega (`actor`),
+  bot y pausas después de ciertos eventos (resumen de mano). Turno con reloj (20–90 s; desconectado 12 s): al vencer juega
+  la máquina por vos (nivel 3). Tutti-frutti: el servidor es la "mesa" (ruleta, tiempo máximo, cuenta del basta, revisión).
+- Lobby: el primero es el host (pasa a otro si se va); elige juego, reglas, tiempo por turno; agrega/saca máquinas; mueve
+  asientos (equipos alternados). Revancha cuando la piden todos los humanos; el host puede volver a la sala.
+- Chat (general o de equipo), reacciones (emojis fijos), señas del truco 2v2/3v3 (solo al compañero). Límite de 40 mensajes/s.
+- Identidad sin registro: token secreto por dispositivo (`online/conexion.ts`, localStorage) + apodo + avatar. Reconectar con
+  el mismo token devuelve el asiento y la vista. Código de sala: 5 letras (sin I ni O); link `?sala=CODIGO`.
+- Protocolo en `src/protocolo.ts` (la web lo importa como `@juegos-argentinos/server/protocolo`).
 
 ## Reglas de los juegos (fuente de verdad para el motor)
 
@@ -285,5 +308,8 @@ reglamento rioplatense estándar, dudas en `MEMORY.md`.)*
 - [x] **Fase 7** — Tutti-Frutti: motor (ruleta sin repetir, basta + cuenta, validación, repetidas, 20/10/5, votación,
   rondas o puntos con desempate), diccionario rioplatense, bot por nivel, mesa en tiempo real, gira y 3 logros.
 - [ ] **Fase 7** — Tutti-Frutti (motor, bot con diccionario, gira).
-- [ ] **Fase 8** — Online con amigos: salas con código + WhatsApp, lobby, reconexión, timer, chat/reacciones/señas, revancha.
-- [ ] **Fase 9** — Pulido, resultados con momentos destacados, accesibilidad, deploy final (Vercel + Cloudflare).
+- [x] **Fase 8** — Online con amigos: servidor de salas (Cloudflare Durable Objects + Node para desarrollo), los cinco juegos,
+  salas con código + WhatsApp, lobby con máquinas y equipos, reconexión, reloj de turno, chat/reacciones/señas, revancha.
+- [x] **Fase 9** — Pulido: momentos destacados, accesibilidad (diálogos, foco, menos animaciones, letra grande), CI, configs de
+  deploy (`vercel.json`, `wrangler.jsonc`, GitHub Actions) y guía `docs/deploy.md`. 177 tests. Falta publicar con las cuentas del usuario.
+  *Fases 7, 8 y 9 hechas seguidas a pedido del usuario ("completá todas las fases"). Esperando correcciones.*

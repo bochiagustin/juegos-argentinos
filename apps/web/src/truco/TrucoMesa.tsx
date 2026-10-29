@@ -1,7 +1,7 @@
 import type { SuitedCard } from "@juegos-argentinos/engine";
 import { teamOf, type RoundSummary, type Seat, type Trick, type TrucoAction, type TrucoView } from "@juegos-argentinos/engine/truco";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { playSfx } from "../audio/sfx.ts";
 import { SpanishCard } from "../cards/SpanishCard.tsx";
 import { useCerrarPartida, type ResultadoCierre } from "../carrera/useCerrarPartida.ts";
@@ -10,10 +10,12 @@ import { useNav } from "../nav.tsx";
 import { FinPartida } from "../partidas/FinPartida.tsx";
 import { statsDe } from "../save/save.ts";
 import { useSave } from "../save/SaveContext.tsx";
+import { momentosTruco } from "../partidas/momentos.ts";
+import type { Remoto } from "../partidas/remoto.ts";
 import { Modal } from "../ui/Modal.tsx";
 import { IconButton } from "../ui/ui.tsx";
 import { Fosforos } from "./Fosforos.tsx";
-import { clearMatch, HUMAN_SEAT, loadMatch, newMatch, saveMatch, type TrucoMatch } from "./partida.ts";
+import { clearMatch, loadMatch, newMatch, saveMatch, type TrucoMatch } from "./partida.ts";
 import { ReglasTruco } from "./ReglasTruco.tsx";
 import { botonDe, describirPendiente, ENVIDO_NOMBRE, NIVEL_TRUCO, type Tono } from "./textos.ts";
 import { useTrucoMatch, type Globo } from "./useTrucoMatch.ts";
@@ -91,7 +93,11 @@ export function TrucoMesa() {
   return <Mesa key={partida.n} initial={partida.m} onRevancha={(m) => setPartida((p) => ({ m, n: p.n + 1 }))} />;
 }
 
-function Mesa({ initial, onRevancha }: { initial: TrucoMatch; onRevancha: (m: TrucoMatch) => void }) {
+export function TrucoMesaOnline({ remoto }: { remoto: Remoto }) {
+  return <Mesa initial={null} remoto={remoto} />;
+}
+
+function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onRevancha?: (m: TrucoMatch) => void; remoto?: Remoto }) {
   const { back } = useNav();
   const { save } = useSave();
   const cerrar = useCerrarPartida();
@@ -119,17 +125,18 @@ function Mesa({ initial, onRevancha }: { initial: TrucoMatch; onRevancha: (m: Tr
     playSfx(gane ? "turno" : "error");
   };
 
-  const { match, view, valid, jugar, globos, resumen, cerrarResumen } = useTrucoMatch(initial, onFin);
-  // Resúmenes de mano ya vistos: el fin de partida aparece recién después de ver el de la última mano.
-  const [vistos, setVistos] = useState(initial.state.history.length);
-  const verFin = final !== null && !resumen && vistos >= match.state.history.length;
+  const { match, view, valid, jugar, globos, resumen, pendiente, cerrarResumen, yo } = useTrucoMatch(initial, onFin, remoto);
+  const momentos = momentosTruco(view.history, view.team);
+  // El fin de partida aparece recién después de ver el resumen de la última mano.
+  const verFin = !resumen && !pendiente;
   const n = view.config.players;
   const layout = LAYOUT[n];
-  const rel = (seat: Seat) => (seat - HUMAN_SEAT + n) % n;
-  const nombre = (seat: Seat) => (seat === HUMAN_SEAT ? "Vos" : match.jugadores[seat]!.nombre);
-  const equipo = (team: 0 | 1) => (n === 2 ? (team === 0 ? "Vos" : match.jugadores[1]!.nombre) : team === 0 ? "Nosotros" : "Ellos");
+  // Cada uno se ve abajo: los asientos se dibujan relativos al mío.
+  const rel = (seat: Seat) => (seat - yo + n) % n;
+  const nombre = (seat: Seat) => (seat === yo ? "Vos" : match.jugadores[seat]!.nombre);
+  const equipo = (team: 0 | 1) => (team === view.team ? (n === 2 ? "Vos" : "Nosotros") : n === 2 ? match.jugadores[1 - yo]!.nombre : "Ellos");
 
-  const miTurno = view.actor === HUMAN_SEAT && !resumen;
+  const miTurno = view.actor === yo && !resumen && !remoto?.terminado;
   const playable = new Set(miTurno ? valid.flatMap((a) => (a.type === "jugar" ? [a.card] : [])) : []);
   const botones = miTurno
     ? valid
@@ -137,6 +144,12 @@ function Mesa({ initial, onRevancha }: { initial: TrucoMatch; onRevancha: (m: Tr
         .sort((a, b) => ORDEN[a.type] - ORDEN[b.type])
         .map((a) => ({ a, b: botonDe(a, view)! }))
     : [];
+
+  // Si mientras confirmás el mazo se terminó la mano (o ya no se puede), la pregunta se cierra y no vuelve a aparecer.
+  const puedeMazo = miTurno && valid.some((a) => a.type === "mazo");
+  useEffect(() => {
+    if (!puedeMazo) setConfirmarMazo(false);
+  }, [puedeMazo]);
 
   const act = (a: TrucoAction) => {
     if (a.type === "mazo") {
@@ -153,17 +166,17 @@ function Mesa({ initial, onRevancha }: { initial: TrucoMatch; onRevancha: (m: Tr
     const m = newMatch(match.config, skill, match.adaptativo, match.jugadores[0]!, rival);
     saveMatch(m);
     playSfx("barajar");
-    onRevancha(m);
+    onRevancha?.(m);
   };
 
   return (
     <div className="pano flex h-dvh flex-col overflow-hidden">
       <header className="cuero cuero-oscuro z-20 flex items-center gap-2 rounded-b-2xl px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)]">
-        <IconButton label="Salir (la partida queda guardada)" onClick={back}>
+        <IconButton label={remoto ? "Salir de la sala" : "Salir (la partida queda guardada)"} onClick={back}>
           ←
         </IconButton>
         <div className="relative z-[1] grid flex-1 grid-cols-2 gap-2 text-center">
-          {([0, 1] as const).map((team) => (
+          {([view.team, (1 - view.team) as 0 | 1] as const).map((team) => (
             <div key={team} className={`rounded-xl px-1 py-0.5 ${team === view.team ? "bg-pano/50" : "bg-black/25"}`}>
               <p className="truncate text-[11px] font-black uppercase tracking-wider text-crema/80">
                 {equipo(team)} · <span className="text-base text-naranja">{view.score[team]}</span>
@@ -189,7 +202,7 @@ function Mesa({ initial, onRevancha }: { initial: TrucoMatch; onRevancha: (m: Tr
       <LayoutGroup>
         <div className="relative min-h-0 flex-1">
           {view.players.map((p) =>
-            p.seat === HUMAN_SEAT ? null : (
+            p.seat === yo ? null : (
               <Avatar
                 key={p.seat}
                 pos={layout[rel(p.seat)]!.avatar}
@@ -204,9 +217,9 @@ function Mesa({ initial, onRevancha }: { initial: TrucoMatch; onRevancha: (m: Tr
             ),
           )}
           {view.players.map((p) => (
-            <Zona key={p.seat} seat={p.seat} pos={layout[rel(p.seat)]!} tricks={view.tricks} width={ZONE_CARD[n]} />
+            <Zona key={p.seat} seat={p.seat} yo={yo} pos={layout[rel(p.seat)]!} tricks={view.tricks} width={ZONE_CARD[n]} />
           ))}
-          {view.mano === HUMAN_SEAT && (
+          {view.mano === yo && (
             <span className="absolute bottom-1 left-3 rounded-full bg-naranja px-2 py-0.5 text-[11px] font-black uppercase text-tinta">Sos mano</span>
           )}
           <AnimatePresence>
@@ -218,7 +231,7 @@ function Mesa({ initial, onRevancha }: { initial: TrucoMatch; onRevancha: (m: Tr
 
         <div className="cuero cuero-oscuro z-10 rounded-t-3xl px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
           <p className="relative z-[1] mb-2 min-h-5 text-center text-sm font-bold text-crema/90" aria-live="polite">
-            {estado(view, nombre, miTurno)}
+            {estado(view, nombre, miTurno, yo)}
           </p>
           {botones.length > 0 && (
             <div className="relative z-[1] mb-3 flex flex-wrap justify-center gap-2">
@@ -253,24 +266,24 @@ function Mesa({ initial, onRevancha }: { initial: TrucoMatch; onRevancha: (m: Tr
             nombre={nombre}
             equipo={equipo}
             view={view}
-            onSeguir={() => {
-              cerrarResumen();
-              setVistos((v) => Math.max(v + 1, match.state.history.length));
-            }}
+            yo={yo}
+            onSeguir={cerrarResumen}
             terminado={view.winner !== null}
           />
         )}
+        {remoto && verFin && view.winner !== null && remoto.fin({ gane: view.winner === view.team, empate: false, momentos, marcador: `${equipo(view.team)} ${view.score[view.team]} · ${equipo((1 - view.team) as 0 | 1)} ${view.score[1 - view.team]}` })}
         {verFin && final && (
           <FinPartida
             key="fin"
             r={final}
-            marcador={`${equipo(0)} ${view.score[0]} · ${equipo(1)} ${view.score[1]}`}
+            momentos={momentos}
+            marcador={`${equipo(view.team)} ${view.score[view.team]} · ${equipo((1 - view.team) as 0 | 1)} ${view.score[1 - view.team]}`}
             onRevancha={revancha}
             onSalir={back}
             salirTexto={match.carrera ? "Volver a la gira" : "Volver al menú"}
           />
         )}
-        {confirmarMazo && (
+        {confirmarMazo && puedeMazo && (
           <Modal key="mazo" onClose={() => setConfirmarMazo(false)}>
             <p className="mb-4 text-center text-lg font-bold">¿Te vas al mazo? Los otros se llevan lo que vale la mano.</p>
             <div className="grid grid-cols-2 gap-2">
@@ -299,16 +312,16 @@ function Mesa({ initial, onRevancha }: { initial: TrucoMatch; onRevancha: (m: Tr
   );
 }
 
-function estado(view: TrucoView, nombre: (s: Seat) => string, miTurno: boolean): string {
+function estado(view: TrucoView, nombre: (s: Seat) => string, miTurno: boolean, yo: Seat): string {
   if (view.winner !== null) return "Partida terminada";
   const p = view.pending;
   if (p) {
     const quien = nombre(p.caller);
     const que = describirPendiente(p);
-    if (p.responder === HUMAN_SEAT) return `${quien} cantó ${que}. ¿Qué hacés?`;
+    if (p.responder === yo) return `${quien} cantó ${que}. ¿Qué hacés?`;
     return `${nombre(p.responder)} piensa qué contestar al ${que}…`;
   }
-  if (miTurno) return "Te toca. Tocá una carta para tirarla.";
+  if (miTurno || view.turn === yo) return "Te toca. Tocá una carta para tirarla.";
   return `Juega ${nombre(view.turn)}…`;
 }
 
@@ -349,7 +362,7 @@ function Avatar(props: { pos: Punto; nombre: string; avatar: string; cartas: num
   );
 }
 
-function Zona({ seat, pos, tricks, width }: { seat: Seat; pos: SeatPos; tricks: Trick[]; width: number }) {
+function Zona({ seat, yo, pos, tricks, width }: { seat: Seat; yo: Seat; pos: SeatPos; tricks: Trick[]; width: number }) {
   const plays = tricks.flatMap((t, k) => {
     const p = t.plays.find((x) => x.seat === seat);
     if (!p) return [];
@@ -367,8 +380,8 @@ function Zona({ seat, pos, tricks, width }: { seat: Seat; pos: SeatPos; tricks: 
           {plays.map(({ card, k, gano, perdio, parda }) => (
             <motion.div
               key={card.id}
-              {...(seat === HUMAN_SEAT ? { layoutId: `carta-${card.id}` } : {})}
-              initial={seat === HUMAN_SEAT ? false : { x: fromX, y: fromY, opacity: 0, scale: 0.6, rotate: -20 }}
+              {...(seat === yo ? { layoutId: `carta-${card.id}` } : {})}
+              initial={seat === yo ? false : { x: fromX, y: fromY, opacity: 0, scale: 0.6, rotate: -20 }}
               animate={{ x: 0, y: 0, opacity: 1, scale: gano ? 1.06 : 1, rotate: (k - 1) * 7 }}
               exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.3 } }}
               transition={{ type: "spring", stiffness: 260, damping: 24 }}
@@ -425,7 +438,7 @@ function Burbuja({ globo, pos }: { globo: Globo; pos: Punto }) {
   );
 }
 
-function Resumen({ r, nombre, equipo, view, onSeguir, terminado }: { r: RoundSummary; nombre: (s: Seat) => string; equipo: (t: 0 | 1) => string; view: TrucoView; onSeguir: () => void; terminado: boolean }) {
+function Resumen({ r, nombre, equipo, view, yo, onSeguir, terminado }: { r: RoundSummary; nombre: (s: Seat) => string; equipo: (t: 0 | 1) => string; view: TrucoView; yo: Seat; onSeguir: () => void; terminado: boolean }) {
   const ganamos = r.truco.team === view.team;
   const lineas: string[] = [];
   if (r.envido) {
@@ -439,7 +452,7 @@ function Resumen({ r, nombre, equipo, view, onSeguir, terminado }: { r: RoundSum
   if (r.flor) lineas.push(`Flor${r.flor.stage === "achico" ? " (se achicaron)" : ""}: ${equipo(r.flor.team)} +${r.flor.points}`);
   if (r.truco.how === "bazas") lineas.push(`${r.truco.level === 1 ? "Mano" : NIVEL_TRUCO[r.truco.level]} por bazas: ${equipo(r.truco.team)} +${r.truco.points}`);
   if (r.truco.how === "no-quiero") lineas.push(`${NIVEL_TRUCO[(r.truco.level + 1) as 2 | 3 | 4] ?? "Truco"} no querido: ${equipo(r.truco.team)} +${r.truco.points}`);
-  if (r.truco.how === "mazo" && r.mazo !== null) lineas.push(`${nombre(r.mazo)} ${r.mazo === HUMAN_SEAT ? "te fuiste" : "se fue"} al mazo: ${equipo(r.truco.team)} +${r.truco.points}`);
+  if (r.truco.how === "mazo" && r.mazo !== null) lineas.push(`${nombre(r.mazo)} ${r.mazo === yo ? "te fuiste" : "se fue"} al mazo: ${equipo(r.truco.team)} +${r.truco.points}`);
   const titulo = r.truco.how === "fin-partida" ? "¡Se terminó!" : view.config.players === 2 ? (ganamos ? "¡Mano para vos!" : `Mano para ${equipo(r.truco.team)}`) : ganamos ? "¡Mano para nosotros!" : "Mano para ellos";
   return (
     <Modal onClose={onSeguir}>
@@ -467,7 +480,7 @@ function Resumen({ r, nombre, equipo, view, onSeguir, terminado }: { r: RoundSum
         </div>
       )}
       <p className="mb-4 text-center font-bold">
-        {equipo(0)} {view.score[0]} · {equipo(1)} {view.score[1]}
+        {equipo(view.team)} {view.score[view.team]} · {equipo((1 - view.team) as 0 | 1)} {view.score[1 - view.team]}
       </p>
       <button className="btn-criollo min-h-14 w-full rounded-2xl font-criolla text-xl" onClick={onSeguir}>
         <span className="relative z-[1]">{terminado ? "Ver resultado" : "Siguiente mano"}</span>

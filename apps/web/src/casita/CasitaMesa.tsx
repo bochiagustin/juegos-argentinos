@@ -1,8 +1,8 @@
 import { personaje, type Hecho } from "@juegos-argentinos/career";
 import type { SuitedCard } from "@juegos-argentinos/engine";
-import { casita, chooseCasitaAction, sonCompaneros, type CasitaAction, type CasitaConfig, type CasitaEvent, type CasitaState } from "@juegos-argentinos/engine/casita";
+import { casita, chooseCasitaAction, sonCompaneros, type CasitaAction, type CasitaConfig, type CasitaEvent, type CasitaState, type CasitaView } from "@juegos-argentinos/engine/casita";
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { playSfx, vibrate } from "../audio/sfx.ts";
 import { decir } from "../audio/voz.ts";
 import { SpanishCard } from "../cards/SpanishCard.tsx";
@@ -13,6 +13,8 @@ import { useNav } from "../nav.tsx";
 import { FinPartida } from "../partidas/FinPartida.tsx";
 import { HUMAN_SEAT } from "../partidas/jugadores.ts";
 import { clearBotMatch, loadBotMatch, newBotMatch, saveBotMatch, type BotMatch } from "../partidas/match.ts";
+import { momentosCasita } from "../partidas/momentos.ts";
+import type { Remoto } from "../partidas/remoto.ts";
 import { useBotMatch } from "../partidas/useBotMatch.ts";
 import { statsDe } from "../save/save.ts";
 import { useSave } from "../save/SaveContext.tsx";
@@ -75,7 +77,14 @@ function Casita({ top, cartas, nombre, avatar, activo, grande, compa }: { top: S
   );
 }
 
-function Mesa({ initial, onRevancha }: { initial: KMatch; onRevancha: (m: KMatch) => void }) {
+export function CasitaMesaOnline({ remoto }: { remoto: Remoto }) {
+  return <Mesa initial={null} remoto={remoto} />;
+}
+
+function Mesa({ initial, onRevancha, remoto }: { initial: KMatch | null; onRevancha?: (m: KMatch) => void; remoto?: Remoto }) {
+  const yo = remoto?.yo ?? HUMAN_SEAT;
+  // Robos de esta partida (online no hay estado completo: se cuentan por evento).
+  const robos = useRef({ hechos: 0, sufridos: 0 });
   const { back } = useNav();
   const { save } = useSave();
   const cerrar = useCerrarPartida();
@@ -83,11 +92,12 @@ function Mesa({ initial, onRevancha }: { initial: KMatch; onRevancha: (m: KMatch
   const [robo, setRobo] = useState<Robo | null>(null);
   const [eleccion, setEleccion] = useState<{ card: string; opciones: CasitaAction[] } | null>(null);
   const [reglas, setReglas] = useState(false);
-  const nombre = (seat: number, m: KMatch) => (seat === HUMAN_SEAT ? "Vos" : m.jugadores[seat]!.nombre);
+  const nombre = (seat: number, m: KMatch) => (seat === yo ? "Vos" : m.jugadores[seat]!.nombre);
 
   const { match, view, valid, jugar, miTurno } = useBotMatch({
     def: casita,
     initial,
+    remoto,
     actor: (s) => (s.result === null ? s.turn : null),
     choose: (v, va, rng, skill) => chooseCasitaAction(v, va, rng, skill),
     pausa: robo !== null,
@@ -99,14 +109,16 @@ function Mesa({ initial, onRevancha }: { initial: KMatch; onRevancha: (m: KMatch
         if (e.type === "reparto") window.setTimeout(() => playSfx("repartir"), 300);
         if (e.type === "robo") {
           setRobo({ ladron: e.seat, victima: e.victima, cartas: e.cartas });
-          if (e.victima === HUMAN_SEAT) {
+          if (e.seat === yo) robos.current.hechos++;
+          if (e.victima === yo) robos.current.sufridos++;
+          if (e.victima === yo) {
             hechos.push({ tipo: "casita-me-robaron", cantidad: 1 });
             playSfx("error");
             vibrate([80, 40, 120]);
             decir("Te robaron la casita");
           } else {
             playSfx("turno");
-            decir(e.seat === HUMAN_SEAT ? "Te robé la casita" : `${nombre(e.seat, next)} robó la casita`);
+            decir(e.seat === yo ? "Te robé la casita" : `${nombre(e.seat, next)} robó la casita`);
           }
           window.setTimeout(() => setRobo(null), 1800);
         }
@@ -116,13 +128,13 @@ function Mesa({ initial, onRevancha }: { initial: KMatch; onRevancha: (m: KMatch
     onFin: (m) => {
       clearBotMatch("casita-robada");
       const r = m.state.result!;
-      const mio = r.bandos.find((b) => b.seats.includes(HUMAN_SEAT))!;
-      const gane = r.ganadores.includes(HUMAN_SEAT) && r.ganadores.length === mio.seats.length;
+      const mio = r.bandos.find((b) => b.seats.includes(yo))!;
+      const gane = r.ganadores.includes(yo) && r.ganadores.length === mio.seats.length;
       const mejorRival = Math.max(...r.bandos.filter((b) => b !== mio).map((b) => b.cartas), 0);
       const hechos: Hecho[] = [
-        { tipo: "casita-robos", cantidad: m.state.robos[HUMAN_SEAT] ?? 0 },
+        { tipo: "casita-robos", cantidad: m.state.robos[yo] ?? 0 },
         { tipo: "casita-me-robaron", cantidad: m.hechos.filter((h) => h.tipo === "casita-me-robaron").length },
-        { tipo: "casita-cartas", cantidad: r.cartas[HUMAN_SEAT] ?? 0 },
+        { tipo: "casita-cartas", cantidad: r.cartas[yo] ?? 0 },
       ];
       setFinal(
         cerrar({
@@ -152,11 +164,11 @@ function Mesa({ initial, onRevancha }: { initial: KMatch; onRevancha: (m: KMatch
     const m = newBotMatch(casita, { config: match.config, players: match.config.players, botSkill: skill, adaptativo: match.adaptativo, yo: match.jugadores[0]!, ...(rival ? { rival } : {}) });
     saveBotMatch(m as never);
     playSfx("barajar");
-    onRevancha(m);
+    onRevancha?.(m);
   };
 
-  const yo = view.players[HUMAN_SEAT]!;
-  const otros = view.players.filter((p) => p.seat !== HUMAN_SEAT);
+  const mio = view.players[yo]!;
+  const otros = view.players.filter((p) => p.seat !== yo);
   const textoJugada = (a: CasitaAction) =>
     a.jugada.tipo === "mesa"
       ? "Levantar de la mesa"
@@ -167,9 +179,9 @@ function Mesa({ initial, onRevancha }: { initial: KMatch; onRevancha: (m: KMatch
           : "Dejarla en la mesa";
 
   return (
-    <motion.div className="pano flex h-dvh flex-col overflow-hidden" animate={robo?.victima === HUMAN_SEAT ? { x: [0, -10, 10, -8, 8, 0] } : { x: 0 }} transition={{ duration: 0.5 }}>
+    <motion.div className="pano flex h-dvh flex-col overflow-hidden" animate={robo?.victima === yo ? { x: [0, -10, 10, -8, 8, 0] } : { x: 0 }} transition={{ duration: 0.5 }}>
       <header className="cuero cuero-oscuro z-20 flex items-center gap-2 rounded-b-2xl px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)]">
-        <IconButton label="Salir (la partida queda guardada)" onClick={back}>
+        <IconButton label={remoto ? "Salir de la sala" : "Salir (la partida queda guardada)"} onClick={back}>
           ←
         </IconButton>
         <div className="relative z-[1] flex-1 text-center">
@@ -192,7 +204,7 @@ function Mesa({ initial, onRevancha }: { initial: KMatch; onRevancha: (m: KMatch
               nombre={match.jugadores[p.seat]!.nombre}
               avatar={match.jugadores[p.seat]!.avatar}
               activo={view.turn === p.seat && !view.result}
-              compa={sonCompaneros(view.config, HUMAN_SEAT, p.seat)}
+              compa={sonCompaneros(view.config, yo, p.seat)}
             />
             <div className="mt-1 flex -space-x-2">
               {Array.from({ length: p.cards }, (_, i) => (
@@ -222,13 +234,13 @@ function Mesa({ initial, onRevancha }: { initial: KMatch; onRevancha: (m: KMatch
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className={`pointer-events-none absolute inset-0 z-30 grid place-items-center ${robo.victima === HUMAN_SEAT ? "bg-red-700/45" : "bg-amber-400/25"}`}
+              className={`pointer-events-none absolute inset-0 z-30 grid place-items-center ${robo.victima === yo ? "bg-red-700/45" : "bg-amber-400/25"}`}
             >
               <motion.div initial={{ scale: 0.3, rotate: -8 }} animate={{ scale: 1, rotate: -3 }} className="text-center">
-                <p className="titulo-criollo text-5xl">{robo.victima === HUMAN_SEAT ? "¡TE ROBARON LA CASITA!" : robo.ladron === HUMAN_SEAT ? "¡LE ROBASTE LA CASITA!" : "¡ROBO!"}</p>
+                <p className="titulo-criollo text-5xl">{robo.victima === yo ? "¡TE ROBARON LA CASITA!" : robo.ladron === yo ? "¡LE ROBASTE LA CASITA!" : "¡ROBO!"}</p>
                 <p className="mt-2 text-lg font-black">
                   {nombre(robo.ladron, match)} se llevó {robo.cartas} carta{robo.cartas === 1 ? "" : "s"}
-                  {robo.victima !== HUMAN_SEAT && robo.ladron !== HUMAN_SEAT ? ` de ${nombre(robo.victima, match)}` : ""}
+                  {robo.victima !== yo && robo.ladron !== yo ? ` de ${nombre(robo.victima, match)}` : ""}
                 </p>
               </motion.div>
             </motion.div>
@@ -238,10 +250,10 @@ function Mesa({ initial, onRevancha }: { initial: KMatch; onRevancha: (m: KMatch
 
       <div className="cuero cuero-oscuro z-10 rounded-t-3xl px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
         <div className="relative z-[1] flex items-end gap-3">
-          <Casita top={yo.top} cartas={yo.casita} nombre="Tu casita" avatar={match.jugadores[0]!.avatar} activo={miTurno} grande />
+          <Casita top={mio.top} cartas={mio.casita} nombre="Tu casita" avatar={match.jugadores[yo]!.avatar} activo={miTurno} grande />
           <div className="flex-1">
             <p className="mb-2 min-h-5 text-center text-sm font-bold text-crema/90" aria-live="polite">
-              {view.result ? "Partida terminada" : view.turn === HUMAN_SEAT ? "Te toca: tocá una carta." : `Juega ${nombre(view.turn, match)}…`}
+              {view.result ? "Partida terminada" : view.turn === yo ? "Te toca: tocá una carta." : `Juega ${nombre(view.turn, match)}…`}
             </p>
             <div className="flex justify-center gap-2">
               <AnimatePresence>
@@ -296,13 +308,15 @@ function Mesa({ initial, onRevancha }: { initial: KMatch; onRevancha: (m: KMatch
           <FinPartida
             key="fin"
             r={final}
+            momentos={momentosCasita({ hechos: view.players[yo]!.robos, sufridos: match.hechos.filter((h) => h.tipo === "casita-me-robaron").length }, view.result.cartas[yo] ?? 0)}
             marcador={view.result.bandos.map((b) => `${b.seats.map((s) => nombre(s, match)).join(" y ")} ${b.cartas}`).join(" · ")}
-            titulo={view.result.ganadores.length > 1 && view.result.ganadores.includes(HUMAN_SEAT) && !final.ganada ? "¡Empate!" : undefined}
+            titulo={view.result.ganadores.length > 1 && view.result.ganadores.includes(yo) && !final.ganada ? "¡Empate!" : undefined}
             onRevancha={revancha}
             onSalir={back}
             salirTexto={match.carrera ? "Volver a la gira" : "Volver al menú"}
           />
         )}
+        {remoto && view.result && remoto.fin({ ...resultadoOnline(view.result, yo, (s) => nombre(s, match)), momentos: momentosCasita(robos.current, view.result.cartas[yo] ?? 0) })}
         {reglas && (
           <Modal key="reglas" onClose={() => setReglas(false)} grande>
             <h2 className="titulo-criollo mb-3 text-center text-3xl">Cómo se juega</h2>
@@ -321,4 +335,14 @@ function Mesa({ initial, onRevancha }: { initial: KMatch; onRevancha: (m: KMatch
       </AnimatePresence>
     </motion.div>
   );
+}
+
+function resultadoOnline(r: NonNullable<CasitaView["result"]>, yo: number, nombre: (s: number) => string) {
+  const mio = r.bandos.find((b) => b.seats.includes(yo))!;
+  const ganamos = r.ganadores.includes(yo);
+  return {
+    gane: ganamos && r.ganadores.length === mio.seats.length,
+    empate: ganamos && r.ganadores.length > mio.seats.length,
+    marcador: r.bandos.map((b) => `${b.seats.map(nombre).join(" y ")} ${b.cartas}`).join(" · "),
+  };
 }

@@ -29,6 +29,10 @@ export interface Ajustes {
   tema: Tema;
   /** Mazo con el que se ven las cartas. */
   mazo: DeckId;
+  /** Accesibilidad: menos movimiento en pantalla. */
+  menosAnimaciones: boolean;
+  /** Accesibilidad: toda la letra un poco más grande. */
+  textoGrande: boolean;
 }
 
 /** Cómo le va al jugador en cada juego contra la IA (de acá sale el nivel adaptativo). */
@@ -60,7 +64,7 @@ export function defaultSave(): Save {
   return {
     version: CURRENT_VERSION,
     perfil: { apodo: "", avatar: "🧉", creado: false },
-    ajustes: { sonido: true, vibracion: true, tema: "pano", mazo: "criolla" },
+    ajustes: { sonido: true, vibracion: true, tema: "pano", mazo: "criolla", menosAnimaciones: false, textoGrande: false },
     juegos: {},
     carrera: defaultCareer(),
   };
@@ -115,6 +119,8 @@ function normalize(s: UnknownRecord): Save {
       vibracion: bool(ajustes.vibracion, d.ajustes.vibracion),
       tema,
       mazo: isDeckId(ajustes.mazo) ? ajustes.mazo : d.ajustes.mazo,
+      menosAnimaciones: bool(ajustes.menosAnimaciones, d.ajustes.menosAnimaciones),
+      textoGrande: bool(ajustes.textoGrande, d.ajustes.textoGrande),
     },
     juegos: normalizeJuegos(s.juegos),
     carrera: normalizeCareer(s.carrera),

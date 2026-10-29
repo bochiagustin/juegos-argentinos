@@ -36,6 +36,7 @@ export function Juego({ id }: { id: GameId }) {
                 if (!disponible) setAviso(`${modo.nombre} de ${game.nombre} está en camino. ¡Aguantá que ya llega!`);
                 else if (m === "ia") push({ name: id === "truco" ? "truco-setup" : id === "chinchon" ? "chinchon-setup" : id === "escoba" ? "escoba-setup" : id === "tutti-frutti" ? "tutti-setup" : "casita-setup" });
                 else if (m === "carrera") push({ name: "gira", game: id });
+                else if (m === "amigos") push({ name: "amigos", game: id });
               }}
               aria-disabled={!disponible}
               className={`cuero flex min-h-16 w-full items-center gap-3 rounded-2xl px-4 py-3 text-left ${disponible ? "cuero-verde active:scale-[0.98]" : "opacity-80"}`}

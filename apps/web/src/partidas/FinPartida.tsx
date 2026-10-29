@@ -1,6 +1,6 @@
 import { REGIONES, TIENDA } from "@juegos-argentinos/career";
 import { motion } from "motion/react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { ResultadoCierre } from "../carrera/useCerrarPartida.ts";
 import { nivelNombre } from "../ia/nivel.ts";
 import { FosforoIcono, Modal } from "../ui/Modal.tsx";
@@ -10,6 +10,7 @@ export function FinPartida({
   r,
   marcador,
   titulo,
+  momentos = [],
   onRevancha,
   onSalir,
   salirTexto = "Volver al menú",
@@ -17,10 +18,12 @@ export function FinPartida({
   r: ResultadoCierre;
   marcador: ReactNode;
   titulo?: string | undefined;
+  momentos?: readonly string[];
   onRevancha: () => void;
   onSalir: () => void;
   salirTexto?: string;
 }) {
+  const armado = useArmado();
   const p = r.premio;
   const region = p.regionDesbloqueada ? REGIONES.find((x) => x.id === p.regionDesbloqueada)?.nombre : null;
   const regalo = p.regalo ? TIENDA.find((t) => t.id === p.regalo)?.nombre : null;
@@ -30,6 +33,7 @@ export function FinPartida({
         {titulo ?? (r.ganada ? "¡Ganaste!" : "Perdiste…")}
       </motion.h2>
       <div className="mb-3 text-center text-lg font-bold">{marcador}</div>
+      <Momentos lista={momentos} />
 
       <div className="mb-3 flex flex-col gap-1.5 text-sm font-semibold">
         <div className="flex items-center justify-center gap-3 rounded-xl bg-black/30 px-3 py-2">
@@ -62,14 +66,42 @@ export function FinPartida({
       </div>
 
       <div className="flex flex-col gap-2">
-        <button className="btn-criollo min-h-14 rounded-2xl font-criolla text-2xl" onClick={onRevancha}>
+        <button disabled={!armado} className="btn-criollo min-h-14 rounded-2xl font-criolla text-2xl" onClick={onRevancha}>
           <span className="relative z-[1]">Revancha</span>
         </button>
-        <button className="min-h-12 rounded-xl bg-black/35 font-bold" onClick={onSalir}>
+        <button disabled={!armado} className="min-h-12 rounded-xl bg-black/35 font-bold" onClick={onSalir}>
           {salirTexto}
         </button>
       </div>
     </Modal>
+  );
+}
+
+/**
+ * Los botones del final se activan después de un instante: la pantalla aparece justo donde estaba "Ver resultado"
+ * y un doble toque no tiene que sacarte de la partida.
+ */
+export function useArmado(ms = 700) {
+  const [armado, setArmado] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setArmado(true), ms);
+    return () => clearTimeout(t);
+  }, [ms]);
+  return armado;
+}
+
+/** Lo más destacado de la partida. */
+export function Momentos({ lista }: { lista: readonly string[] }) {
+  if (!lista.length) return null;
+  return (
+    <div className="mb-3 rounded-xl bg-black/25 px-3 py-2">
+      <p className="mb-1 text-xs font-black uppercase tracking-wider text-naranja">Momentos de la partida</p>
+      <ul className="flex flex-col gap-0.5 text-sm">
+        {lista.map((m) => (
+          <li key={m}>★ {m}</li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

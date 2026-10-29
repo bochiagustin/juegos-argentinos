@@ -13,6 +13,8 @@ import { useNav } from "../nav.tsx";
 import { FinPartida } from "../partidas/FinPartida.tsx";
 import { HUMAN_SEAT } from "../partidas/jugadores.ts";
 import { clearBotMatch, loadBotMatch, newBotMatch, saveBotMatch, type BotMatch } from "../partidas/match.ts";
+import { momentosEscoba } from "../partidas/momentos.ts";
+import type { Remoto } from "../partidas/remoto.ts";
 import { useBotMatch } from "../partidas/useBotMatch.ts";
 import { statsDe } from "../save/save.ts";
 import { useSave } from "../save/SaveContext.tsx";
@@ -56,7 +58,12 @@ export function EscobaMesa() {
 
 const sumaDe = (cs: readonly SuitedCard[]) => cs.reduce((a, c) => a + valorEscoba(c), 0);
 
-function Mesa({ initial, onRevancha }: { initial: EMatch; onRevancha: (m: EMatch) => void }) {
+export function EscobaMesaOnline({ remoto }: { remoto: Remoto }) {
+  return <Mesa initial={null} remoto={remoto} />;
+}
+
+function Mesa({ initial, onRevancha, remoto }: { initial: EMatch | null; onRevancha?: (m: EMatch) => void; remoto?: Remoto }) {
+  const yo = remoto?.yo ?? HUMAN_SEAT;
   const { back } = useNav();
   const { save } = useSave();
   const cerrar = useCerrarPartida();
@@ -65,12 +72,14 @@ function Mesa({ initial, onRevancha }: { initial: EMatch; onRevancha: (m: EMatch
   const [cartel, setCartel] = useState<{ texto: string; mio: boolean } | null>(null);
   const [sel, setSel] = useState<string | null>(null);
   const [reglas, setReglas] = useState(false);
-  const [vistos, setVistos] = useState(initial.state.history.length);
-  const nombre = (seat: number, m: EMatch) => (seat === HUMAN_SEAT ? "Vos" : m.jugadores[seat]!.nombre);
+  // Hay un resumen de ronda por mostrar: el fin de partida espera a que se vea.
+  const [pendiente, setPendiente] = useState(false);
+  const nombre = (seat: number, m: EMatch) => (seat === yo ? "Vos" : m.jugadores[seat]!.nombre);
 
   const { match, view, valid, jugar, miTurno } = useBotMatch({
     def: escoba,
     initial,
+    remoto,
     actor: (s) => (s.winner === null ? s.turn : null),
     choose: (v, va, rng, skill) => chooseEscobaAction(v, va, rng, skill),
     pausa: resumen !== null || cartel !== null,
@@ -81,7 +90,7 @@ function Mesa({ initial, onRevancha }: { initial: EMatch; onRevancha: (m: EMatch
         if (e.type === "tirada") {
           playSfx("carta");
           if (e.escoba) {
-            const mio = e.seat === HUMAN_SEAT;
+            const mio = e.seat === yo;
             setCartel({ texto: mio ? "¡ESCOBA!" : `¡Escoba de ${nombre(e.seat, next)}!`, mio });
             playSfx(mio ? "turno" : "barajar");
             decir("Escoba");
@@ -90,14 +99,15 @@ function Mesa({ initial, onRevancha }: { initial: EMatch; onRevancha: (m: EMatch
           }
         }
         if (e.type === "escoba-de-mano") {
-          setCartel({ texto: `¡Escoba de mano${e.seat === HUMAN_SEAT ? "!" : ` de ${nombre(e.seat, next)}!`}`, mio: e.seat === HUMAN_SEAT });
+          setCartel({ texto: `¡Escoba de mano${e.seat === yo ? "!" : ` de ${nombre(e.seat, next)}!`}`, mio: e.seat === yo });
           window.setTimeout(() => setCartel(null), 1600);
-          if (e.seat === HUMAN_SEAT) hechos.push({ tipo: "escoba-de-mano" }, { tipo: "escoba-escobas", cantidad: e.escobas });
+          if (e.seat === yo) hechos.push({ tipo: "escoba-de-mano" }, { tipo: "escoba-escobas", cantidad: e.escobas });
         }
         if (e.type === "reparto" || e.type === "nueva-ronda") window.setTimeout(() => playSfx("repartir"), 400);
         if (e.type === "fin-ronda") {
-          const mio = e.summary.bandos[bandoDe(next.config, HUMAN_SEAT)];
+          const mio = e.summary.bandos[bandoDe(next.config, yo)];
           if (mio && mio.sietes === 4) hechos.push({ tipo: "escoba-cuatro-sietes" });
+          setPendiente(true);
           window.setTimeout(() => setResumen(e.summary), 700);
         }
       }
@@ -105,7 +115,7 @@ function Mesa({ initial, onRevancha }: { initial: EMatch; onRevancha: (m: EMatch
     },
     onFin: (m) => {
       clearBotMatch("escoba");
-      const miBando = bandoDe(m.config, HUMAN_SEAT);
+      const miBando = bandoDe(m.config, yo);
       const gane = m.state.winner === miBando;
       const rival = Math.max(...m.state.score.filter((_, i) => i !== miBando));
       const peor = Math.min(0, ...m.state.history.map((h) => h.score[miBando]! - Math.max(...h.score.filter((_, i) => i !== miBando))));
@@ -125,7 +135,7 @@ function Mesa({ initial, onRevancha }: { initial: EMatch; onRevancha: (m: EMatch
     },
   });
 
-  const verFin = final !== null && !resumen && vistos >= match.state.history.length;
+  const verFin = !resumen && !pendiente;
   const miBando = view.bando;
   const mias = valid.filter((a) => a.card === sel);
   const combos = mias.filter((a) => a.levanta.length > 0);
@@ -148,20 +158,20 @@ function Mesa({ initial, onRevancha }: { initial: EMatch; onRevancha: (m: EMatch
     const m = newBotMatch(escoba, { config: match.config, players: match.config.players, botSkill: skill, adaptativo: match.adaptativo, yo: match.jugadores[0]!, ...(rival ? { rival } : {}) });
     saveBotMatch(m as never);
     playSfx("barajar");
-    onRevancha(m);
+    onRevancha?.(m);
   };
 
   const bandoNombre = (b: number) => {
     const seats = view.players.filter((p) => bandoDe(view.config, p.seat) === b).map((p) => p.seat);
     return seats.map((s) => nombre(s, match)).join(" y ");
   };
-  const otros = view.players.filter((p) => p.seat !== HUMAN_SEAT);
-  const yo = view.players[HUMAN_SEAT]!;
+  const otros = view.players.filter((p) => p.seat !== yo);
+  const mio = view.players[yo]!;
 
   return (
     <div className="pano flex h-dvh flex-col overflow-hidden">
       <header className="cuero cuero-oscuro z-20 flex items-center gap-2 rounded-b-2xl px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)]">
-        <IconButton label="Salir (la partida queda guardada)" onClick={back}>
+        <IconButton label={remoto ? "Salir de la sala" : "Salir (la partida queda guardada)"} onClick={back}>
           ←
         </IconButton>
         <div className="relative z-[1] flex-1 text-center">
@@ -243,13 +253,13 @@ function Mesa({ initial, onRevancha }: { initial: EMatch; onRevancha: (m: EMatch
       <div className="cuero cuero-oscuro z-10 rounded-t-3xl px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
         <div className="relative z-[1]">
           <div className="mb-1 flex items-center justify-between text-xs font-bold">
-            <span className="rounded-full bg-black/35 px-2 py-1">Tu pila: {yo.pila}</span>
-            {yo.escobas > 0 && <span className="rounded-full bg-naranja px-2 py-1 text-tinta">🧹 {yo.escobas} escoba{yo.escobas === 1 ? "" : "s"}</span>}
+            <span className="rounded-full bg-black/35 px-2 py-1">Tu pila: {mio.pila}</span>
+            {mio.escobas > 0 && <span className="rounded-full bg-naranja px-2 py-1 text-tinta">🧹 {mio.escobas} escoba{mio.escobas === 1 ? "" : "s"}</span>}
           </div>
           <p className="mb-2 min-h-5 text-center text-sm font-bold text-crema/90" aria-live="polite">
             {view.winner !== null
               ? "Partida terminada"
-              : view.turn === HUMAN_SEAT
+              : view.turn === yo
                 ? cartaSel
                   ? combos.length
                     ? "Elegí qué levantar (o dejala en la mesa)."
@@ -367,17 +377,19 @@ function Mesa({ initial, onRevancha }: { initial: EMatch; onRevancha: (m: EMatch
               className="btn-criollo mt-4 min-h-14 w-full rounded-2xl font-criolla text-xl"
               onClick={() => {
                 setResumen(null);
-                setVistos((v) => Math.max(v + 1, match.state.history.length));
+                setPendiente(false);
               }}
             >
               <span className="relative z-[1]">{view.winner !== null ? "Ver resultado" : "Siguiente ronda"}</span>
             </button>
           </Modal>
         )}
+        {remoto && verFin && view.winner !== null && remoto.fin({ gane: view.winner === miBando, empate: false, momentos: momentosEscoba(view.history, miBando), marcador: view.score.map((p, b) => `${b === miBando ? "Vos" : bandoNombre(b)} ${p}`).join(" · ") })}
         {verFin && final && (
           <FinPartida
             key="fin"
             r={final}
+            momentos={momentosEscoba(view.history, miBando)}
             marcador={view.score.map((p, b) => `${b === miBando ? "Vos" : bandoNombre(b)} ${p}`).join(" · ")}
             onRevancha={revancha}
             onSalir={back}

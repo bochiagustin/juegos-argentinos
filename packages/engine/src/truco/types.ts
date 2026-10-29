@@ -204,5 +204,7 @@ export interface TrucoView {
   florDone: boolean;
   score: [number, number];
   lastRound: RoundSummary | null;
+  /** Resúmenes públicos de todas las rondas jugadas (para retomar y para los momentos del final). */
+  history: RoundSummary[];
   winner: Team | null;
 }

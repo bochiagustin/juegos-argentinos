@@ -87,5 +87,7 @@ export interface EscobaView {
   ronda: number;
   score: number[];
   lastRound: EscobaRoundSummary | null;
+  /** Resúmenes públicos de todas las rondas jugadas (para retomar y para los momentos del final). */
+  history: EscobaRoundSummary[];
   winner: number | null;
 }

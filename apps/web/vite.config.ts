@@ -20,7 +20,7 @@ export default defineConfig({
       manifest: {
         name: "Juegos Argentinos",
         short_name: "Juegos Arg.",
-        description: "Truco, Chinchón, Casita Robada y Tutti-Frutti. Contra la IA o con amigos.",
+        description: "Truco, Chinchón, Casita Robada, Escoba de 15 y Tutti-Frutti. Contra la IA, en la Gira Nacional o con amigos.",
         lang: "es-AR",
         start_url: "/",
         display: "standalone",

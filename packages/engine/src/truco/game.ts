@@ -507,6 +507,7 @@ export const truco: GameDefinition<TrucoConfig, TrucoState, TrucoAction, TrucoVi
       florDone: r.florDone,
       score: state.score,
       lastRound: state.history[state.history.length - 1] ?? null,
+      history: clone(state.history),
       winner: state.winner,
     };
     return clone(view);

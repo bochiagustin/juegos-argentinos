@@ -63,6 +63,17 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Accesibilidad: "Letra más grande" (todo está en rem, así que escala junto). */
+html[data-texto="grande"] {
+  font-size: 112.5%;
+}
+
+/* Foco visible al navegar con teclado. */
+:focus-visible {
+  outline: 3px solid var(--color-naranja, #f59e0b);
+  outline-offset: 2px;
+}
+
 /* En @layer components: así las utilidades de Tailwind (sticky, fixed, etc.) les ganan. */
 @layer components {
 /* ------------------------------------------------------------------ */

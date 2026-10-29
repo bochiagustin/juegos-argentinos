@@ -1,0 +1,39 @@
+name: Deploy del servidor de salas
+
+# Sube el servidor (Cloudflare Workers + Durable Objects) cuando cambia en main.
+# Necesita el secreto CLOUDFLARE_API_TOKEN (y CLOUDFLARE_ACCOUNT_ID) en el repositorio.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/server/**"
+      - "packages/engine/**"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Sin token de Cloudflare no se sube nada
+        if: env.CLOUDFLARE_API_TOKEN == ''
+        run: echo "Falta el secreto CLOUDFLARE_API_TOKEN; no se hace el deploy."
+      - if: env.CLOUDFLARE_API_TOKEN != ''
+        uses: actions/checkout@v4
+      - if: env.CLOUDFLARE_API_TOKEN != ''
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - if: env.CLOUDFLARE_API_TOKEN != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - if: env.CLOUDFLARE_API_TOKEN != ''
+        run: pnpm install --frozen-lockfile
+      - if: env.CLOUDFLARE_API_TOKEN != ''
+        run: pnpm --filter @juegos-argentinos/server test
+      - if: env.CLOUDFLARE_API_TOKEN != ''
+        run: pnpm --filter @juegos-argentinos/server run deploy

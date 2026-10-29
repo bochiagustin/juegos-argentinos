@@ -259,6 +259,7 @@ export const escoba: GameDefinition<EscobaConfig, EscobaState, EscobaAction, Esc
       ronda: s.ronda,
       score: s.score,
       lastRound: s.history[s.history.length - 1] ?? null,
+      history: s.history,
       winner: s.winner,
     });
   },

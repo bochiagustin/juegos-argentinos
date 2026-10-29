@@ -244,6 +244,7 @@ export const chinchon: GameDefinition<ChinchonConfig, ChinchonState, ChinchonAct
       tomadaDelPozo: s.tomadaDelPozo,
       round: s.round,
       lastRound: s.history[s.history.length - 1] ?? null,
+      history: s.history,
       winner: s.winner,
     });
   },

@@ -16,6 +16,7 @@
     "@fontsource/rye": "^5.3.0",
     "@juegos-argentinos/career": "workspace:*",
     "@juegos-argentinos/engine": "workspace:*",
+    "@juegos-argentinos/server": "workspace:*",
     "motion": "^14.7.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"

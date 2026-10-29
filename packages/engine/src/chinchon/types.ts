@@ -107,5 +107,7 @@ export interface ChinchonView {
   tomadaDelPozo: CardId | null;
   round: number;
   lastRound: ChinchonRoundSummary | null;
+  /** Resúmenes públicos de todas las rondas jugadas (para retomar y para los momentos del final). */
+  history: ChinchonRoundSummary[];
   winner: Seat | null;
 }
