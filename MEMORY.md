@@ -70,6 +70,11 @@ Memoria de trabajo del proyecto: lo que el usuario pidió, prefirió o decidió 
 - 2026-10-29 · Deploy: la app en Vercel y el servidor en Cloudflare quedaron configurados pero **sin publicar**: hacen falta
   las cuentas del usuario (GitHub, Vercel, Cloudflare). Pasos en `docs/deploy.md`.
 
+- 2026-10-29 · **Publicado.** Código en GitHub `bochiagustin/juegos-argentinos` (público por ahora; se le sugirió pasarlo a privado
+  por los Mazo Argento). App en Vercel (proyecto `juegos-argentinos`, cuenta agustin-d98f), se publica sola con cada push a main.
+  Servidor de salas en Cloudflare: `wss://juegos-argentinos-salas.agustinbochi20.workers.dev` (variable `VITE_SERVIDOR_SALAS`
+  en Vercel, tipo Config). El servidor se sube con el workflow `servidor.yml` (secretos CLOUDFLARE_API_TOKEN / _ACCOUNT_ID).
+
 ## Dudas abiertas (preguntar antes de implementar la fase correspondiente)
 
 ### Truco (implementado con la propuesta; confirmar)
