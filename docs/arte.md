@@ -22,7 +22,7 @@ placeholder del mismo tamaño, así que se puede ir sumando de a poco.
 | ☐ | `arte/juegos/escoba.png` | 800×500 | lleno | Tarjeta de la Escoba de 15, sin texto |
 | ☐ | `arte/juegos/tutti-frutti.png` | 800×500 | lleno | Tarjeta del Tutti-Frutti, sin texto |
 | ✅ | `arte/mapa/base.webp` | 1080×2400 | lleno | Mapa de Argentina con Malvinas, sin textos ni candados |
-| ◐ | `arte/rivales/<region>-<1\|2\|jefe>.webp` ×18 | 512×512 | lleno o transparente | Busto de cada rival. Están 9: Buenos Aires, Cuyo y Mesopotamia completos y norte-1. Faltan norte-2, norte-jefe, Patagonia y Malvinas |
+| ◐ | `arte/rivales/<region>-<1\|2\|jefe>.webp` ×18 | 512×512 | lleno o transparente | Busto de cada rival. Están 10: Buenos Aires, Cuyo y Mesopotamia completos y norte-1. Faltan 8: norte-2, norte-jefe, Patagonia y Malvinas |
 
 Ids de región: `buenos-aires`, `cuyo`, `mesopotamia`, `norte`, `patagonia`, `malvinas`.
 

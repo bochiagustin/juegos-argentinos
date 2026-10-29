@@ -140,7 +140,7 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
 - **Arte del usuario**: `src/art/manifest.ts` (ids → `public/arte/...`), `<Art id fallback>` muestra un placeholder o un dibujo
   propio mientras falte el archivo. Checklist en `docs/arte.md`. Los originales que sube el usuario se procesan con
   `python3 tools/recortar-arte.py <carpeta>` (saca el damero pintado / fondo liso, GrabCut para el sombrero, recorta, WebP,
-  íconos de la PWA) y **no** se dejan en el repo. Ya están: logo (marco + texto en código), gaucho de portada, 9 rivales,
+  íconos de la PWA) y **no** se dejan en el repo. Ya están: logo (marco + texto en código), gaucho de portada, 10 rivales,
   íconos de canto y de pestañas, tarjeta del truco, mapa de la gira (medallones por región en `MapaGira.tsx`) e ícono de la app.
 - **Mazos** (`src/cards/decks.ts`): `criolla` (SVG propio) y los tres **Mazo Argento** (`argento-nuevo`, `argento-memes`,
   `argento-campeon`, imágenes en `public/mazos/<id>/<cardId>.webp` + `dorso.webp`, usados con licencia: `docs/licencias/mazo-argento.md`).
