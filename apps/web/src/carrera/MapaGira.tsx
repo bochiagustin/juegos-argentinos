@@ -1,9 +1,66 @@
 import type { EstadoRegion, RegionId } from "@juegos-argentinos/career";
+import { useState } from "react";
+import { ART, artUrl } from "../art/manifest.ts";
 
 /**
- * Mapa de la Gira Nacional dibujado en código (estilizado, no cartográfico). Cuando llegue el arte
- * del usuario (arte/mapa/*), se puede poner de fondo y estas regiones quedan como zonas tocables.
+ * Mapa de la Gira Nacional: el mapa ilustrado del usuario (arte/mapa/base) con un medallón tocable por región.
+ * Si la imagen no carga, cae al mapa dibujado en código (estilizado, no cartográfico).
  */
+export function MapaGira(props: { regiones: EstadoRegion[]; seleccion: RegionId; onSelect: (id: RegionId) => void }) {
+  const [falla, setFalla] = useState(false);
+  return falla ? <MapaDibujado {...props} /> : <MapaIlustrado {...props} onFalla={() => setFalla(true)} />;
+}
+
+/** Dónde va el medallón de cada región sobre la ilustración (en píxeles de la imagen). */
+const PINES: Record<RegionId, { x: number; y: number }> = {
+  norte: { x: 380, y: 400 },
+  mesopotamia: { x: 590, y: 540 },
+  cuyo: { x: 290, y: 760 },
+  "buenos-aires": { x: 520, y: 860 },
+  patagonia: { x: 280, y: 1260 },
+  malvinas: { x: 590, y: 1420 },
+};
+
+function MapaIlustrado({ regiones, seleccion, onSelect, onFalla }: { regiones: EstadoRegion[]; seleccion: RegionId; onSelect: (id: RegionId) => void; onFalla: () => void }) {
+  const { width: W, height: H } = ART["mapa-base"];
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="group" aria-label="Mapa de la gira">
+      <image href={artUrl("mapa-base")} width={W} height={H} onError={onFalla} />
+      {regiones.map((r) => {
+        const sel = r.id === seleccion;
+        const p = PINES[r.id];
+        const color = r.completa ? "#e6b13a" : r.abierta ? "#2f7d4a" : "#4a3a2c";
+        return (
+          <g
+            key={r.id}
+            role="button"
+            tabIndex={0}
+            aria-label={`${r.nombre}${r.abierta ? "" : " (bloqueada)"}`}
+            aria-pressed={sel}
+            onClick={() => onSelect(r.id)}
+            onKeyDown={(ev) => (ev.key === "Enter" || ev.key === " ") && onSelect(r.id)}
+            className="cursor-pointer outline-none"
+            transform={`translate(${p.x} ${p.y})`}
+          >
+            {sel && <circle r="70" fill="none" stroke="#f59e0b" strokeWidth="8" strokeDasharray="14 10" opacity="0.95" />}
+            <circle r="52" fill="rgb(0 0 0 / 0.35)" transform="translate(4 6)" />
+            <circle r="52" fill={color} stroke={sel ? "#f59e0b" : "#e8c27a"} strokeWidth={sel ? 9 : 6} />
+            <circle r="42" fill="none" stroke="rgb(255 240 200 / 0.35)" strokeWidth="2" />
+            <text y={r.abierta && !r.completa ? 13 : 16} textAnchor="middle" fontSize={r.abierta && !r.completa ? 36 : 44} fill="#fbf6ea" fontWeight="900" fontFamily="Nunito Variable, sans-serif">
+              {r.completa ? "⭐" : r.abierta ? `${r.rivales.filter((x) => x.victorias > 0).length}/3` : "🔒"}
+            </text>
+            <g transform="translate(0 84)">
+              <rect x={-r.nombre.length * 13 - 20} y="-26" width={r.nombre.length * 26 + 40} height="44" rx="10" fill="#1f160f" opacity="0.9" stroke="#e8c27a" strokeWidth="2" />
+              <text y="8" textAnchor="middle" fontSize="26" fill="#fbf6ea" fontFamily="Rye, serif">
+                {r.nombre.toUpperCase()}
+              </text>
+            </g>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
 const FORMAS: Record<RegionId, string[]> = {
   norte: ["M118,30 L170,22 L232,30 L252,58 L246,118 L238,170 L226,236 L112,236 L104,170 L98,110 Z"],
   mesopotamia: ["M246,118 L276,96 L312,64 L342,52 L346,80 L326,120 L304,164 L292,214 L276,252 L250,262 L232,246 L226,236 L238,170 Z"],
@@ -25,7 +82,7 @@ const ETIQUETA: Record<RegionId, { x: number; y: number }> = {
   malvinas: { x: 300, y: 762 },
 };
 
-export function MapaGira({ regiones, seleccion, onSelect }: { regiones: EstadoRegion[]; seleccion: RegionId; onSelect: (id: RegionId) => void }) {
+function MapaDibujado({ regiones, seleccion, onSelect }: { regiones: EstadoRegion[]; seleccion: RegionId; onSelect: (id: RegionId) => void }) {
   return (
     <svg viewBox="0 0 400 900" className="h-auto w-full" role="group" aria-label="Mapa de la gira">
       <defs>

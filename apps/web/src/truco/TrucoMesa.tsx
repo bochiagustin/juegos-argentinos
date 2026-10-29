@@ -276,7 +276,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
                   onClick={() => act(a)}
                   className={`min-h-12 rounded-xl px-4 ${TONO_CLASE[b.tono]}`}
                 >
-                  <Icono tipo={iconoDe(a)} className="size-5 shrink-0" />
+                  <IconoCantoArte tipo={iconoDe(a)} />
                   {b.texto}
                 </motion.button>
               ))}
@@ -348,6 +348,11 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
 }
 
 /** Ícono de cada canto (sombrero para el truco, copa para el envido, corona para el real…). */
+/** El ícono ilustrado del canto, o el de trazo si falta la imagen. */
+function IconoCantoArte({ tipo }: { tipo: IconoCanto }) {
+  return <Art id={`canto-${tipo}`} className="-my-1 size-8 shrink-0 object-contain drop-shadow-[0_1px_1px_rgb(0_0_0_/_0.5)]" fallback={<Icono tipo={tipo} className="size-5 shrink-0" />} />;
+}
+
 function iconoDe(a: TrucoAction): IconoCanto {
   switch (a.type) {
     case "truco":

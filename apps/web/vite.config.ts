@@ -16,7 +16,7 @@ export default defineConfig({
     VitePWA({
       disable: artifact,
       registerType: "autoUpdate",
-      includeAssets: ["icons/icon.svg", "icons/apple-touch-icon.png"],
+      includeAssets: ["icons/favicon-48.png", "icons/apple-touch-icon.png"],
       manifest: {
         name: "Juegos Argentinos",
         short_name: "Juegos Arg.",
@@ -30,13 +30,13 @@ export default defineConfig({
         icons: [
           { src: "icons/icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "icons/icon-512.png", sizes: "512x512", type: "image/png" },
-          { src: "icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          { src: "icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
       },
       workbox: {
         // La app (código, fuentes, íconos) queda precacheada: anda sin internet desde la primera visita.
-        globPatterns: ["**/*.{js,css,html,woff2,svg,png}", "texturas/*.webp"],
-        globIgnores: ["mazos/**", "arte/**"],
+        globPatterns: ["**/*.{js,css,html,woff2,svg,png}", "texturas/*.webp", "arte/iconos/*.webp", "arte/logo-marco.webp", "arte/portada/*.webp"],
+        globIgnores: ["mazos/**"],
         // Mazos e ilustraciones: se guardan en caché a medida que se ven (o al elegir un mazo).
         runtimeCaching: [
           {

@@ -1,15 +1,17 @@
 import type { ReactNode } from "react";
+import { Art } from "../art/Art.tsx";
+import type { ArtId } from "../art/manifest.ts";
 import { playSfx } from "../audio/sfx.ts";
 import { useNav, type Route } from "../nav.tsx";
 
 export type Tab = "inicio" | "juegos" | "logros" | "mazos" | "ajustes";
 
-const TABS: { id: Tab; label: string; icon: string; route: Route }[] = [
-  { id: "inicio", label: "Inicio", icon: "🏠", route: { name: "inicio" } },
-  { id: "juegos", label: "Jugar", icon: "▶️", route: { name: "juegos" } },
-  { id: "logros", label: "Logros", icon: "🏆", route: { name: "logros" } },
-  { id: "mazos", label: "Mazos", icon: "🃏", route: { name: "mazos" } },
-  { id: "ajustes", label: "Ajustes", icon: "⚙️", route: { name: "ajustes" } },
+const TABS: { id: Tab; label: string; icon: string; arte: ArtId; route: Route }[] = [
+  { id: "inicio", label: "Inicio", icon: "🏠", arte: "tab-inicio", route: { name: "inicio" } },
+  { id: "juegos", label: "Jugar", icon: "▶️", arte: "tab-jugar", route: { name: "juegos" } },
+  { id: "logros", label: "Logros", icon: "🏆", arte: "tab-logros", route: { name: "logros" } },
+  { id: "mazos", label: "Mazos", icon: "🃏", arte: "tab-mazos", route: { name: "mazos" } },
+  { id: "ajustes", label: "Ajustes", icon: "⚙️", arte: "tab-ajustes", route: { name: "ajustes" } },
 ];
 
 function TabBar({ active }: { active: Tab }) {
@@ -29,8 +31,8 @@ function TabBar({ active }: { active: Tab }) {
             t.id === active ? "text-naranja" : "text-crema/75"
           }`}
         >
-          <span className={`text-2xl leading-none ${t.id === active ? "" : "grayscale-[0.4]"}`} aria-hidden>
-            {t.icon}
+          <span className={`grid size-9 place-items-center text-2xl leading-none transition-transform ${t.id === active ? "scale-110" : "opacity-80 grayscale-[0.4]"}`} aria-hidden>
+            <Art id={t.arte} className="size-9 object-contain drop-shadow-[0_2px_2px_rgb(0_0_0_/_0.6)]" fallback={t.icon} />
           </span>
           {t.label}
           {t.id === active && <span className="absolute inset-x-4 top-1.5 h-1 rounded-full bg-naranja" />}

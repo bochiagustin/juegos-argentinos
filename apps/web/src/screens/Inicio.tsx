@@ -1,6 +1,8 @@
 import { cardFromId } from "@juegos-argentinos/engine";
 import { motion } from "motion/react";
+import { useState } from "react";
 import { Art } from "../art/Art.tsx";
+import { artUrl } from "../art/manifest.ts";
 import { playSfx, vibrate } from "../audio/sfx.ts";
 import { SpanishCard } from "../cards/SpanishCard.tsx";
 import { useNav } from "../nav.tsx";
@@ -104,6 +106,24 @@ function PampaFallback() {
   );
 }
 
+/** El marco ilustrado con el nombre escrito encima (así el texto queda nítido y se puede corregir). */
+function Logo() {
+  const [falla, setFalla] = useState(false);
+  if (falla) return <LogoFallback />;
+  return (
+    <div className="text-center">
+      <div className="relative mx-auto w-full max-w-sm [container-type:inline-size]">
+        <img src={artUrl("logo-marco")} alt="" width={1200} height={561} className="w-full drop-shadow-[0_6px_10px_rgb(0_0_0_/_0.5)]" onError={() => setFalla(true)} draggable={false} />
+        <h1 className="absolute inset-x-[17%] top-[38%] bottom-[22%] flex flex-col items-center justify-center font-criolla leading-[0.92] text-[#5b2f12] [text-shadow:0_1px_0_rgb(255_250_235_/_0.9)]">
+          <span className="text-[9.5cqw]">Juegos</span>
+          <span className="text-[9.5cqw]">Argentinos</span>
+        </h1>
+      </div>
+      <p className="mt-1 text-[13px] font-black uppercase tracking-[0.14em] text-crema drop-shadow-[0_2px_2px_rgb(0_0_0_/_0.8)]">Más que un juego, una juntada</p>
+    </div>
+  );
+}
+
 function LogoFallback() {
   return (
     <div className="text-center">
@@ -156,7 +176,7 @@ export function Inicio() {
       </div>
       <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col px-5">
         <motion.div className="mt-10" initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
-          <Art id="logo" alt="Juegos Argentinos" className="mx-auto w-full max-w-sm" fallback={<LogoFallback />} />
+          <Logo />
         </motion.div>
 
         <div className="flex flex-1 items-end justify-center">

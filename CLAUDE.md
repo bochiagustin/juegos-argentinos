@@ -138,7 +138,10 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
 - Fuentes empaquetadas (sin CDN): Rye (títulos, `font-criolla`), Fraunces (índices de cartas), Nunito (UI).
 - Sonidos sintetizados con Web Audio en `src/audio/sfx.ts` (`playSfx`, `vibrate`); sin archivos de audio.
 - **Arte del usuario**: `src/art/manifest.ts` (ids → `public/arte/...`), `<Art id fallback>` muestra un placeholder o un dibujo
-  propio mientras falte el archivo. Checklist en `docs/arte.md`.
+  propio mientras falte el archivo. Checklist en `docs/arte.md`. Los originales que sube el usuario se procesan con
+  `python3 tools/recortar-arte.py <carpeta>` (saca el damero pintado / fondo liso, GrabCut para el sombrero, recorta, WebP,
+  íconos de la PWA) y **no** se dejan en el repo. Ya están: logo (marco + texto en código), gaucho de portada, 9 rivales,
+  íconos de canto y de pestañas, tarjeta del truco, mapa de la gira (medallones por región en `MapaGira.tsx`) e ícono de la app.
 - **Mazos** (`src/cards/decks.ts`): `criolla` (SVG propio) y los tres **Mazo Argento** (`argento-nuevo`, `argento-memes`,
   `argento-campeon`, imágenes en `public/mazos/<id>/<cardId>.webp` + `dorso.webp`, usados con licencia: `docs/licencias/mazo-argento.md`).
   `<SpanishCard card width deck?>` dibuja con el mazo del `DeckContext` (el elegido en Ajustes); si falta una imagen, cae a la Criolla.
