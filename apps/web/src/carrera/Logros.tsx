@@ -11,6 +11,7 @@ const GRUPOS: { titulo: string; juego?: CareerGame }[] = [
   { titulo: "Chinchón", juego: "chinchon" },
   { titulo: "Casita Robada", juego: "casita-robada" },
   { titulo: "Escoba de 15", juego: "escoba" },
+  { titulo: "Tutti-Frutti", juego: "tutti-frutti" },
 ];
 
 const fecha = (ms: number) => new Date(ms).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" });

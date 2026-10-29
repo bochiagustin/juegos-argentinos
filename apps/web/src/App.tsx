@@ -9,6 +9,8 @@ import { ChinchonMesa } from "./chinchon/ChinchonMesa.tsx";
 import { ChinchonSetup } from "./chinchon/ChinchonSetup.tsx";
 import { EscobaMesa } from "./escoba/EscobaMesa.tsx";
 import { EscobaSetup } from "./escoba/EscobaSetup.tsx";
+import { TuttiMesa } from "./tutti/TuttiMesa.tsx";
+import { TuttiSetup } from "./tutti/TuttiSetup.tsx";
 import { NavProvider, useNav, type Route } from "./nav.tsx";
 import { SaveProvider, useSave } from "./save/SaveContext.tsx";
 import { Ajustes } from "./screens/Ajustes.tsx";
@@ -54,6 +56,10 @@ function CurrentScreen({ route }: { route: Route }) {
       return <EscobaSetup />;
     case "escoba-mesa":
       return <EscobaMesa />;
+    case "tutti-setup":
+      return <TuttiSetup />;
+    case "tutti-mesa":
+      return <TuttiMesa />;
     case "gira":
       return <Gira game={route.game} />;
     case "logros":

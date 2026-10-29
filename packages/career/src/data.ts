@@ -2,6 +2,7 @@ import type { CasitaConfig } from "@juegos-argentinos/engine/casita";
 import type { ChinchonConfig } from "@juegos-argentinos/engine/chinchon";
 import type { EscobaConfig } from "@juegos-argentinos/engine/escoba";
 import type { TrucoConfig } from "@juegos-argentinos/engine/truco";
+import type { TuttiConfig } from "@juegos-argentinos/engine/tutti-frutti";
 import type { CareerGame, GiraDef, LogroDef, Personaje, RegionDef, Slot } from "./types.ts";
 
 export const REGIONES: RegionDef[] = [
@@ -91,11 +92,21 @@ export const GIRA_ESCOBA = gira<EscobaConfig>("escoba", "Gira de la Escoba", [
   { reglas: "Mano a mano, a 31, levantar es obligatorio", config: { players: 2, target: 31, levantarObligatorio: true } },
 ]);
 
+export const GIRA_TUTTI = gira<TuttiConfig>("tutti-frutti", "Gira del Tutti-Frutti", [
+  { reglas: "Mano a mano, 3 rondas, 3 minutos por ronda", config: { players: 2, fin: { tipo: "rondas", rondas: 3 }, tiempoMaximo: 180 } },
+  { reglas: "Mano a mano, 4 rondas, 2 minutos y medio", config: { players: 2, fin: { tipo: "rondas", rondas: 4 }, tiempoMaximo: 150 } },
+  { reglas: "Mano a mano, 5 rondas, 2 minutos y medio", config: { players: 2, fin: { tipo: "rondas", rondas: 5 }, tiempoMaximo: 150 } },
+  { reglas: "Mano a mano, 5 rondas, 2 minutos, cuenta de 4", config: { players: 2, fin: { tipo: "rondas", rondas: 5 }, tiempoMaximo: 120, cuentaRegresiva: 4 } },
+  { reglas: "Mano a mano, a 300 puntos, 2 minutos, cuenta de 3", config: { players: 2, fin: { tipo: "puntos", puntos: 300 }, tiempoMaximo: 120, cuentaRegresiva: 3 } },
+  { reglas: "Mano a mano, a 400 puntos, 100 segundos, cuenta de 3", config: { players: 2, fin: { tipo: "puntos", puntos: 400 }, tiempoMaximo: 100, cuentaRegresiva: 3 } },
+]);
+
 export const GIRAS: Record<CareerGame, GiraDef<unknown>> = {
   truco: GIRA_TRUCO as GiraDef<unknown>,
   chinchon: GIRA_CHINCHON as GiraDef<unknown>,
   "casita-robada": GIRA_CASITA as GiraDef<unknown>,
   escoba: GIRA_ESCOBA as GiraDef<unknown>,
+  "tutti-frutti": GIRA_TUTTI as GiraDef<unknown>,
 };
 
 /** Puntos de gira por ganarle a un rival (el jefe vale el doble). */
@@ -125,6 +136,9 @@ export const LOGROS: LogroDef[] = [
   { id: "barrendero", nombre: "Barrendero", descripcion: "Hacé 5 escobas en una misma partida.", icono: "🧹", fosforos: 30, juego: "escoba" },
   { id: "escoba-de-mano", nombre: "Escoba de mano", descripcion: "Que te toque la escoba al repartir.", icono: "🍀", fosforos: 20, juego: "escoba" },
   { id: "la-setenta", nombre: "Los cuatro sietes", descripcion: "Llevate los cuatro sietes en una ronda.", icono: "7️⃣", fosforos: 30, juego: "escoba" },
+  { id: "tutti-pleno", nombre: "Pleno", descripcion: "Completá todas las categorías bien en una ronda.", icono: "📝", fosforos: 30, juego: "tutti-frutti" },
+  { id: "tutti-rayo", nombre: "Rayo", descripcion: "Cantá ¡BASTA! en menos de 60 segundos.", icono: "⚡", fosforos: 40, juego: "tutti-frutti" },
+  { id: "tutti-solo", nombre: "El único", descripcion: "Sé el único con respuesta en 3 categorías de una misma ronda.", icono: "🦄", fosforos: 30, juego: "tutti-frutti" },
   { id: "casa-grande", nombre: "Casa grande", descripcion: "Terminá con 25 cartas o más en tu casita.", icono: "🏠", fosforos: 40, juego: "casita-robada" },
 ];
 

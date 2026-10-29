@@ -162,6 +162,12 @@ function cumple(id: string, s: CareerState, r: Reporte): boolean {
       return hecho(r, "escoba-de-mano").length > 0;
     case "la-setenta":
       return hecho(r, "escoba-cuatro-sietes").length > 0;
+    case "tutti-pleno":
+      return hecho(r, "tutti-pleno").length > 0;
+    case "tutti-rayo":
+      return hecho(r, "tutti-basta").some((h) => h.segundos < 60);
+    case "tutti-solo":
+      return hecho(r, "tutti-solo").some((h) => h.cantidad >= 3);
     case "casa-grande":
       return hecho(r, "casita-cartas").some((h) => h.cantidad >= 25);
     default:

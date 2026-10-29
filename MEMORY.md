@@ -59,6 +59,11 @@ Memoria de trabajo del proyecto: lo que el usuario pidió, prefirió o decidió 
   en cada reparto de ronda (no en los repartos de 3 a mitad de ronda), sin bonus especiales, a 15. La gira sube a 21 y 31
   y en algunas regiones levantar es obligatorio. Mano a mano en toda la gira.
 
+- 2026-10-29 · Pidió "completá todas las fases y después vemos qué hay que corregir": fases 7, 8 y 9 seguidas, sin frenar.
+- 2026-10-29 · Tutti-Frutti (dudas 14 y 15 sin respuesta → propuestas): si se acaba el tiempo se puntúa normal; empate en la
+  votación = se acepta. Contra la IA la votación viene apagada: lo que la máquina no conoce vale (marcado 🤔 "dudosa");
+  con "Votar las dudosas" la máquina puede rechazarlo. Tiempo por ronda 2:30, cuenta de 5 s, 5 rondas por defecto.
+
 ## Dudas abiertas (preguntar antes de implementar la fase correspondiente)
 
 ### Truco (implementado con la propuesta; confirmar)

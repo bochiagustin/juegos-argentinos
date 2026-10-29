@@ -8,7 +8,8 @@
     "./truco": "./src/truco/index.ts",
     "./chinchon": "./src/chinchon/index.ts",
     "./casita": "./src/casita/index.ts",
-    "./escoba": "./src/escoba/index.ts"
+    "./escoba": "./src/escoba/index.ts",
+    "./tutti-frutti": "./src/tutti-frutti/index.ts"
   },
   "scripts": {
     "test": "vitest run",

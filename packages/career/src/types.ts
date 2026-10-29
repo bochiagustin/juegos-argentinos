@@ -3,8 +3,8 @@ export type RegionId = (typeof REGION_IDS)[number];
 export type Slot = "1" | "2" | "jefe";
 /** Estilo de juego del rival (ajusta el bot: cuánto miente, cuánto se arriesga). */
 export type Estilo = "parejo" | "mentiroso" | "conservador" | "agresivo";
-export type CareerGame = "truco" | "chinchon" | "casita-robada" | "escoba";
-export const CAREER_GAMES: readonly CareerGame[] = ["truco", "chinchon", "casita-robada", "escoba"];
+export type CareerGame = "truco" | "chinchon" | "casita-robada" | "escoba" | "tutti-frutti";
+export const CAREER_GAMES: readonly CareerGame[] = ["truco", "chinchon", "casita-robada", "escoba", "tutti-frutti"];
 
 export interface Personaje {
   /** `${region}-${slot}` (coincide con el arte en arte/rivales/). */
@@ -75,10 +75,16 @@ export type Hecho =
   | { tipo: "casita-cartas"; cantidad: number }
   | { tipo: "escoba-escobas"; cantidad: number }
   | { tipo: "escoba-de-mano" }
-  | { tipo: "escoba-cuatro-sietes" };
+  | { tipo: "escoba-cuatro-sietes" }
+  /** Ronda con todas las categorías válidas. */
+  | { tipo: "tutti-pleno" }
+  /** Cantó ¡BASTA! a los tantos segundos. */
+  | { tipo: "tutti-basta"; segundos: number }
+  /** Categorías en las que fue el único con respuesta válida, en una ronda. */
+  | { tipo: "tutti-solo"; cantidad: number };
 
 export interface Reporte {
-  game: CareerGame | "tutti-frutti";
+  game: CareerGame;
   ganada: boolean;
   /** Si fue una partida de la gira: contra quién. */
   rivalId?: string;

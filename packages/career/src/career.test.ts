@@ -114,8 +114,16 @@ describe("logros y fósforos", () => {
     expect(r.premio.logros.map((l) => l.id).sort()).toEqual(["barrendero", "escoba-de-mano", "la-setenta"]);
   });
 
-  it("hay una gira de escoba con sus 6 regiones", () => {
+  it("hay una gira de escoba y una de tutti-frutti con sus 6 regiones", () => {
     expect(GIRAS.escoba.regiones).toHaveLength(6);
+    expect(GIRAS["tutti-frutti"].regiones).toHaveLength(6);
+  });
+
+  it("logros del tutti-frutti", () => {
+    const r = registrarPartida(defaultCareer(), { game: "tutti-frutti", ganada: false, ahora: AHORA, hechos: [{ tipo: "tutti-pleno" }, { tipo: "tutti-basta", segundos: 52 }, { tipo: "tutti-solo", cantidad: 3 }] });
+    expect(r.premio.logros.map((l) => l.id).sort()).toEqual(["tutti-pleno", "tutti-rayo", "tutti-solo"]);
+    const lento = registrarPartida(defaultCareer(), { game: "tutti-frutti", ganada: false, ahora: AHORA, hechos: [{ tipo: "tutti-basta", segundos: 75 }, { tipo: "tutti-solo", cantidad: 2 }] });
+    expect(lento.premio.logros).toEqual([]);
   });
 
   it("intocable: solo si ganaste la casita sin que te roben", () => {

@@ -26,8 +26,6 @@ export const MODOS: Record<ModoId, { nombre: string; bajada: string; icono: stri
   amigos: { nombre: "Con amigos", bajada: "Armá una sala y pasales el código por WhatsApp.", icono: "👥" },
 };
 
-const PRONTO: Record<ModoId, ModoEstado> = { ia: "proximamente", carrera: "proximamente", amigos: "proximamente" };
-
 export const GAMES: readonly GameInfo[] = [
   {
     id: "truco",
@@ -110,7 +108,7 @@ export const GAMES: readonly GameInfo[] = [
     cuero: "cuero-mostaza",
     arte: "juego-tutti-frutti",
     muestra: [],
-    modos: PRONTO,
+    modos: { ia: "disponible", carrera: "disponible", amigos: "proximamente" },
     reglas: [
       "Sale una letra y todos completan las categorías: nombre, país, animal, fruta, color…",
       "El primero que termina grita ¡BASTA! y los demás tienen unos segundos para cerrar.",

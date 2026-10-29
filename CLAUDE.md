@@ -78,6 +78,13 @@ docs/             arte.md (checklist de ilustraciones), licencias/.
   Puntaje por bando (individual o parejas); empate en una categoría no la cobra nadie. Bot: valor de lo levantado +
   bonus de escoba − riesgo de dejarle escoba al rival (con las cartas que no vio). Nivel 10 vs 1 ≈ 87%, 10 vs 5 ≈ 72%.
 
+- Tutti-Frutti (`src/tutti-frutti/`): `diccionario.ts` (rioplatense, 10 categorías, las más comunes primero),
+  `game.ts` (fases escribiendo → basta → [revision] → resultado → fin; `normalizar`, `esValidaAuto`, `puntuarCategoria`,
+  `conocida`). El tiempo no está en el motor: la **mesa** (`MESA`, el servidor o la app) manda `cerrar` (tiempo o cuenta
+  regresiva) y `seguir`. El texto de `escribir` es libre (las acciones válidas son representativas); `applyAction` valida.
+  Respuestas que la máquina no conoce = "dudosas": valen igual salvo que se voten (votación por mayoría, empate se acepta).
+  Bot: `planTutti` (qué escribe y a qué ms), `votosTutti`; nivel = cuánto sabe y qué tan rápido escribe (20 s → 7 s por respuesta).
+
 ### Truco: decisiones de implementación
 
 - Contesta un canto el **siguiente rival en el orden de juego** (en 2v2/3v3 no contesta "cualquiera del equipo").
@@ -102,7 +109,7 @@ docs/             arte.md (checklist de ilustraciones), licencias/.
 ### Carrera y logros (`packages/career`)
 
 - `data.ts`: 6 regiones con umbrales (0/300/900/1700/2700/3900), 18 personajes inventados (id = `${region}-${slot}`,
-  con frase y estilo: parejo/mentiroso/conservador/agresivo), giras de truco/chinchón/casita (reglas por región,
+  con frase y estilo: parejo/mentiroso/conservador/agresivo), giras de los cinco juegos (reglas por región,
   niveles 2→10), 18 logros, tienda (Mazo Argento 250/400/600 fósforos; el Nuevo se regala al ganarle al jefe de Buenos Aires).
 - `career.ts`: `estadoGira`, `registrarPartida(state, reporte)` → `{state, premio}` (puntos, fósforos, logros, región
   desbloqueada, regalo), `comprar`, `normalizeCareer`. Los juegos mandan `Hecho`s (ej. `truco-tanto`, `menos-diez`, `casita-robos`).
@@ -137,6 +144,9 @@ docs/             arte.md (checklist de ilustraciones), licencias/.
   espada 2 / basto 3, ases fileteados, dorso fileteado), `suits.tsx` (oro con Sol de Mayo, copa con filete, espada con gavilanes,
   basto de algarrobo), `figures.tsx` (Sota = peón con boina, Caballo = gaucho en un overo, Rey = patrón con bigotón y rastra;
   caricatura, el color del palo en la ropa), `filete.tsx` (voluta, hoja, cinta celeste y blanca, borla).
+- **Tutti-Frutti en la web** (`src/tutti/`): `TuttiSetup.tsx` (jugadores, rondas/puntos, tiempo, cuenta, categorías propias,
+  letras), `TuttiMesa.tsx` (ruleta, reloj, bots que escriben con su plan, ¡BASTA! con cuenta regresiva, revisión con votos,
+  resumen por categoría; controlador propio porque es en tiempo real).
 - **Escoba en la web** (`src/escoba/`): `EscobaSetup.tsx`, `EscobaMesa.tsx` (sobre `useBotMatch`: tocás una carta y aparecen
   los grupos que suman 15 para elegir, cartel de escoba, resumen de ronda por categorías, hechos para los logros).
 - **Truco en la web** (`src/truco/`): `partida.ts` (partida contra la IA guardada en localStorage para retomarla, nombres de rivales),
@@ -271,7 +281,9 @@ reglamento rioplatense estándar, dudas en `MEMORY.md`.)*
   *Fases 3, 4 y 5 hechas juntas a pedido del usuario.*
 - [x] **Fase 6** — Escoba de 15: motor (combinaciones a elección, escoba de mano, sobrantes al último que levantó, 2/3/4 o
   parejas, a 15/21/31, levantar obligatorio opcional), bot, mesa con combinaciones y "¡ESCOBA!", resumen por categorías,
-  gira y 3 logros. 146 tests en total. *Esperando OK.*
+  gira y 3 logros. 146 tests en total.
+- [x] **Fase 7** — Tutti-Frutti: motor (ruleta sin repetir, basta + cuenta, validación, repetidas, 20/10/5, votación,
+  rondas o puntos con desempate), diccionario rioplatense, bot por nivel, mesa en tiempo real, gira y 3 logros.
 - [ ] **Fase 7** — Tutti-Frutti (motor, bot con diccionario, gira).
 - [ ] **Fase 8** — Online con amigos: salas con código + WhatsApp, lobby, reconexión, timer, chat/reacciones/señas, revancha.
 - [ ] **Fase 9** — Pulido, resultados con momentos destacados, accesibilidad, deploy final (Vercel + Cloudflare).

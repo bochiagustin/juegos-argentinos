@@ -3,7 +3,7 @@
  * El AudioContext se crea recién con el primer gesto del usuario (requisito de los navegadores).
  */
 
-export type SfxName = "click" | "carta" | "repartir" | "barajar" | "turno" | "error";
+export type SfxName = "click" | "carta" | "repartir" | "barajar" | "turno" | "error" | "tic" | "basta" | "ruleta" | "ganar";
 
 let enabled = true;
 let vibrationEnabled = true;
@@ -92,6 +92,19 @@ export function playSfx(name: SfxName) {
       break;
     case "error":
       tone(ac, 220, t, 0.18, 0.1, "square");
+      break;
+    case "tic":
+      tone(ac, 1200, t, 0.05, 0.1, "square");
+      break;
+    case "basta":
+      tone(ac, 523, t, 0.15, 0.14, "sawtooth");
+      tone(ac, 392, t + 0.14, 0.3, 0.14, "sawtooth");
+      break;
+    case "ruleta":
+      for (let i = 0; i < 14; i++) tone(ac, 900 + (i % 2) * 150, t + i * 0.09 * (1 + i / 14), 0.03, 0.06, "triangle");
+      break;
+    case "ganar":
+      [523, 659, 784, 1047].forEach((f, i) => tone(ac, f, t + i * 0.11, 0.3, 0.1));
       break;
   }
 }
