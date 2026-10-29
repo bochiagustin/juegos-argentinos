@@ -105,17 +105,31 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
 - `chooseAction(view, valid, rng, skill)`: **juega limpio**, solo con la vista de su jugador (nunca ve cartas ocultas).
 - `skill` 1–10 combina `errorRate`, `memory` (recuerda cartas jugadas), `bluff` (mentir truco/envido), `aggression`, `lookahead`.
   Niveles altos de Truco/Chinchón: Monte Carlo con determinización (reparte con semilla las cartas que no ve y simula).
-- Carrera: skill fijo por rival, sube por región; el jefe tiene +2 y estilo propio. Partida rápida: skill adaptativo por rating tipo Elo.
+- Carrera: skill fijo por rival, sube por región y por lugar en el ranking inicial. **Rasgos** (`core/rasgos.ts`, 0–10, 5 = normal)
+  que solo tienen los rivales de la gira (`useBotMatch`/`useTrucoMatch` los pasan al asiento 1): truco → mentiroso = más
+  bluff, pescador = `pesca` (se calla con 30+ de tanto o la mano casi ganada para que el otro cante, y después sube),
+  agresivo = más agresión y envido más fácil; chinchón → agresivo levanta más del pozo, pescador se aguanta el corte
+  buscando el menos diez; casita → agresivo roba más, pescador cuida su casita; escoba → agresivo levanta más, pescador
+  no deja escobas servidas; tutti → agresivo escribe más rápido, pescador busca palabras raras, mentiroso rechaza más
+  en la votación. Partida rápida: skill adaptativo por rating tipo Elo, sin rasgos.
 - Tutti-Frutti offline: diccionarios rioplatenses por categoría y letra (`src/tutti-frutti/data/`).
 
 ### Carrera y logros (`packages/career`)
 
-- `data.ts`: 6 regiones con umbrales (0/300/900/1700/2700/3900), 18 personajes inventados (id = `${region}-${slot}`,
-  con frase y estilo: parejo/mentiroso/conservador/agresivo), giras de los cinco juegos (reglas por región,
-  niveles 2→10), 18 logros, tienda (Mazo Argento 250/400/600 fósforos; el Nuevo se regala al ganarle al jefe de Buenos Aires).
-- `career.ts`: `estadoGira`, `registrarPartida(state, reporte)` → `{state, premio}` (puntos, fósforos, logros, región
-  desbloqueada, regalo), `comprar`, `normalizeCareer`. Los juegos mandan `Hecho`s (ej. `truco-tanto`, `menos-diez`, `casita-robos`).
-- En la web: `src/carrera/` (`Gira.tsx` con mapa SVG propio `MapaGira.tsx`, `Logros.tsx`, `useCerrarPartida.ts`),
+- `personajes.ts`: **60 personajes** inventados, 10 por región (slots `"1"`…`"9"` + `"jefe"`, id = `${region}-${slot}`),
+  con bajada, frase, `historia` (se lee en la ficha), `rasgos` {mentiroso, pescador, agresivo} 0–10 y `aspecto` (para el
+  prompt del retrato). `data.ts`: 6 regiones con umbrales (0/500/1300/2400/3800/5500), giras de los cinco juegos (reglas
+  por región; niveles: del "1" al "9" suben y el jefe un escalón más, hasta el 10 del Capitán), 18 logros, tienda.
+- **Ranking por región** (`GiraProgress.puestos`, `puestosDe`): arrancás último (#11) con el jefe primero; podés desafiar
+  a cualquiera de abajo o al de justo arriba. Ganarle al de arriba = te quedás con su puesto (40+20·región puntos; el jefe
+  200+100·región); a uno de abajo, 10+5·región; perder con uno de abajo = te pasa. La región siguiente se abre con haberle
+  ganado alguna vez al jefe + los puntos (no se pierde aunque después te saquen el #1). Partidas viejas: arrancás arriba
+  del mejor que habías vencido.
+- `career.ts`: `estadoGira` (regiones, `miPuesto`, rivales en orden con `puesto`, `arriba`, `abierto`), `registrarPartida(state,
+  reporte)` → `{state, premio}` (puntos, fósforos, logros, región desbloqueada, regalo, `puesto` antes/después), `comprar`,
+  `normalizeCareer`. Los juegos mandan `Hecho`s (ej. `truco-tanto`, `menos-diez`, `casita-robos`).
+- En la web: `src/carrera/` (`Gira.tsx`: mapa + ranking de la región + ficha del rival con barras de rasgos e historia;
+  `MapaGira.tsx`, `Logros.tsx`, `useCerrarPartida.ts`),
   `src/partidas/` (partida contra bots genérica `match.ts` + `useBotMatch.ts`, `FinPartida.tsx` común).
   Guardado v3 con `carrera`. Los Mazo Argento están bloqueados hasta comprarlos o ganarlos.
 
@@ -142,6 +156,7 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
   `python3 tools/recortar-arte.py <carpeta>` (saca el damero pintado / fondo liso, GrabCut para el sombrero, recorta, WebP,
   íconos de la PWA) y **no** se dejan en el repo. Ya están: logo (marco + texto en código), gaucho de portada, 10 rivales,
   íconos de canto y de pestañas, tarjeta del truco, mapa de la gira (medallones por región en `MapaGira.tsx`) e ícono de la app.
+  De los 60 rivales faltan 50 retratos (prompts generados desde `aspecto` en `docs/prompts-arte.md` §5); sin retrato, emoji.
 - **Mazos** (`src/cards/decks.ts`): `criolla` (SVG propio) y los tres **Mazo Argento** (`argento-nuevo`, `argento-memes`,
   `argento-campeon`, imágenes en `public/mazos/<id>/<cardId>.webp` + `dorso.webp`, usados con licencia: `docs/licencias/mazo-argento.md`).
   `<SpanishCard card width deck?>` dibuja con el mazo del `DeckContext` (el elegido en Ajustes); si falta una imagen, cae a la Criolla.
@@ -327,3 +342,5 @@ reglamento rioplatense estándar, dudas en `MEMORY.md`.)*
 - [x] **Fase 9** — Pulido: momentos destacados, accesibilidad (diálogos, foco, menos animaciones, letra grande), CI, configs de
   deploy (publicado: app en Vercel, servidor en `juegos-argentinos-salas.agustinbochi20.workers.dev`; `vercel.json` + `tools/copiar-dist.mjs`: el build queda también en `./dist`, `wrangler.jsonc`, GitHub Actions) y guía `docs/deploy.md`. 177 tests.
   *Fases 7, 8 y 9 hechas seguidas a pedido del usuario ("completá todas las fases"). Esperando correcciones.*
+- [x] **Después de la Fase 9** — Arte del usuario en la app (logo, gaucho, íconos, mapa, rivales), fondos de mesa
+  desbloqueables, y Gira con ranking: 60 rivales con historia y rasgos (mentiroso/pescador/agresivo) que cambian el bot.

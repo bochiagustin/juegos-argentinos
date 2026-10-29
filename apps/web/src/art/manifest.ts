@@ -1,4 +1,4 @@
-import { FONDOS } from "@juegos-argentinos/career";
+import { FONDOS, SLOTS } from "@juegos-argentinos/career";
 /**
  * Ilustraciones que provee el usuario (ver docs/arte.md). Cada una tiene un id estable;
  * si el archivo todavía no está en `public/arte/`, <Art> muestra un placeholder del mismo tamaño.
@@ -42,12 +42,12 @@ const base = {
 
 const rivales = Object.fromEntries(
   REGIONES.flatMap((r) =>
-    (["1", "2", "jefe"] as const).map((slot) => [
+    SLOTS.map((slot) => [
       `rival-${r.id}-${slot}`,
-      { path: `arte/rivales/${r.id}-${slot}.webp`, width: 512, height: 512, transparente: false, descripcion: `Rival ${slot === "jefe" ? "jefe" : slot} de ${r.nombre}` },
+      { path: `arte/rivales/${r.id}-${slot}.webp`, width: 512, height: 512, transparente: false, descripcion: `Rival ${slot === "jefe" ? "jefe" : slot} de ${r.nombre}`, opcional: true },
     ]),
   ),
-) as Record<`rival-${RegionId}-${"1" | "2" | "jefe"}`, ArtSpec>;
+) as Record<`rival-${RegionId}-${(typeof SLOTS)[number]}`, ArtSpec>;
 
 /** Íconos de los botones de canto y de la barra de pestañas (192×192, transparentes). */
 const ICONOS_CANTO = ["sombrero", "copa", "corona", "rosa", "flor", "mazo", "si", "no"] as const;

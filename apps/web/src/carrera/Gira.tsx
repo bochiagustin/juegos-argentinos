@@ -1,4 +1,4 @@
-import { estadoGira, GIRAS, progresoDe, type CareerGame, type EstadoRival, type RegionId } from "@juegos-argentinos/career";
+import { estadoGira, GIRAS, progresoDe, type CareerGame, type EstadoRegion, type EstadoRival, type RegionId } from "@juegos-argentinos/career";
 import { casita } from "@juegos-argentinos/engine/casita";
 import { DEFAULT_CASITA_CONFIG, type CasitaConfig } from "@juegos-argentinos/engine/casita";
 import { chinchon, DEFAULT_CHINCHON_CONFIG, type ChinchonConfig } from "@juegos-argentinos/engine/chinchon";
@@ -6,6 +6,7 @@ import { DEFAULT_ESCOBA_CONFIG, escoba, type EscobaConfig } from "@juegos-argent
 import { DEFAULT_TRUCO_CONFIG, type TrucoConfig } from "@juegos-argentinos/engine/truco";
 import { DEFAULT_TUTTI_CONFIG, tuttiFrutti, type TuttiConfig } from "@juegos-argentinos/engine/tutti-frutti";
 import { AnimatePresence, motion } from "motion/react";
+import type { Rasgos } from "@juegos-argentinos/engine";
 import { useState } from "react";
 import { Art } from "../art/Art.tsx";
 import type { ArtId } from "../art/manifest.ts";
@@ -35,7 +36,7 @@ export function Gira({ game }: { game: CareerGame }) {
   const regiones = estadoGira(gira, p);
   const ultimaAbierta = [...regiones].reverse().find((r) => r.abierta)!;
   const [sel, setSel] = useState<RegionId>(ultimaAbierta.id);
-  const [desafio, setDesafio] = useState<EstadoRival | null>(null);
+  const [ficha, setFicha] = useState<EstadoRival | null>(null);
   const region = regiones.find((r) => r.id === sel)!;
   const yo = { nombre: save.perfil.apodo || "Vos", avatar: save.perfil.avatar };
 
@@ -63,7 +64,7 @@ export function Gira({ game }: { game: CareerGame }) {
       saveBotMatch(newBotMatch(casita, { config, players: 2, botSkill: r.skill, adaptativo: false, yo, rival }) as never);
       push({ name: "casita-mesa" });
     }
-    setDesafio(null);
+    setFicha(null);
   };
 
   return (
@@ -87,68 +88,142 @@ export function Gira({ game }: { game: CareerGame }) {
 
       <section className="cuero cuero-oscuro mt-4 rounded-3xl p-4" aria-live="polite">
         <div className="relative z-[1]">
-          <h2 className="titulo-criollo text-3xl">{region.nombre}</h2>
-          <p className="mb-3 text-sm text-crema/80">{region.reglas}</p>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h2 className="titulo-criollo text-3xl">{region.nombre}</h2>
+              <p className="text-sm text-crema/80">{region.reglas}</p>
+            </div>
+            {region.abierta && (
+              <span className="shrink-0 rounded-xl bg-black/35 px-3 py-1 text-center text-xs font-bold uppercase leading-tight text-crema/80">
+                Tu puesto
+                <span className="block font-criolla text-2xl normal-case text-naranja">#{region.miPuesto}</span>
+              </span>
+            )}
+          </div>
           {!region.abierta && (
-            <p className="mb-3 rounded-xl bg-black/35 px-3 py-2 text-sm font-semibold">
+            <p className="mt-3 rounded-xl bg-black/35 px-3 py-2 text-sm font-semibold">
               🔒 Para entrar: {region.faltaJefeAnterior ? `ganale al jefe de ${regiones[region.index - 1]!.nombre}` : ""}
               {region.faltaJefeAnterior && region.faltanPuntos > 0 ? " y " : ""}
               {region.faltanPuntos > 0 ? `juntá ${region.faltanPuntos} puntos más` : ""}.
             </p>
           )}
-          <div className="flex flex-col gap-2">
-            {region.rivales.map((r) => (
-              <button
-                key={r.personaje.id}
-                disabled={!r.abierto}
-                onClick={() => {
-                  playSfx("click");
-                  setDesafio(r);
-                }}
-                className={`flex min-h-20 items-center gap-3 rounded-2xl border border-crema/15 px-3 py-2 text-left ${r.abierto ? "bg-black/30 active:scale-[0.98]" : "bg-black/20 opacity-60"}`}
-              >
-                <RivalAvatar id={r.personaje.id} avatar={r.personaje.avatar} />
-                <span className="min-w-0 flex-1">
-                  <span className="flex flex-wrap items-center gap-x-2">
-                    <span className="font-black">{r.personaje.nombre}</span>
-                    {r.personaje.slot === "jefe" && <span className="rounded-full bg-bordo px-2 text-[11px] font-black uppercase">Jefe</span>}
-                  </span>
-                  <span className="block text-sm text-crema/75">{r.personaje.bajada}</span>
-                  <span className="block text-xs font-bold text-naranja">
-                    Nivel {r.skill} · {nivelNombre(r.skill)}
-                  </span>
-                </span>
-                <span className="shrink-0 text-2xl" aria-label={r.victorias > 0 ? "Vencido" : r.abierto ? "Disponible" : "Bloqueado"}>
-                  {r.victorias > 0 ? "✅" : r.abierto ? "⚔️" : "🔒"}
-                </span>
-              </button>
-            ))}
-          </div>
-          {region.abierta && !region.rivales[2]!.abierto && <p className="mt-2 text-center text-xs text-crema/70">El jefe aparece cuando les ganás a los otros dos.</p>}
+          {region.abierta && (
+            <p className="mt-2 text-xs text-crema/70">Desafiá al que está justo arriba tuyo para sacarle el puesto. El primero es el jefe: ganale y se abre la región siguiente.</p>
+          )}
+          <ol className="mt-3 flex flex-col gap-1.5">
+            {Array.from({ length: region.rivales.length + 1 }, (_, k) => {
+              const puesto = k + 1;
+              if (puesto === region.miPuesto)
+                return (
+                  <li key="yo" className="flex min-h-14 items-center gap-3 rounded-2xl border-2 border-[#4caf50] bg-[#2e7d32]/25 px-3 py-1.5">
+                    <span className="w-7 text-center font-criolla text-xl text-crema">{puesto}</span>
+                    <span className="grid size-11 shrink-0 place-items-center rounded-full border-[3px] border-[#d9a066] bg-black/40 text-2xl">{yo.avatar}</span>
+                    <span className="min-w-0 flex-1 truncate font-black">{yo.nombre}</span>
+                    <span className="text-xs font-black uppercase text-crema/80">Vos</span>
+                  </li>
+                );
+              const r = region.rivales.find((x) => x.puesto === puesto)!;
+              return (
+                <li key={r.personaje.id}>
+                  <button
+                    onClick={() => {
+                      playSfx("click");
+                      setFicha(r);
+                    }}
+                    className={`flex min-h-14 w-full items-center gap-3 rounded-2xl border border-crema/15 px-3 py-1.5 text-left active:scale-[0.98] ${r.abierto ? "bg-black/30" : "bg-black/20"}`}
+                  >
+                    <span className="w-7 text-center font-criolla text-xl text-crema/80">{puesto}</span>
+                    <RivalAvatar id={r.personaje.id} avatar={r.personaje.avatar} size="size-11" />
+                    <span className={`min-w-0 flex-1 ${r.abierto ? "" : "opacity-70"}`}>
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate font-black">{r.personaje.nombre}</span>
+                        {r.personaje.slot === "jefe" && <span className="shrink-0 rounded-full bg-bordo px-2 text-[10px] font-black uppercase">Jefe</span>}
+                        {r.victorias > 0 && <span className="shrink-0 text-xs" aria-label="Ya le ganaste">✅</span>}
+                      </span>
+                      <span className="block truncate text-xs text-crema/70">
+                        {r.personaje.bajada} · Nivel {r.skill}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-xl" aria-label={r.abierto ? (r.arriba ? "Desafiar y subir" : "Desafiar") : "Bloqueado"}>
+                      {r.abierto ? (r.arriba ? "⚔️" : "🗡️") : "🔒"}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
         </div>
       </section>
 
       <AnimatePresence>
-        {desafio && (
-          <Modal key="desafio" onClose={() => setDesafio(null)}>
-            <div className="flex flex-col items-center text-center">
-              <RivalAvatar id={desafio.personaje.id} avatar={desafio.personaje.avatar} size="size-28" />
-              <h2 className="titulo-criollo mt-2 text-3xl">{desafio.personaje.nombre}</h2>
-              <p className="text-sm text-crema/80">{desafio.personaje.bajada}</p>
-              <motion.p initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.15 }} className="my-3 rounded-2xl bg-crema px-4 py-2 font-criolla text-lg text-tinta">
-                “{desafio.personaje.frase}”
-              </motion.p>
-              <p className="mb-4 text-sm font-semibold">
-                Nivel {desafio.skill} ({nivelNombre(desafio.skill)}) · {region.reglas}
-                {desafio.victorias > 0 && ` · Ya le ganaste ${desafio.victorias === 1 ? "una vez" : `${desafio.victorias} veces`}`}
-              </p>
-              <button className="btn-criollo min-h-14 w-full rounded-2xl font-criolla text-2xl" onClick={() => jugar(desafio)}>
-                <span className="relative z-[1]">¡Desafiar!</span>
-              </button>
-            </div>
+        {ficha && (
+          <Modal key="ficha" onClose={() => setFicha(null)}>
+            <FichaRival r={ficha} region={region} onDesafiar={() => jugar(ficha)} />
           </Modal>
         )}
       </AnimatePresence>
     </Screen>
+  );
+}
+
+const RASGOS: { id: keyof Rasgos; nombre: string; explica: string }[] = [
+  { id: "mentiroso", nombre: "Mentiroso", explica: "Canta y apuesta sin tener con qué" },
+  { id: "pescador", nombre: "Pescador", explica: "Se calla con cartas buenas para que cantes vos" },
+  { id: "agresivo", nombre: "Agresivo", explica: "Canta todo y sube siempre" },
+];
+
+/** Ficha del rival: quién es, su historia, cómo juega y el botón para desafiarlo. */
+function FichaRival({ r, region, onDesafiar }: { r: EstadoRival; region: EstadoRegion; onDesafiar: () => void }) {
+  const p = r.personaje;
+  return (
+    <div className="flex flex-col">
+      <div className="flex items-center gap-4">
+        <span className="relative">
+          <RivalAvatar id={p.id} avatar={p.avatar} size="size-24" />
+          <span className="absolute -bottom-1 -left-1 grid size-9 place-items-center rounded-full border-2 border-[#d9a066] bg-[#3b2a1a] font-criolla text-sm text-crema">#{r.puesto}</span>
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="titulo-criollo text-2xl leading-tight">{p.nombre}</h2>
+          <p className="text-sm text-crema/80">{p.bajada}</p>
+          <p className="text-xs font-bold text-naranja">
+            Nivel {r.skill} · {nivelNombre(r.skill)}
+            {p.slot === "jefe" ? " · Jefe" : ""}
+          </p>
+        </div>
+      </div>
+      <dl className="mt-4 flex flex-col gap-1.5">
+        {RASGOS.map((x) => (
+          <div key={x.id} className="grid grid-cols-[6.5rem_1fr] items-center gap-2" title={x.explica}>
+            <dt className="text-sm font-bold text-crema/85">{x.nombre}</dt>
+            <dd className="flex gap-0.5" aria-label={`${x.nombre}: ${p.rasgos[x.id]} de 10`}>
+              {Array.from({ length: 10 }, (_, i) => (
+                <span key={i} className={`h-2.5 flex-1 rounded-sm ${i < p.rasgos[x.id] ? "bg-gradient-to-b from-[#9be37a] to-[#3f9a3a]" : "bg-black/40"}`} />
+              ))}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <div className="mt-4 max-h-44 overflow-y-auto rounded-2xl bg-black/30 px-4 py-3 text-[15px] leading-relaxed text-crema/90">{p.historia}</div>
+      <motion.p initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.15 }} className="mx-auto my-3 rounded-2xl bg-crema px-4 py-2 text-center font-criolla text-lg text-tinta">
+        “{p.frase}”
+      </motion.p>
+      <p className="mb-3 text-center text-xs text-crema/75">
+        {r.victorias > 0 ? `Ya le ganaste ${r.victorias === 1 ? "una vez" : `${r.victorias} veces`} · ` : ""}
+        {!region.abierta
+          ? "Esta región todavía está cerrada."
+          : r.arriba
+            ? r.abierto
+              ? "Está justo arriba tuyo: si le ganás, te quedás con su puesto."
+              : `Para desafiarlo, primero subí hasta el puesto #${r.puesto + 1}.`
+            : "Está abajo tuyo: ganarle suma poquito, y si perdés, te pasa."}
+      </p>
+      {r.abierto ? (
+        <button className="btn-criollo min-h-14 w-full rounded-2xl font-criolla text-2xl" onClick={onDesafiar}>
+          <span className="relative z-[1]">¡Desafiar!</span>
+        </button>
+      ) : (
+        <p className="rounded-2xl bg-black/30 py-3 text-center font-bold text-crema/70">🔒 Todavía no</p>
+      )}
+    </div>
   );
 }

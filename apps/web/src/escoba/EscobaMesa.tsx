@@ -81,7 +81,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: EMatch | null; onRevan
     initial,
     remoto,
     actor: (s) => (s.winner === null ? s.turn : null),
-    choose: (v, va, rng, skill) => chooseEscobaAction(v, va, rng, skill),
+    choose: (v, va, rng, skill, _seat, rasgos) => chooseEscobaAction(v, va, rng, skill, rasgos),
     pausa: resumen !== null || cartel !== null,
     pensar: () => 900,
     onEvents: (events: readonly EscobaEvent[], next) => {

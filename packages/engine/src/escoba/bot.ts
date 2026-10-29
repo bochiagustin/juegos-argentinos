@@ -1,4 +1,4 @@
-import { createDeck, nextFloat, pick, type RngState, type SuitedCard } from "../core/index.ts";
+import { createDeck, desvio, nextFloat, pick, type Rasgos, type RngState, type SuitedCard } from "../core/index.ts";
 import { bandoDe, escoba, valorEscoba } from "./game.ts";
 import type { EscobaAction, EscobaConfig, EscobaState, EscobaView } from "./types.ts";
 
@@ -7,9 +7,15 @@ import type { EscobaAction, EscobaConfig, EscobaState, EscobaView } from "./type
  * con nivel alto, el riesgo de dejarle la escoba servida al de al lado según las cartas que no vio.
  */
 
-export function escobaProfile(skill: number) {
+/** Rasgos en la escoba: el agresivo levanta todo lo que puede; el pescador no deja escobas servidas. */
+export function escobaProfile(skill: number, rasgos?: Rasgos) {
   const t = (Math.min(10, Math.max(1, Math.round(skill))) - 1) / 9;
-  return { errorRate: 0.35 * (1 - t) + 0.02, riesgo: 0.2 + 1.3 * t, gula: 0.4 + 0.6 * t };
+  const p = { errorRate: 0.35 * (1 - t) + 0.02, riesgo: 0.2 + 1.3 * t, gula: 0.4 + 0.6 * t };
+  if (rasgos) {
+    p.gula *= 1 + 0.25 * desvio(rasgos.agresivo);
+    p.riesgo *= 1 + 0.5 * desvio(rasgos.pescador);
+  }
+  return p;
 }
 
 const ALL = createDeck({ size: 40 }) as SuitedCard[];
@@ -25,9 +31,9 @@ function valorDeCartas(cs: readonly SuitedCard[]): number {
   return v;
 }
 
-export function chooseEscobaAction(view: EscobaView, valid: readonly EscobaAction[], rngIn: RngState, skill: number): [EscobaAction, RngState] {
+export function chooseEscobaAction(view: EscobaView, valid: readonly EscobaAction[], rngIn: RngState, skill: number, rasgos?: Rasgos): [EscobaAction, RngState] {
   if (valid.length === 0) throw new Error("El bot no tiene nada para hacer");
-  const prof = escobaProfile(skill);
+  const prof = escobaProfile(skill, rasgos);
   let rng = rngIn;
   const [roll, r1] = nextFloat(rng);
   rng = r1;

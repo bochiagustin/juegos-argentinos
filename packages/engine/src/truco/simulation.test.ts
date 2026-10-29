@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clone, createRng, nextFloat, pick } from "../core/index.ts";
+import { clone, createRng, nextFloat, pick, type Rasgos } from "../core/index.ts";
 import { trucoDeck } from "./cards.ts";
 import { botProfile, chooseTrucoAction, playBotGame } from "./bot.ts";
 import { actorSeat, truco } from "./game.ts";
@@ -111,12 +111,45 @@ describe("simulación de partidas completas", () => {
     expect(wins / games).toBeGreaterThan(0.55);
   }, LONG);
 
-  it("los estilos cambian la personalidad, no el nivel", () => {
-    expect(botProfile(5, "mentiroso").bluff).toBeGreaterThan(botProfile(5).bluff);
-    expect(botProfile(5, "conservador").aggression).toBeLessThan(botProfile(5).aggression);
-    expect(botProfile(5, "agresivo").aggression).toBeGreaterThan(botProfile(5).aggression);
-    expect(botProfile(5, "mentiroso").errorRate).toBe(botProfile(5).errorRate);
+  it("los rasgos cambian la personalidad, no el nivel", () => {
+    const normal = { mentiroso: 5, pescador: 5, agresivo: 5 };
+    expect(botProfile(5, { ...normal, mentiroso: 10 }).bluff).toBeGreaterThan(botProfile(5, normal).bluff);
+    expect(botProfile(5, { ...normal, mentiroso: 0 }).bluff).toBeLessThan(botProfile(5, normal).bluff);
+    expect(botProfile(5, { ...normal, agresivo: 10 }).aggression).toBeGreaterThan(botProfile(5, normal).aggression);
+    expect(botProfile(5, { ...normal, pescador: 10 }).pesca).toBeGreaterThan(botProfile(5, normal).pesca);
+    expect(botProfile(5, { mentiroso: 10, pescador: 10, agresivo: 10 }).errorRate).toBe(botProfile(5).errorRate);
   });
+
+  it("en la mesa se nota: el mentiroso canta más truco y el pescador lo canta menos de entrada", () => {
+    /** Cuántas veces el asiento 0 canta truco primero (sin truco previo), y cuántas en la primera baza. */
+    function cantos(rasgos: Rasgos) {
+      let total = 0;
+      let deEntrada = 0;
+      for (let g = 0; g < 60; g++) {
+        let state = truco.initialState({ ...DEFAULT_TRUCO_CONFIG, players: 2, target: 15 }, ["a", "b"], `rasgos-${g}`);
+        let rng = state.rng;
+        for (let i = 0; i < 3000 && state.winner === null; i++) {
+          const seat = state.round.pending ? state.round.pending.responder : state.round.turn;
+          const id = seat === 0 ? "a" : "b";
+          const [action, next] = chooseTrucoAction(truco.getPlayerView(state, id), truco.getValidActions(state, id), rng, 6, seat === 0 ? rasgos : undefined);
+          rng = next;
+          const primera = state.round.tricks.length === 1;
+          const nivel = state.round.trucoLevel;
+          const r = truco.applyAction(state, id, action);
+          if (!r.ok) throw new Error(r.error);
+          if (seat === 0 && action.type === "truco" && nivel === 1) {
+            total++;
+            if (primera) deEntrada++;
+          }
+          state = r.state;
+        }
+      }
+      return { total, deEntrada };
+    }
+    const normal = cantos({ mentiroso: 5, pescador: 5, agresivo: 5 });
+    expect(cantos({ mentiroso: 10, pescador: 5, agresivo: 5 }).total).toBeGreaterThan(normal.total);
+    expect(cantos({ mentiroso: 5, pescador: 10, agresivo: 5 }).deEntrada).toBeLessThan(normal.deEntrada);
+  }, LONG);
 
   it("el perfil escala con el nivel", () => {
     expect(botProfile(1).errorRate).toBeGreaterThan(botProfile(10).errorRate);

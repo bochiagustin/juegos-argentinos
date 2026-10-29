@@ -3,3 +3,4 @@ export * from "./deck.ts";
 export * from "./rng.ts";
 export * from "./game.ts";
 export * from "./clone.ts";
+export * from "./rasgos.ts";

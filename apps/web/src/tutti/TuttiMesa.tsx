@@ -36,6 +36,12 @@ import { IconButton } from "../ui/ui.tsx";
 type TMatch = BotMatch<TuttiConfig, TuttiState>;
 const RULETA_MS = 2200;
 
+
+/** La personalidad del rival de la gira (solo el asiento 1 en una partida de la carrera). */
+function rasgosDe(m: { carrera?: { rivalId: string } }, seat: number) {
+  return m.carrera && seat === 1 ? personaje(m.carrera.rivalId).rasgos : undefined;
+}
+
 export function TuttiMesa() {
   const { back, replace } = useNav();
   const [partida, setPartida] = useState<{ m: TMatch | null; n: number }>(() => ({ m: loadBotMatch<TuttiConfig, TuttiState>("tutti-frutti", (x) => Array.isArray(x.state?.respuestas)), n: 0 }));
@@ -220,7 +226,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TMatch | null; onRevan
     const timers: number[] = [];
     m.state.players.forEach((id, seat) => {
       if (seat === HUMAN_SEAT) return;
-      const [plan, r] = planTutti(tuttiFrutti.getPlayerView(m.state, id), rng, m.skills[seat]!);
+      const [plan, r] = planTutti(tuttiFrutti.getPlayerView(m.state, id), rng, m.skills[seat]!, rasgosDe(m, seat));
       rng = r;
       for (const paso of plan.pasos) {
         if (m.state.respuestas[seat]![paso.categoria]) continue;
@@ -272,7 +278,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TMatch | null; onRevan
       ref.current!.state.players.forEach((id, seat) => {
         if (seat === HUMAN_SEAT || ref.current!.state.fase !== "revision") return;
         const st = ref.current!.state;
-        const [votos, r] = votosTutti(tuttiFrutti.getPlayerView(st, id), tuttiFrutti.getValidActions(st, id), rng, ref.current!.skills[seat]!);
+        const [votos, r] = votosTutti(tuttiFrutti.getPlayerView(st, id), tuttiFrutti.getValidActions(st, id), rng, ref.current!.skills[seat]!, rasgosDe(ref.current!, seat));
         rng = r;
         for (const v of votos) apply(id, v);
       });

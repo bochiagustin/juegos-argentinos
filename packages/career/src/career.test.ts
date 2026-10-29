@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { comprar, defaultCareer, estadoGira, FOSFOROS_INICIALES, normalizeCareer, progresoDe, registrarPartida, rivalAbierto } from "./career.ts";
+import { comprar, defaultCareer, estadoGira, FOSFOROS_INICIALES, normalizeCareer, progresoDe, puestosDe, registrarPartida } from "./career.ts";
 import { GIRA_TRUCO, GIRAS, LOGROS, PERSONAJES, REGIONES, TIENDA } from "./data.ts";
 import { comoSeDesbloquea, FONDOS, fondoDesbloqueado, TIENDA_FONDOS } from "./fondos.ts";
-import type { CareerState, Reporte } from "./types.ts";
+import { SLOTS, YO, type CareerState, type Reporte } from "./types.ts";
 
 const AHORA = 1_800_000_000_000;
 const gano = (rivalId?: string, extra: Partial<Reporte> = {}): Reporte => ({ game: "truco", ganada: true, hechos: [], ahora: AHORA, ...(rivalId ? { rivalId } : {}), ...extra });
@@ -19,11 +19,20 @@ function jugar(s: CareerState, reportes: Reporte[]) {
   return { state, premios };
 }
 
+/** Para subir una región entera de abajo para arriba: del "1" al "9" y el jefe. */
+const escalera = (region: string) => SLOTS.map((slot) => `${region}-${slot}`);
+
 describe("datos de la gira", () => {
-  it("18 personajes, 3 por región, ids alineados con el arte", () => {
-    expect(PERSONAJES).toHaveLength(18);
-    for (const r of REGIONES) expect(PERSONAJES.filter((p) => p.region === r.id).map((p) => p.slot)).toEqual(["1", "2", "jefe"]);
-    for (const p of PERSONAJES) expect(p.id).toBe(`${p.region}-${p.slot}`);
+  it("60 personajes, 10 por región, ids alineados con el arte y con historia y rasgos", () => {
+    expect(PERSONAJES).toHaveLength(60);
+    for (const r of REGIONES) expect(PERSONAJES.filter((p) => p.region === r.id).map((p) => p.slot)).toEqual([...SLOTS]);
+    for (const p of PERSONAJES) {
+      expect(p.id).toBe(`${p.region}-${p.slot}`);
+      expect(p.historia.length).toBeGreaterThan(150);
+      expect(p.aspecto.length).toBeGreaterThan(40);
+      for (const v of Object.values(p.rasgos)) expect(v >= 0 && v <= 10).toBe(true);
+    }
+    expect(new Set(PERSONAJES.map((p) => p.nombre)).size).toBe(60);
   });
 
   it("cada gira tiene las 6 regiones y la dificultad sube", () => {
@@ -32,40 +41,72 @@ describe("datos de la gira", () => {
       const jefes = g.regiones.map((r) => r.skills.jefe);
       expect([...jefes].sort((a, b) => a - b)).toEqual(jefes);
       expect(jefes[jefes.length - 1]).toBe(10);
+      for (const r of g.regiones) {
+        const niveles = SLOTS.map((s) => r.skills[s]);
+        expect([...niveles].sort((a, b) => a - b)).toEqual(niveles);
+      }
     }
   });
 });
 
-describe("gira", () => {
-  it("arranca con Buenos Aires abierta y el jefe cerrado", () => {
+describe("gira con ranking", () => {
+  it("arranca con Buenos Aires abierta, último en el ranking y el jefe primero", () => {
     const e = estadoGira(GIRA_TRUCO, progresoDe(defaultCareer(), "truco"));
     expect(e.map((r) => r.abierta)).toEqual([true, false, false, false, false, false]);
-    expect(e[0]!.rivales.map((r) => r.abierto)).toEqual([true, true, false]);
+    const ba = e[0]!;
+    expect(ba.miPuesto).toBe(11);
+    expect(ba.rivales[0]!.personaje.slot).toBe("jefe");
+    // Solo se puede desafiar al que está justo arriba (el "1").
+    expect(ba.rivales.filter((r) => r.abierto).map((r) => r.personaje.id)).toEqual(["buenos-aires-1"]);
   });
 
-  it("el jefe se abre ganándole a los dos de la región; la región siguiente, ganándole al jefe", () => {
+  it("ganarle al de arriba te da su puesto; a uno de abajo, pocos puntos y nada más", () => {
     const { state, premios } = jugar(defaultCareer(), [gano("buenos-aires-1"), gano("buenos-aires-2")]);
-    const p = progresoDe(state, "truco");
-    expect(rivalAbierto(GIRA_TRUCO, p, "buenos-aires-jefe")).toBe(true);
-    expect(estadoGira(GIRA_TRUCO, p)[1]!.abierta).toBe(false);
-    expect(premios[0]!.puntos).toBe(150);
-    const r = jugar(state, [gano("buenos-aires-jefe")]);
-    expect(r.premios[0]!.puntos).toBe(300);
-    expect(r.premios[0]!.regionDesbloqueada).toBe("cuyo");
-    expect(estadoGira(GIRA_TRUCO, progresoDe(r.state, "truco"))[1]!.abierta).toBe(true);
+    expect(premios[0]!.puesto).toEqual({ region: "buenos-aires", antes: 11, despues: 10 });
+    expect(premios[0]!.puntos).toBe(40);
+    const ba = estadoGira(GIRA_TRUCO, progresoDe(state, "truco"))[0]!;
+    expect(ba.miPuesto).toBe(9);
+    expect(ba.rivales.filter((r) => r.abierto).map((r) => r.personaje.id).sort()).toEqual(["buenos-aires-1", "buenos-aires-2", "buenos-aires-3"]);
+    const abajo = jugar(state, [gano("buenos-aires-1")]);
+    expect(abajo.premios[0]!.puntos).toBe(10);
+    expect(abajo.premios[0]!.puesto).toBeNull();
   });
 
-  it("ganarle al jefe de Buenos Aires regala el Nuevo Mazo Argento", () => {
-    const { state, premios } = jugar(defaultCareer(), [gano("buenos-aires-1"), gano("buenos-aires-2"), gano("buenos-aires-jefe")]);
-    expect(premios[2]!.regalo).toBe("mazo:argento-nuevo");
-    expect(state.desbloqueados).toContain("mazo:argento-nuevo");
+  it("si perdés con uno de abajo, te pasa", () => {
+    const { state } = jugar(defaultCareer(), [gano("buenos-aires-1"), gano("buenos-aires-2")]);
+    const r = jugar(state, [pierdo("buenos-aires-1")]);
+    expect(r.premios[0]!.puesto).toEqual({ region: "buenos-aires", antes: 9, despues: 10 });
+    expect(estadoGira(GIRA_TRUCO, progresoDe(r.state, "truco"))[0]!.rivales.find((x) => x.personaje.id === "buenos-aires-1")!.puesto).toBe(9);
+    // Perder con el de arriba no cambia nada.
+    expect(jugar(state, [pierdo("buenos-aires-3")]).premios[0]!.puesto).toBeNull();
+  });
+
+  it("no se puede saltear: el jefe recién se desafía estando segundo", () => {
+    const { premios, state } = jugar(defaultCareer(), [gano("buenos-aires-jefe"), gano("buenos-aires-5"), gano("malvinas-jefe")]);
+    expect(premios.every((p) => p.puntos === 0)).toBe(true);
+    expect(progresoDe(state, "truco").vencidos).toEqual({});
+  });
+
+  it("llegar a primero de la región le gana al jefe y abre la siguiente", () => {
+    const { state, premios } = jugar(defaultCareer(), escalera("buenos-aires").map((id) => gano(id)));
+    const ultimo = premios[premios.length - 1]!;
+    expect(ultimo.puntos).toBe(200);
+    expect(ultimo.regionDesbloqueada).toBe("cuyo");
+    expect(ultimo.regalo).toBe("mazo:argento-nuevo");
+    const e = estadoGira(GIRA_TRUCO, progresoDe(state, "truco"));
+    expect(e[0]!.miPuesto).toBe(1);
+    expect(e[0]!.completa).toBe(true);
+    expect(e[1]!.abierta).toBe(true);
     expect(state.logros.coleccionista).toBe(AHORA);
   });
 
-  it("no da puntos por un rival que todavía no está abierto", () => {
-    const { premios, state } = jugar(defaultCareer(), [gano("buenos-aires-jefe"), gano("malvinas-jefe")]);
-    expect(premios.every((p) => p.puntos === 0)).toBe(true);
-    expect(progresoDe(state, "truco").vencidos).toEqual({});
+  it("perder el primer puesto no cierra lo que ya abriste", () => {
+    const { state } = jugar(defaultCareer(), escalera("buenos-aires").map((id) => gano(id)));
+    const r = jugar(state, [pierdo("buenos-aires-jefe")]);
+    const e = estadoGira(GIRA_TRUCO, progresoDe(r.state, "truco"));
+    expect(e[0]!.miPuesto).toBe(2);
+    expect(e[0]!.completa).toBe(true);
+    expect(e[1]!.abierta).toBe(true);
   });
 
   it("perder no suma puntos de gira pero da algunos fósforos", () => {
@@ -74,23 +115,23 @@ describe("gira", () => {
     expect(premios[0]!.fosforos).toBe(3);
   });
 
-  it("se puede completar la gira entera y da el logro", () => {
-    const orden = REGIONES.flatMap((r) => ["1", "2", "jefe"].map((s) => `${r.id}-${s}`));
-    const { state, premios } = jugar(defaultCareer(), orden.map((id) => gano(id)));
-    expect(premios.every((p) => p.puntos > 0)).toBe(true);
-    expect(premios[premios.length - 1]!.giraCompleta).toBe(true);
-    expect(state.logros["gira-completa"]).toBe(AHORA);
-    expect(estadoGira(GIRA_TRUCO, progresoDe(state, "truco")).every((r) => r.completa)).toBe(true);
-  });
-
-  it("los umbrales se alcanzan jugando la gira en orden", () => {
-    // Ganando cada rival una sola vez alcanza para abrir cada región.
+  it("se puede completar la gira entera subiendo cada región, y los umbrales alcanzan", () => {
     let s = defaultCareer();
     for (const r of REGIONES) {
-      const e = estadoGira(GIRA_TRUCO, progresoDe(s, "truco"));
-      expect(e.find((x) => x.id === r.id)!.abierta).toBe(true);
-      s = jugar(s, ["1", "2", "jefe"].map((slot) => gano(`${r.id}-${slot}`))).state;
+      expect(estadoGira(GIRA_TRUCO, progresoDe(s, "truco")).find((x) => x.id === r.id)!.abierta).toBe(true);
+      s = jugar(s, escalera(r.id).map((id) => gano(id))).state;
     }
+    expect(s.logros["gira-completa"]).toBe(AHORA);
+    expect(estadoGira(GIRA_TRUCO, progresoDe(s, "truco")).every((r) => r.completa && r.miPuesto === 1)).toBe(true);
+  });
+
+  it("las partidas de antes del ranking te dejan arriba del mejor que venciste", () => {
+    const viejo = normalizeCareer({ giras: { truco: { puntos: 600, vencidos: { "buenos-aires-1": 1, "buenos-aires-2": 1, "buenos-aires-jefe": 1 }, jugadas: 3 } } });
+    const p = progresoDe(viejo, "truco");
+    expect(puestosDe(p, "buenos-aires")[0]).toBe(YO);
+    expect(estadoGira(GIRA_TRUCO, p)[1]!.abierta).toBe(true);
+    const medio = normalizeCareer({ giras: { truco: { puntos: 300, vencidos: { "buenos-aires-1": 1, "buenos-aires-2": 1 }, jugadas: 2 } } });
+    expect(estadoGira(GIRA_TRUCO, progresoDe(medio, "truco"))[0]!.miPuesto).toBe(9);
   });
 });
 
@@ -155,7 +196,7 @@ describe("fondos de mesa", () => {
     const s = defaultCareer();
     const abiertos = FONDOS.filter((f) => fondoDesbloqueado(s, f)).map((f) => f.id);
     expect(abiertos).toEqual(["boliche", "patio"]);
-    const { state } = jugar(s, [gano("buenos-aires-1"), gano("buenos-aires-2"), gano("buenos-aires-jefe")]);
+    const { state } = jugar(s, escalera("buenos-aires").map((id) => gano(id)));
     const ahora = FONDOS.filter((f) => fondoDesbloqueado(state, f)).map((f) => f.id);
     expect(ahora).toContain("bodegon");
     expect(ahora).toContain("bodega");
@@ -174,12 +215,12 @@ describe("guardado de la carrera", () => {
     expect(normalizeCareer(null)).toEqual(defaultCareer());
     const s = normalizeCareer({
       fosforos: -5,
-      giras: { truco: { puntos: 450, vencidos: { "buenos-aires-1": 2, "<script>": 1 }, jugadas: 3 }, poker: {} },
+      giras: { truco: { puntos: 450, vencidos: { "buenos-aires-1": 2, "<script>": 1 }, jugadas: 3, puestos: { "buenos-aires": ["yo", "yo"], cuyo: "x" } }, poker: {} },
       logros: { "primera-victoria": 123, inventado: 1 },
       desbloqueados: ["mazo:argento-nuevo", "mazo:argento-nuevo", "trucho"],
     });
     expect(s.fosforos).toBe(FOSFOROS_INICIALES);
-    expect(s.giras.truco).toEqual({ puntos: 450, vencidos: { "buenos-aires-1": 2 }, jugadas: 3 });
+    expect(s.giras.truco).toEqual({ puntos: 450, vencidos: { "buenos-aires-1": 2 }, jugadas: 3, puestos: {} });
     expect(Object.keys(s.giras)).toEqual(["truco"]);
     expect(s.logros).toEqual({ "primera-victoria": 123 });
     expect(s.desbloqueados).toEqual(["mazo:argento-nuevo"]);

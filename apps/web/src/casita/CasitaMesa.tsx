@@ -1,6 +1,6 @@
 import { personaje, type Hecho } from "@juegos-argentinos/career";
 import type { SuitedCard } from "@juegos-argentinos/engine";
-import { casita, chooseCasitaAction, sonCompaneros, type CasitaAction, type CasitaConfig, type CasitaEvent, type CasitaState, type CasitaView } from "@juegos-argentinos/engine/casita";
+import { casita, casitaProfile, chooseCasitaAction, sonCompaneros, type CasitaAction, type CasitaConfig, type CasitaEvent, type CasitaState, type CasitaView } from "@juegos-argentinos/engine/casita";
 import { AnimatePresence, motion } from "motion/react";
 import { useRef, useState } from "react";
 import { playSfx, vibrate } from "../audio/sfx.ts";
@@ -99,7 +99,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: KMatch | null; onRevan
     initial,
     remoto,
     actor: (s) => (s.result === null ? s.turn : null),
-    choose: (v, va, rng, skill) => chooseCasitaAction(v, va, rng, skill),
+    choose: (v, va, rng, skill, _seat, rasgos) => chooseCasitaAction(v, va, rng, skill, casitaProfile(skill, rasgos)),
     pausa: robo !== null,
     pensar: () => 850,
     onEvents: (events: readonly CasitaEvent[], next) => {

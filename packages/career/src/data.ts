@@ -3,38 +3,20 @@ import type { ChinchonConfig } from "@juegos-argentinos/engine/chinchon";
 import type { EscobaConfig } from "@juegos-argentinos/engine/escoba";
 import type { TrucoConfig } from "@juegos-argentinos/engine/truco";
 import type { TuttiConfig } from "@juegos-argentinos/engine/tutti-frutti";
-import type { CareerGame, GiraDef, LogroDef, Personaje, RegionDef, Slot } from "./types.ts";
+import { PERSONAJES } from "./personajes.ts";
+import { SLOTS, type CareerGame, type GiraDef, type LogroDef, type Personaje, type RegionDef, type Slot } from "./types.ts";
+
+export { PERSONAJES };
 
 export const REGIONES: RegionDef[] = [
   { id: "buenos-aires", nombre: "Buenos Aires", umbral: 0 },
-  { id: "cuyo", nombre: "Cuyo", umbral: 300 },
-  { id: "mesopotamia", nombre: "Mesopotamia", umbral: 900 },
-  { id: "norte", nombre: "Norte", umbral: 1700 },
-  { id: "patagonia", nombre: "Patagonia", umbral: 2700 },
-  { id: "malvinas", nombre: "Malvinas", umbral: 3900 },
+  { id: "cuyo", nombre: "Cuyo", umbral: 500 },
+  { id: "mesopotamia", nombre: "Mesopotamia", umbral: 1300 },
+  { id: "norte", nombre: "Norte", umbral: 2400 },
+  { id: "patagonia", nombre: "Patagonia", umbral: 3800 },
+  { id: "malvinas", nombre: "Malvinas", umbral: 5500 },
 ];
 
-/** Los 18 personajes de la gira (los mismos en los tres juegos). Inventados: nada de gente real. */
-export const PERSONAJES: Personaje[] = [
-  { id: "buenos-aires-1", region: "buenos-aires", slot: "1", nombre: "Coco", avatar: "🚕", bajada: "Tachero de Constitución", frase: "Subí, que el reloj ya está corriendo.", estilo: "parejo" },
-  { id: "buenos-aires-2", region: "buenos-aires", slot: "2", nombre: "Doña Elsa", avatar: "👵", bajada: "La del almacén de la esquina", frase: "Te anoto en la libreta, nene.", estilo: "conservador" },
-  { id: "buenos-aires-jefe", region: "buenos-aires", slot: "jefe", nombre: "El Polaco", avatar: "🎩", bajada: "Tanguero de Boedo", frase: "Acá se juega con el corazón… y con el ancho.", estilo: "mentiroso" },
-  { id: "cuyo-1", region: "cuyo", slot: "1", nombre: "Mario", avatar: "🍇", bajada: "Viñatero de Maipú", frase: "Esto se juega como se poda: sin apuro.", estilo: "parejo" },
-  { id: "cuyo-2", region: "cuyo", slot: "2", nombre: "Rosita", avatar: "🧺", bajada: "Cosechera de la vendimia", frase: "Este año la cosecha viene buena.", estilo: "agresivo" },
-  { id: "cuyo-jefe", region: "cuyo", slot: "jefe", nombre: "Don Aníbal", avatar: "🍷", bajada: "Bodeguero de toda la vida", frase: "Paciencia, que el buen vino se hace esperar.", estilo: "conservador" },
-  { id: "mesopotamia-1", region: "mesopotamia", slot: "1", nombre: "Ñato", avatar: "🎣", bajada: "Pescador del Paraná", frase: "Picó, picó… ¡a ver qué sacamos!", estilo: "parejo" },
-  { id: "mesopotamia-2", region: "mesopotamia", slot: "2", nombre: "Mirta", avatar: "🧉", bajada: "Yerbatera de Misiones", frase: "Cebá uno y arrancamos.", estilo: "conservador" },
-  { id: "mesopotamia-jefe", region: "mesopotamia", slot: "jefe", nombre: "El Chamamecero", avatar: "🪗", bajada: "Acordeón en mano, de Corrientes", frase: "¡Sapucai! Vamos que se arma.", estilo: "agresivo" },
-  { id: "norte-1", region: "norte", slot: "1", nombre: "Benjamín", avatar: "🥁", bajada: "Coplero de la Quebrada", frase: "Te canto una copla antes de ganarte.", estilo: "parejo" },
-  { id: "norte-2", region: "norte", slot: "2", nombre: "Doña Aurora", avatar: "🧶", bajada: "Tejedora de Humahuaca", frase: "Hilo por hilo se arma la manta.", estilo: "conservador" },
-  { id: "norte-jefe", region: "norte", slot: "jefe", nombre: "El Diablo del Carnaval", avatar: "😈", bajada: "Sale una vez al año… y hoy salió", frase: "¿Te animás a jugar con el diablo?", estilo: "mentiroso" },
-  { id: "patagonia-1", region: "patagonia", slot: "1", nombre: "Gonzalo", avatar: "🏔️", bajada: "Guía de montaña en Bariloche", frase: "Despacito, que el cerro no se va.", estilo: "conservador" },
-  { id: "patagonia-2", region: "patagonia", slot: "2", nombre: "Nahuel", avatar: "🐑", bajada: "Esquilador de Chubut", frase: "Cuando hace frío, se juega mejor.", estilo: "agresivo" },
-  { id: "patagonia-jefe", region: "patagonia", slot: "jefe", nombre: "La Galesa del té", avatar: "☕", bajada: "Casa de té de Gaiman", frase: "Primero la torta galesa, después te gano.", estilo: "mentiroso" },
-  { id: "malvinas-1", region: "malvinas", slot: "1", nombre: "Sosa", avatar: "⚓", bajada: "Marinero de la fragata", frase: "Mar picado, mano picada.", estilo: "agresivo" },
-  { id: "malvinas-2", region: "malvinas", slot: "2", nombre: "Doña Inés", avatar: "🍲", bajada: "La cocinera del buque", frase: "Con la panza llena se piensa mejor.", estilo: "conservador" },
-  { id: "malvinas-jefe", region: "malvinas", slot: "jefe", nombre: "El Capitán de la Fragata", avatar: "⛵", bajada: "El último desafío de la gira", frase: "Hasta acá llegaste. A ver si te da el cuero.", estilo: "mentiroso" },
-];
 
 export function personaje(id: string): Personaje {
   const p = PERSONAJES.find((x) => x.id === id);
@@ -42,15 +24,18 @@ export function personaje(id: string): Personaje {
   return p;
 }
 
-/** Niveles del bot por región: sube de a poco hasta el 10 del Capitán. */
-const SKILLS: Record<Slot, number>[] = [
-  { "1": 2, "2": 3, jefe: 4 },
-  { "1": 3, "2": 4, jefe: 5 },
-  { "1": 4, "2": 5, jefe: 6 },
-  { "1": 5, "2": 6, jefe: 7 },
-  { "1": 6, "2": 7, jefe: 8 },
-  { "1": 8, "2": 9, jefe: 10 },
+/** Niveles del bot por región: del más flojo al "9" sube de a poco, y el jefe está un escalón arriba (hasta el 10 del Capitán). */
+const NIVELES: { desde: number; hasta: number; jefe: number }[] = [
+  { desde: 1, hasta: 3, jefe: 4 },
+  { desde: 2, hasta: 4, jefe: 5 },
+  { desde: 3, hasta: 5, jefe: 6 },
+  { desde: 4, hasta: 6, jefe: 7 },
+  { desde: 5, hasta: 8, jefe: 9 },
+  { desde: 7, hasta: 9, jefe: 10 },
 ];
+const SKILLS: Record<Slot, number>[] = NIVELES.map(
+  (n) => Object.fromEntries(SLOTS.map((s, i) => [s, s === "jefe" ? n.jefe : Math.round(n.desde + ((n.hasta - n.desde) * i) / 8)])) as Record<Slot, number>,
+);
 
 function gira<C>(game: CareerGame, nombre: string, porRegion: { reglas: string; config: Partial<C> }[]): GiraDef<C> {
   return { game, nombre, regiones: REGIONES.map((region, i) => ({ region, ...porRegion[i]!, skills: SKILLS[i]! })) };
@@ -109,10 +94,13 @@ export const GIRAS: Record<CareerGame, GiraDef<unknown>> = {
   "tutti-frutti": GIRA_TUTTI as GiraDef<unknown>,
 };
 
-/** Puntos de gira por ganarle a un rival (el jefe vale el doble). */
-export function puntosPorVictoria(regionIndex: number, slot: Slot): number {
-  const base = 150 + 100 * regionIndex;
-  return slot === "jefe" ? base * 2 : base;
+/**
+ * Puntos de gira por ganarle a un rival: al de arriba (le sacás el puesto) o al jefe vale mucho;
+ * a uno de abajo, poquito (no cambia nada en el ranking).
+ */
+export function puntosPorVictoria(regionIndex: number, slot: Slot, arriba: boolean): number {
+  if (!arriba) return 10 + 5 * regionIndex;
+  return slot === "jefe" ? 200 + 100 * regionIndex : 40 + 20 * regionIndex;
 }
 
 export const LOGROS: LogroDef[] = [

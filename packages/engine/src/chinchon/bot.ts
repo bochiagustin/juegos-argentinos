@@ -1,4 +1,4 @@
-import { nextFloat, pick, type Card, type RngState } from "../core/index.ts";
+import { desvio, nextFloat, pick, type Card, type Rasgos, type RngState } from "../core/index.ts";
 import { chinchon, rulesOf } from "./game.ts";
 import { bestArrangement, cardPoints, type MeldRules } from "./melds.ts";
 import type { ChinchonAction, ChinchonConfig, ChinchonState, ChinchonView } from "./types.ts";
@@ -17,12 +17,20 @@ export interface ChinchonBotProfile {
   pozoThreshold: number;
   /** Probabilidad de ver que puede cortar. */
   seesCut: number;
+  /** Probabilidad de no cortar con puntos sueltos para ir a buscar el menos diez (el pescador). */
+  espera: number;
 }
 
-export function chinchonProfile(skill: number): ChinchonBotProfile {
+/** Rasgos en el chinchón: el agresivo levanta más del pozo; el pescador se aguanta el corte buscando el menos diez. */
+export function chinchonProfile(skill: number, rasgos?: Rasgos): ChinchonBotProfile {
   const t = (Math.min(10, Math.max(1, Math.round(skill))) - 1) / 9;
   // Medido en simulación: un peso de "futuro" moderado (~1) rinde más que ninguno o demasiado.
-  return { errorRate: 0.3 * (1 - t) + 0.02, potential: 0.2 + 0.8 * t, pozoThreshold: 3 - 2 * t, seesCut: 0.75 + 0.25 * t };
+  const p = { errorRate: 0.3 * (1 - t) + 0.02, potential: 0.2 + 0.8 * t, pozoThreshold: 3 - 2 * t, seesCut: 0.75 + 0.25 * t, espera: 0 };
+  if (rasgos) {
+    p.pozoThreshold = Math.max(0.5, p.pozoThreshold - desvio(rasgos.agresivo));
+    p.espera = Math.max(0, 0.45 * desvio(rasgos.pescador));
+  }
+  return p;
 }
 
 /** Cuánto "futuro" tiene una carta en esta mano: compañeras del mismo número o del mismo palo cerca. */
@@ -99,7 +107,8 @@ export function chooseChinchonAction(view: ChinchonView, valid: readonly Chincho
         best = a;
       }
     }
-    return [best, rng];
+    // El pescador, con puntos sueltos y mazo para rato, a veces sigue buscando el menos diez.
+    if (!(bestSum > 0 && view.mazoCount > 10 && roll() < prof.espera)) return [best, rng];
   }
 
   const discards = valid.filter((a) => a.type === "descartar");

@@ -1,5 +1,5 @@
 import { personaje, type Hecho } from "@juegos-argentinos/career";
-import { actorSeat, chooseTrucoAction, teamOf, truco, type BotEstilo, type RoundSummary, type Seat, type Trick, type TrucoAction, type TrucoEvent, type TrucoView } from "@juegos-argentinos/engine/truco";
+import { actorSeat, chooseTrucoAction, teamOf, truco, type RoundSummary, type Seat, type Trick, type TrucoAction, type TrucoEvent, type TrucoView } from "@juegos-argentinos/engine/truco";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { playSfx, vibrate } from "../audio/sfx.ts";
 import { decir, enPalabras } from "../audio/voz.ts";
@@ -179,8 +179,8 @@ function useTrucoLocal(initial: TrucoMatch, onFin: (m: TrucoMatch) => void): Tru
     const id = m.state.players[actor]!;
     const delay = (m.state.round.pending ? 1100 : 750) + ((m.state.round.number * 37 + actor * 113) % 400);
     const t = window.setTimeout(() => {
-      const estilo: BotEstilo = m.carrera && actor === 1 ? personaje(m.carrera.rivalId).estilo : "parejo";
-      const [action, rng] = chooseTrucoAction(truco.getPlayerView(m.state, id), truco.getValidActions(m.state, id), m.rng, m.skills[actor]!, estilo);
+      const rasgos = m.carrera && actor === 1 ? personaje(m.carrera.rivalId).rasgos : undefined;
+      const [action, rng] = chooseTrucoAction(truco.getPlayerView(m.state, id), truco.getValidActions(m.state, id), m.rng, m.skills[actor]!, rasgos);
       apply(actor, action, rng);
     }, delay);
     return () => clearTimeout(t);

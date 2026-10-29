@@ -1,4 +1,4 @@
-import { nextFloat, pick, type RngState, type SuitedCard } from "../core/index.ts";
+import { desvio, nextFloat, pick, type Rasgos, type RngState, type SuitedCard } from "../core/index.ts";
 import { casita, sonCompaneros } from "./game.ts";
 import type { CasitaAction, CasitaConfig, CasitaState, CasitaView } from "./types.ts";
 
@@ -7,10 +7,13 @@ import type { CasitaAction, CasitaConfig, CasitaState, CasitaView } from "./type
  * (la de arriba de tu casita queda expuesta a que te la roben) y qué le regala a los demás lo que deja en la mesa.
  */
 
-export function casitaProfile(skill: number) {
+/** Rasgos en la casita: el agresivo va a robar siempre que puede; el pescador cuida más su casita. */
+export function casitaProfile(skill: number, rasgos?: Rasgos) {
   const t = (Math.min(10, Math.max(1, Math.round(skill))) - 1) / 9;
   // Medido en simulación: un peso de riesgo bajo (≤1,5) ayuda un poco; más alto hace que deje de levantar y pierda.
-  return { errorRate: 0.35 * (1 - t) + 0.02, riesgo: 0.1 + 0.9 * t };
+  const riesgo = 0.1 + 0.9 * t;
+  if (!rasgos) return { errorRate: 0.35 * (1 - t) + 0.02, riesgo, ganasDeRobar: 1 };
+  return { errorRate: 0.35 * (1 - t) + 0.02, riesgo: riesgo * (1 + 0.5 * desvio(rasgos.pescador)), ganasDeRobar: 1 + 0.3 * desvio(rasgos.agresivo) };
 }
 
 function unseenOfRank(view: CasitaView, rank: number): number {
@@ -49,7 +52,7 @@ export function chooseCasitaAction(view: CasitaView, valid: readonly CasitaActio
     if (j.tipo === "robar") {
       const victim = view.players[j.de]!.casita;
       // Lo que gano yo y lo que pierde el rival.
-      gain = 2 * victim + 1;
+      gain = (2 * victim + 1) * prof.ganasDeRobar;
       risk = loss(card.rank, mine + victim + 1);
     } else if (j.tipo === "mesa") {
       const taken = view.config.levantar === "todas" ? view.mesa.filter((c) => c.rank === card.rank).length : 1;

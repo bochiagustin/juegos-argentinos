@@ -1,5 +1,5 @@
-import { GIRAS, LOGROS, personaje, puntosPorVictoria, REGALO_BUENOS_AIRES, TIENDA } from "./data.ts";
-import { CAREER_GAMES, REGION_IDS, type CareerGame, type CareerState, type GiraDef, type GiraProgress, type Hecho, type Personaje, type Premio, type RegionId, type Reporte } from "./types.ts";
+import { GIRAS, LOGROS, PERSONAJES, personaje, puntosPorVictoria, REGALO_BUENOS_AIRES, TIENDA } from "./data.ts";
+import { CAREER_GAMES, REGION_IDS, SLOTS, YO, type CareerGame, type CareerState, type GiraDef, type GiraProgress, type Hecho, type Personaje, type Premio, type RegionId, type Reporte } from "./types.ts";
 
 export const FOSFOROS_INICIALES = 100;
 
@@ -16,13 +16,23 @@ export function normalizeCareer(raw: unknown): CareerState {
   const d = defaultCareer();
   if (!isRec(raw)) return d;
   const giras: CareerState["giras"] = {};
+  const ids = new Set(PERSONAJES.map((x) => x.id));
   if (isRec(raw.giras)) {
     for (const g of CAREER_GAMES) {
       const p = raw.giras[g];
       if (!isRec(p)) continue;
       const vencidos: Record<string, number> = {};
-      if (isRec(p.vencidos)) for (const [k, v] of Object.entries(p.vencidos)) if (/^[a-z-]+-(1|2|jefe)$/.test(k)) vencidos[k] = nonNeg(v);
-      giras[g] = { puntos: nonNeg(p.puntos), vencidos, jugadas: nonNeg(p.jugadas) };
+      if (isRec(p.vencidos)) for (const [k, v] of Object.entries(p.vencidos)) if (ids.has(k)) vencidos[k] = nonNeg(v);
+      const puestos: GiraProgress["puestos"] = {};
+      if (isRec(p.puestos)) {
+        for (const region of REGION_IDS) {
+          const lista = p.puestos[region];
+          const esperado = [...idsDeRegion(region), YO];
+          // Solo si es exactamente la región con sus 10 rivales y yo, sin repetidos; si no, se rearma.
+          if (Array.isArray(lista) && lista.length === esperado.length && esperado.every((id) => lista.includes(id))) puestos[region] = lista as string[];
+        }
+      }
+      giras[g] = { puntos: nonNeg(p.puntos), vencidos, jugadas: nonNeg(p.jugadas), puestos };
     }
   }
   const logros: Record<string, number> = {};
@@ -35,11 +45,26 @@ export function normalizeCareer(raw: unknown): CareerState {
 }
 
 export function progresoDe(s: CareerState, game: CareerGame): GiraProgress {
-  return s.giras[game] ?? { puntos: 0, vencidos: {}, jugadas: 0 };
+  return s.giras[game] ?? { puntos: 0, vencidos: {}, jugadas: 0, puestos: {} };
 }
 
 const regionIndex = (id: RegionId) => REGION_IDS.indexOf(id);
 const vencido = (p: GiraProgress, id: string) => (p.vencidos[id] ?? 0) > 0;
+const idsDeRegion = (region: RegionId) => SLOTS.map((slot) => `${region}-${slot}`);
+
+/**
+ * El ranking de una región, del primero al último: el guardado o, si todavía no jugaste ahí, el inicial
+ * (el jefe arriba, del "9" al "1" y vos último). Si ya le habías ganado a alguno (partidas de antes del ranking),
+ * arrancás arriba del mejor que venciste.
+ */
+export function puestosDe(p: GiraProgress, region: RegionId): string[] {
+  const guardado = p.puestos[region];
+  if (guardado) return guardado.slice();
+  const lista = idsDeRegion(region).reverse();
+  const i = lista.findIndex((id) => vencido(p, id));
+  lista.splice(i === -1 ? lista.length : i, 0, YO);
+  return lista;
+}
 
 export function regionAbierta(gira: GiraDef, p: GiraProgress, i: number): boolean {
   if (i === 0) return true;
@@ -51,7 +76,12 @@ export interface EstadoRival {
   personaje: Personaje;
   skill: number;
   victorias: number;
+  /** Se lo puede desafiar: está abajo mío o justo arriba (y la región está abierta). */
   abierto: boolean;
+  /** Puesto en el ranking de la región (1 = primero). */
+  puesto: number;
+  /** Está arriba mío: ganarle me da su puesto. */
+  arriba: boolean;
 }
 
 export interface EstadoRegion {
@@ -65,15 +95,21 @@ export interface EstadoRegion {
   faltanPuntos: number;
   /** Hay que ganarle al jefe anterior para entrar. */
   faltaJefeAnterior: boolean;
+  /** Mi puesto en el ranking de la región (1 = primero). */
+  miPuesto: number;
+  /** Los rivales en el orden del ranking (yo voy en `miPuesto`). */
   rivales: EstadoRival[];
 }
 
-/** Cómo está la gira: qué regiones y rivales están abiertos. Jefe: después de ganarle a los dos de la región. */
+/**
+ * Cómo está la gira: qué regiones están abiertas y el ranking de cada una. En una región abierta podés desafiar
+ * a cualquiera de abajo y al que está justo arriba tuyo; el jefe arranca primero.
+ */
 export function estadoGira(gira: GiraDef, p: GiraProgress): EstadoRegion[] {
   return gira.regiones.map((r, i) => {
     const abierta = regionAbierta(gira, p, i);
-    const ids = (["1", "2", "jefe"] as const).map((slot) => `${r.region.id}-${slot}`);
-    const dosVencidos = vencido(p, ids[0]!) && vencido(p, ids[1]!);
+    const puestos = puestosDe(p, r.region.id);
+    const mio = puestos.indexOf(YO);
     const prev = i > 0 ? `${gira.regiones[i - 1]!.region.id}-jefe` : null;
     return {
       index: i,
@@ -81,12 +117,14 @@ export function estadoGira(gira: GiraDef, p: GiraProgress): EstadoRegion[] {
       nombre: r.region.nombre,
       reglas: r.reglas,
       abierta,
-      completa: vencido(p, ids[2]!),
+      completa: vencido(p, `${r.region.id}-jefe`),
       faltanPuntos: Math.max(0, r.region.umbral - p.puntos),
       faltaJefeAnterior: prev !== null && !vencido(p, prev),
-      rivales: (["1", "2", "jefe"] as const).map((slot) => {
-        const id = `${r.region.id}-${slot}`;
-        return { personaje: personaje(id), skill: r.skills[slot], victorias: p.vencidos[id] ?? 0, abierto: abierta && (slot !== "jefe" || dosVencidos) };
+      miPuesto: mio + 1,
+      rivales: puestos.flatMap((id, k) => {
+        if (id === YO) return [];
+        const pj = personaje(id);
+        return [{ personaje: pj, skill: r.skills[pj.slot], victorias: p.vencidos[id] ?? 0, abierto: abierta && (k > mio || k === mio - 1), puesto: k + 1, arriba: k < mio }];
       }),
     };
   });
@@ -188,28 +226,44 @@ export function registrarPartida(state: CareerState, r: Reporte): { state: Caree
     inc("ganadas");
     inc(`ganadas:${r.game}`);
   }
-  const premio: Premio = { puntos: 0, fosforos: r.ganada ? 15 : 3, logros: [], regionDesbloqueada: null, giraCompleta: false, regalo: null };
+  const premio: Premio = { puntos: 0, fosforos: r.ganada ? 15 : 3, logros: [], regionDesbloqueada: null, giraCompleta: false, regalo: null, puesto: null };
 
-  if (r.rivalId && (CAREER_GAMES as readonly string[]).includes(r.game)) {
+  if (r.rivalId && (CAREER_GAMES as readonly string[]).includes(r.game) && PERSONAJES.some((x) => x.id === r.rivalId)) {
     const game = r.game as CareerGame;
     const gira = GIRAS[game];
     const before = estadoGira(gira, progresoDe(s, game));
     const p = progresoDe(s, game);
     p.jugadas++;
-    if (r.ganada && rivalAbierto(gira, p, r.rivalId)) {
-      const rival = personaje(r.rivalId);
+    const rival = personaje(r.rivalId);
+    const abierto = rivalAbierto(gira, p, r.rivalId);
+    const puestos = puestosDe(p, rival.region);
+    const yo = puestos.indexOf(YO);
+    const el = puestos.indexOf(r.rivalId);
+    if (r.ganada && abierto) {
       const idx = regionIndex(rival.region);
       const primera = !vencido(p, r.rivalId);
-      premio.puntos = Math.round(puntosPorVictoria(idx, rival.slot) * (r.paliza ? 1.25 : 1));
+      premio.puntos = Math.round(puntosPorVictoria(idx, rival.slot, el < yo) * (r.paliza ? 1.25 : 1));
       p.puntos += premio.puntos;
       p.vencidos[r.rivalId] = (p.vencidos[r.rivalId] ?? 0) + 1;
-      premio.fosforos += primera ? (rival.slot === "jefe" ? 100 + 50 * idx : 30 + 10 * idx) : 10;
+      premio.fosforos += primera ? (rival.slot === "jefe" ? 100 + 50 * idx : 15 + 5 * idx) : 5;
+      // Le gané al de arriba: me quedo con su puesto y él baja uno.
+      if (el < yo) {
+        puestos.splice(yo, 1);
+        puestos.splice(el, 0, YO);
+      }
       if (primera && r.rivalId === "malvinas-jefe") premio.giraCompleta = true;
       if (primera && r.rivalId === "buenos-aires-jefe" && !tiene(s, REGALO_BUENOS_AIRES)) {
         s.desbloqueados.push(REGALO_BUENOS_AIRES);
         premio.regalo = REGALO_BUENOS_AIRES;
       }
+    } else if (!r.ganada && abierto && el > yo) {
+      // Perdí con uno de abajo: me pasa.
+      puestos.splice(el, 1);
+      puestos.splice(yo, 0, r.rivalId);
     }
+    p.puestos[rival.region] = puestos;
+    const ahora = puestos.indexOf(YO);
+    if (ahora !== yo) premio.puesto = { region: rival.region, antes: yo + 1, despues: ahora + 1 };
     s.giras[game] = p;
     const after = estadoGira(gira, p);
     const nueva = after.find((x, i) => x.abierta && !before[i]!.abierta);

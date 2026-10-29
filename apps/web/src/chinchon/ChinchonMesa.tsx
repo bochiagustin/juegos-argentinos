@@ -4,6 +4,7 @@ import {
   bestArrangement,
   chinchon,
   chooseChinchonAction,
+  chinchonProfile,
   rulesOf,
   type ChinchonAction,
   type ChinchonConfig,
@@ -81,7 +82,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
     initial,
     remoto,
     actor: (s) => (s.winner === null ? s.turn : null),
-    choose: (v, va, rng, skill) => chooseChinchonAction(v, va, rng, skill),
+    choose: (v, va, rng, skill, _seat, rasgos) => chooseChinchonAction(v, va, rng, skill, chinchonProfile(skill, rasgos)),
     pausa: resumen !== null || cartel !== null,
     pensar: (s) => (s.phase === "robar" ? 650 : 900),
     onEvents: (events: readonly ChinchonEvent[], next) => {

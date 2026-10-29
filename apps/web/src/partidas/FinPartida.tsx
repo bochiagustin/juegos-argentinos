@@ -42,6 +42,12 @@ export function FinPartida({
           </span>
           {r.enGira && p.puntos > 0 && <span>⭐ +{p.puntos} de gira</span>}
         </div>
+        {p.puesto && (
+          <Aviso>
+            {p.puesto.despues < p.puesto.antes ? `⬆️ Subiste al puesto #${p.puesto.despues}` : `⬇️ Te pasaron: bajaste al puesto #${p.puesto.despues}`}
+            {p.puesto.despues === 1 ? " · ¡Sos el número uno de la región!" : ""}
+          </Aviso>
+        )}
         {p.giraCompleta && <Aviso>🇦🇷 ¡Completaste la Gira Nacional!</Aviso>}
         {region && <Aviso>🗺️ Se abrió {region}</Aviso>}
         {regalo && <Aviso>🎁 Ganaste el {regalo}</Aviso>}

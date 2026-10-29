@@ -1,8 +1,12 @@
 export const REGION_IDS = ["buenos-aires", "cuyo", "mesopotamia", "norte", "patagonia", "malvinas"] as const;
 export type RegionId = (typeof REGION_IDS)[number];
-export type Slot = "1" | "2" | "jefe";
-/** Estilo de juego del rival (ajusta el bot: cuánto miente, cuánto se arriesga). */
-export type Estilo = "parejo" | "mentiroso" | "conservador" | "agresivo";
+import type { Rasgos } from "@juegos-argentinos/engine";
+
+/** Lugar del personaje en su región: del "1" (el más flojo) al "9", y el jefe. */
+export const SLOTS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "jefe"] as const;
+export type Slot = (typeof SLOTS)[number];
+/** El jugador en el ranking de una región. */
+export const YO = "yo";
 export type CareerGame = "truco" | "chinchon" | "casita-robada" | "escoba" | "tutti-frutti";
 export const CAREER_GAMES: readonly CareerGame[] = ["truco", "chinchon", "casita-robada", "escoba", "tutti-frutti"];
 
@@ -17,7 +21,12 @@ export interface Personaje {
   bajada: string;
   /** Lo que dice cuando lo desafiás. */
   frase: string;
-  estilo: Estilo;
+  /** Su vida, en un párrafo (se lee en su ficha). */
+  historia: string;
+  /** Mentiroso, pescador y agresivo, de 0 a 10: cambian cómo juega el bot. */
+  rasgos: Rasgos;
+  /** Cómo se ve (para el prompt del retrato; no se muestra). */
+  aspecto: string;
 }
 
 export interface RegionDef {
@@ -48,6 +57,8 @@ export interface GiraProgress {
   /** Victorias contra cada rival (por id de personaje). */
   vencidos: Record<string, number>;
   jugadas: number;
+  /** Ranking de cada región, del primero al último (ids de personaje y `YO`). Si falta, se arma de cero. */
+  puestos: Partial<Record<RegionId, string[]>>;
 }
 
 export interface CareerState {
@@ -113,4 +124,6 @@ export interface Premio {
   regionDesbloqueada: RegionId | null;
   giraCompleta: boolean;
   regalo: string | null;
+  /** Cómo cambió mi puesto en el ranking de la región (si cambió). */
+  puesto: { region: RegionId; antes: number; despues: number } | null;
 }

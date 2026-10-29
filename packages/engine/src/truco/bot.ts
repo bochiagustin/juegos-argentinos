@@ -1,4 +1,4 @@
-import { nextFloat, pick, shuffle, type RngState, type SuitedCard } from "../core/index.ts";
+import { desvio, nextFloat, pick, shuffle, type Rasgos, type RngState, type SuitedCard } from "../core/index.ts";
 import { florValue, hasFlor, tanto, trucoDeck, trucoRank } from "./cards.ts";
 import { envidoQueridoPoints, nextEnvidoCalls, roundWinner, teamOf, truco } from "./game.ts";
 import type { Seat, Team, Trick, TrucoAction, TrucoConfig, TrucoState, TrucoView } from "./types.ts";
@@ -21,12 +21,12 @@ export interface BotProfile {
   envidoMin: number;
   /** Simulaciones por decisión (0 = juega por reglas simples). */
   samples: number;
+  /** Probabilidad de callarse con cartas buenas para que el otro cante primero ("pescar"). */
+  pesca: number;
 }
 
-/** Personalidad del rival: cambia cuánto miente y cuánto se arriesga, no cuánto sabe. */
-export type BotEstilo = "parejo" | "mentiroso" | "conservador" | "agresivo";
-
-export function botProfile(skill: number, estilo: BotEstilo = "parejo"): BotProfile {
+/** Nivel y, si es un rival de la gira, su personalidad (mentiroso, pescador, agresivo). */
+export function botProfile(skill: number, rasgos?: Rasgos): BotProfile {
   const k = Math.min(10, Math.max(1, Math.round(skill)));
   const t = (k - 1) / 9;
   const p: BotProfile = {
@@ -36,16 +36,16 @@ export function botProfile(skill: number, estilo: BotEstilo = "parejo"): BotProf
     aggression: 0.25 + 0.45 * t,
     envidoMin: 28 - Math.round(2 * t),
     samples: k <= 2 ? 0 : 8 + k * 10,
+    pesca: 0.05 + 0.1 * t,
   };
-  if (estilo === "mentiroso") p.bluff = Math.min(0.4, p.bluff * 2.2);
-  if (estilo === "conservador") {
-    p.bluff *= 0.5;
-    p.aggression = Math.max(0.1, p.aggression - 0.15);
-    p.envidoMin += 1;
-  }
-  if (estilo === "agresivo") {
-    p.aggression = Math.min(0.95, p.aggression + 0.2);
-    p.envidoMin -= 1;
+  if (rasgos) {
+    const m = desvio(rasgos.mentiroso);
+    const f = desvio(rasgos.pescador);
+    const a = desvio(rasgos.agresivo);
+    p.bluff = Math.min(0.45, p.bluff * 2 ** (m * 1.6));
+    p.pesca = Math.min(0.75, Math.max(0, 0.3 + 0.4 * f));
+    p.aggression = Math.min(0.97, Math.max(0.05, p.aggression + 0.25 * a));
+    p.envidoMin -= Math.round(1.5 * a);
   }
   return p;
 }
@@ -145,9 +145,9 @@ function envidoAction(valid: readonly TrucoAction[], call: "envido" | "real-envi
   return valid.find((a) => a.type === "envido" && a.call === call);
 }
 
-export function chooseTrucoAction(view: TrucoView, valid: readonly TrucoAction[], rngIn: RngState, skill: number, estilo: BotEstilo = "parejo"): [TrucoAction, RngState] {
+export function chooseTrucoAction(view: TrucoView, valid: readonly TrucoAction[], rngIn: RngState, skill: number, rasgos?: Rasgos): [TrucoAction, RngState] {
   if (valid.length === 0) throw new Error("El bot no tiene nada para hacer");
-  const prof = botProfile(skill, estilo);
+  const prof = botProfile(skill, rasgos);
   let rng = rngIn;
   const roll = () => {
     const [v, next] = nextFloat(rng);
@@ -193,7 +193,7 @@ export function chooseTrucoAction(view: TrucoView, valid: readonly TrucoAction[]
     let need = prof.envidoMin - 1 + (atStake >= 4 ? 2 : 0) + (p.chain.includes("falta-envido") ? 3 : 0) - (manoTeam ? 1 : 0);
     if (view.config.players > 2) need -= 1; // el compañero también tiene tanto
     const next = nextEnvidoCalls(p.chain);
-    if (myTanto >= 31 && next.length && roll() < prof.aggression) {
+    if (myTanto >= 31 && next.length && roll() < Math.min(0.95, prof.aggression + prof.pesca * 0.6)) {
       const call = myTanto >= 33 && next.includes("falta-envido") ? "falta-envido" : next.includes("real-envido") ? "real-envido" : next[0]!;
       const a = envidoAction(valid, call);
       if (a) return [a, rng];
@@ -204,7 +204,9 @@ export function chooseTrucoAction(view: TrucoView, valid: readonly TrucoAction[]
   // --- Cantar envido (en mi turno o "el envido está primero" contestando el truco) ---
   if (envidoAction(valid, "envido")) {
     const threshold = prof.envidoMin - (manoTeam ? 1 : 0) - (view.config.players > 2 ? 1 : 0);
-    if (myTanto >= threshold || roll() < prof.bluff * 0.6) {
+    // Pescar: con 30 o más se calla para que el otro cante y después le sube. Si ya le cantaron truco, es ahora o nunca.
+    const pesca = myTanto >= 30 && p?.kind !== "truco" && roll() < prof.pesca;
+    if (!pesca && (myTanto >= threshold || roll() < prof.bluff * 0.6)) {
       let call: "envido" | "real-envido" | "falta-envido" = "envido";
       if (myTanto >= 32 && roll() < prof.aggression) call = "real-envido";
       const behind = view.score[view.team] + 8 < view.score[view.team === 0 ? 1 : 0];
@@ -216,7 +218,7 @@ export function chooseTrucoAction(view: TrucoView, valid: readonly TrucoAction[]
   // --- Contestar truco ---
   if (p?.kind === "truco") {
     const pr = prob();
-    if (pr >= 0.8 && has(valid, "truco") && roll() < 0.5 + prof.aggression / 2) return [has(valid, "truco")!, rng];
+    if (pr >= 0.8 && has(valid, "truco") && roll() < Math.min(0.97, 0.5 + prof.aggression / 2 + prof.pesca / 2)) return [has(valid, "truco")!, rng];
     if (pr >= 0.5 - prof.aggression * 0.15) return [has(valid, "quiero")!, rng];
     if (has(valid, "truco") && roll() < prof.bluff * 0.5) return [has(valid, "truco")!, rng];
     return [has(valid, "no-quiero")!, rng];
@@ -229,7 +231,9 @@ export function chooseTrucoAction(view: TrucoView, valid: readonly TrucoAction[]
     const pr = prob();
     const threshold = 0.72 - prof.aggression * 0.12 + (view.trucoLevel - 1) * 0.06;
     const lateBluff = view.tricks.length >= 2 && roll() < prof.bluff;
-    if (pr >= threshold || lateBluff) return [trucoCall, rng];
+    // Pescar: con la mano casi ganada y sin truco cantado, tirar callado para que el otro cante y retrucarle.
+    const pesca = pr >= 0.85 && view.trucoLevel === 1 && view.tricks.length < 3 && roll() < prof.pesca;
+    if ((pr >= threshold && !pesca) || lateBluff) return [trucoCall, rng];
   }
   if (plays.length === 0) return [valid[0]!, rng];
   if (plays.length === 1) return [plays[0]!, rng];

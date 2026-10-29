@@ -1,3 +1,4 @@
+import { desvio, type Rasgos } from "../core/rasgos.ts";
 import { nextFloat, nextInt, type RngState } from "../core/rng.ts";
 import { conocida, DEFAULT_TUTTI_CONFIG, palabrasPara, tuttiFrutti } from "./game.ts";
 import { MESA, type TuttiAction, type TuttiConfig, type TuttiState, type TuttiView } from "./types.ts";
@@ -11,9 +12,15 @@ export interface TuttiProfile {
   rareza: number;
 }
 
-export function tuttiProfile(skill: number): TuttiProfile {
+/** Rasgos en el tutti-frutti: el agresivo escribe más rápido; el pescador busca palabras raras para quedarse solo. */
+export function tuttiProfile(skill: number, rasgos?: Rasgos): TuttiProfile {
   const t = (Math.min(10, Math.max(1, skill)) - 1) / 9;
-  return { conoce: 0.45 + 0.5 * t, segundos: 20 - 13 * t, rareza: 0.1 + 0.75 * t };
+  const p = { conoce: 0.45 + 0.5 * t, segundos: 20 - 13 * t, rareza: 0.1 + 0.75 * t };
+  if (rasgos) {
+    p.segundos *= 1 - 0.2 * desvio(rasgos.agresivo);
+    p.rareza = Math.min(1, Math.max(0, p.rareza + 0.2 * desvio(rasgos.pescador)));
+  }
+  return p;
 }
 
 export interface TuttiPlan {
@@ -24,8 +31,8 @@ export interface TuttiPlan {
 }
 
 /** Plan de un bot para la ronda: qué contesta y cuándo. Juega limpio: solo usa la letra y las categorías. */
-export function planTutti(view: TuttiView, rng: RngState, skill: number): [TuttiPlan, RngState] {
-  const p = tuttiProfile(skill);
+export function planTutti(view: TuttiView, rng: RngState, skill: number, rasgos?: Rasgos): [TuttiPlan, RngState] {
+  const p = tuttiProfile(skill, rasgos);
   let r = rng;
   const rand = () => {
     const [x, n] = nextFloat(r);
@@ -56,13 +63,13 @@ export function planTutti(view: TuttiView, rng: RngState, skill: number): [Tutti
   return [{ respuestas, pasos }, r];
 }
 
-/** Votos de un bot en la revisión: rechaza a veces lo que no conoce; nunca lo que conoce. */
-export function votosTutti(view: TuttiView, valid: readonly TuttiAction[], rng: RngState, skill: number): [TuttiAction[], RngState] {
+/** Votos de un bot en la revisión: rechaza a veces lo que no conoce (el mentiroso, más seguido); nunca lo que conoce. */
+export function votosTutti(view: TuttiView, valid: readonly TuttiAction[], rng: RngState, skill: number, rasgos?: Rasgos): [TuttiAction[], RngState] {
   let r = rng;
   const out: TuttiAction[] = [];
   const rev = view.revision;
   if (!rev) return [valid.some((a) => a.type === "listo") ? [{ type: "listo" }] : [], r];
-  const exigencia = 0.25 + 0.05 * skill;
+  const exigencia = Math.min(0.95, 0.25 + 0.05 * skill + (rasgos ? 0.2 * desvio(rasgos.mentiroso) : 0));
   for (const a of valid) {
     if (a.type !== "votar" || !a.rechazar) continue;
     if (!rev.dudosas[a.autor]?.[a.categoria]) continue;

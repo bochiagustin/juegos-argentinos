@@ -1,4 +1,5 @@
-import type { GameDefinition, RngState } from "@juegos-argentinos/engine";
+import { personaje } from "@juegos-argentinos/career";
+import type { GameDefinition, Rasgos, RngState } from "@juegos-argentinos/engine";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { playSfx, vibrate } from "../audio/sfx.ts";
 import type { Lote } from "../online/conexion.ts";
@@ -14,7 +15,8 @@ export interface BotMatchOptions<Config, State, Action, View, Event> {
   remoto?: Remoto | undefined;
   /** Quién tiene que jugar (null si terminó). */
   actor: (s: State) => number | null;
-  choose: (view: View, valid: Action[], rng: RngState, skill: number, seat: number) => [Action, RngState];
+  /** Jugada de un bot. `rasgos`: la personalidad del rival de la gira (mentiroso, pescador, agresivo), si es uno. */
+  choose: (view: View, valid: Action[], rng: RngState, skill: number, seat: number, rasgos: Rasgos | undefined) => [Action, RngState];
   /** Efectos de UI por evento (sonidos, carteles). Devuelve hechos nuevos para logros, si hay. */
   onEvents?: (events: readonly Event[], next: BotMatch<Config, State>) => BotMatch<Config, State>["hechos"] | void;
   onFin: (m: BotMatch<Config, State>) => void;
@@ -131,7 +133,8 @@ function useLocalMatch<Config, State, Action, View, Event>(o: BotMatchOptions<Co
     const id = seatId(m as BotMatch<unknown, unknown>, actor);
     const delay = pensar ? pensar(m.state, actor) : 800;
     const t = window.setTimeout(() => {
-      const [action, rng] = choose(def.getPlayerView(m.state, id), def.getValidActions(m.state, id), m.rng, m.skills[actor]!, actor);
+      const rasgos = m.carrera && actor === 1 ? personaje(m.carrera.rivalId).rasgos : undefined;
+      const [action, rng] = choose(def.getPlayerView(m.state, id), def.getValidActions(m.state, id), m.rng, m.skills[actor]!, actor, rasgos);
       apply(actor, action, rng);
     }, delay);
     return () => clearTimeout(t);

@@ -47,7 +47,7 @@ function MapaIlustrado({ regiones, seleccion, onSelect, onFalla }: { regiones: E
             <circle r="52" fill={color} stroke={sel ? "#f59e0b" : "#e8c27a"} strokeWidth={sel ? 9 : 6} />
             <circle r="42" fill="none" stroke="rgb(255 240 200 / 0.35)" strokeWidth="2" />
             <text y={r.abierta && !r.completa ? 13 : 16} textAnchor="middle" fontSize={r.abierta && !r.completa ? 36 : 44} fill="#fbf6ea" fontWeight="900" fontFamily="Nunito Variable, sans-serif">
-              {r.completa ? "⭐" : r.abierta ? `${r.rivales.filter((x) => x.victorias > 0).length}/3` : "🔒"}
+              {r.completa ? "⭐" : r.abierta ? `#${r.miPuesto}` : "🔒"}
             </text>
             <g transform="translate(0 84)">
               <rect x={-r.nombre.length * 13 - 20} y="-26" width={r.nombre.length * 26 + 40} height="44" rx="10" fill="#1f160f" opacity="0.9" stroke="#e8c27a" strokeWidth="2" />
@@ -141,7 +141,7 @@ function MapaDibujado({ regiones, seleccion, onSelect }: { regiones: EstadoRegio
                 </>
               ) : (
                 <text y="34" textAnchor="middle" fontSize="12" fill="#1f160f" fontWeight="800">
-                  {r.rivales.filter((x) => x.victorias > 0).length}/3
+                  #{r.miPuesto}
                 </text>
               )}
             </g>

@@ -75,6 +75,13 @@ Memoria de trabajo del proyecto: lo que el usuario pidió, prefirió o decidió 
   Servidor de salas en Cloudflare: `wss://juegos-argentinos-salas.agustinbochi20.workers.dev` (variable `VITE_SERVIDOR_SALAS`
   en Vercel, tipo Config). El servidor se sube con el workflow `servidor.yml` (secretos CLOUDFLARE_API_TOKEN / _ACCOUNT_ID).
 
+- **Gira con ranking** (pedido con capturas de otra app de truco; elegido por el usuario): 10 rivales por región
+  (60 en total, con historia y rasgos), ranking por región: arrancás último, desafiás a cualquiera de abajo o al de
+  justo arriba; ganarle al de arriba te da su puesto, perder con uno de abajo te hace bajar. El #1 inicial es el jefe y
+  ganarle abre la región siguiente (más los puntos). Rasgos **mentiroso / pescador / agresivo** (0–10) que cambian de
+  verdad cómo juega el bot (sobre todo en el truco: el pescador se calla con cartas buenas y después retruca).
+  Inspiración de la mecánica, no de los personajes: nombres, historias y retratos son propios.
+
 ## Dudas abiertas (preguntar antes de implementar la fase correspondiente)
 
 ### Truco (implementado con la propuesta; confirmar)
