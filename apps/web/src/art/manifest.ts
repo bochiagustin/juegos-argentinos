@@ -40,13 +40,6 @@ const base = {
   "mapa-base": { path: "arte/mapa/base.png", width: 1080, height: 2400, transparente: false, descripcion: "Mapa de Argentina con Malvinas, sin textos" },
 } satisfies Record<string, ArtSpec>;
 
-const regiones = Object.fromEntries(
-  REGIONES.map((r) => [
-    `region-${r.id}`,
-    { path: `arte/mapa/region-${r.id}.png`, width: 1080, height: 2400, transparente: true, descripcion: `Capa de ${r.nombre}, alineada al mapa base` },
-  ]),
-) as Record<`region-${RegionId}`, ArtSpec>;
-
 const rivales = Object.fromEntries(
   REGIONES.flatMap((r) =>
     (["1", "2", "jefe"] as const).map((slot) => [
@@ -64,7 +57,7 @@ const fondos = Object.fromEntries(
   ]),
 ) as Record<`fondo-${string}-${"vertical" | "horizontal"}`, ArtSpec>;
 
-export const ART = { ...base, ...regiones, ...rivales, ...fondos };
+export const ART = { ...base, ...rivales, ...fondos };
 export type ArtId = keyof typeof ART;
 
 export function artUrl(id: ArtId): string {

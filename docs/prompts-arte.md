@@ -144,7 +144,6 @@ Son personajes **inventados**: que no se parezcan a nadie real.
 | Archivo | Tamaño | Fondo | Prompt |
 |---|---|---|---|
 | `arte/mapa/base.png` | 1080×2400 | lleno | `[Estilo A] Mapa ilustrado antiguo de la Argentina con las Islas Malvinas, sobre papel pergamino, relieve de la cordillera de los Andes, ríos, el mar con olitas y una rosa de los vientos, sin nombres, sin texto, sin límites de provincias` |
-| `arte/mapa/region-<id>.png` ×6 | 1080×2400 | transparente | **Mejor no generarlas:** cada región sola tiene que calzar exacto sobre el mapa y los generadores no lo logran. Con el mapa base alcanza; las regiones las marco yo encima. |
 
 ## 10. Fondos desbloqueables (15)
 
