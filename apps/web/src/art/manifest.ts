@@ -33,6 +33,11 @@ const base = {
   "juego-casita-robada": { path: "arte/juegos/casita-robada.png", width: 800, height: 500, transparente: false, descripcion: "Tarjeta de la Casita Robada, sin texto" },
   "juego-escoba": { path: "arte/juegos/escoba.png", width: 800, height: 500, transparente: false, descripcion: "Tarjeta de la Escoba de 15, sin texto" },
   "juego-tutti-frutti": { path: "arte/juegos/tutti-frutti.png", width: 800, height: 500, transparente: false, descripcion: "Tarjeta del Tutti-Frutti, sin texto" },
+  "mesa-fondo-vertical": { path: "arte/mesa/fondo-vertical.webp", width: 1290, height: 2796, transparente: false, descripcion: "Interior de boliche, luz cálida, desenfocado, sin gente ni texto (celular)", opcional: true },
+  "mesa-fondo-horizontal": { path: "arte/mesa/fondo-horizontal.webp", width: 2560, height: 1440, transparente: false, descripcion: "Interior de boliche, luz cálida, desenfocado, sin gente ni texto (compu)", opcional: true },
+  "mesa-mate": { path: "arte/mesa/mate.png", width: 600, height: 600, transparente: true, descripcion: "Mate con bombilla", opcional: true },
+  "mesa-poncho": { path: "arte/mesa/poncho.png", width: 800, height: 600, transparente: true, descripcion: "Poncho o manta doblada", opcional: true },
+  "mesa-cartel": { path: "arte/mesa/cartel.png", width: 600, height: 800, transparente: true, descripcion: "Cartel de madera sin texto", opcional: true },
   "mapa-base": { path: "arte/mapa/base.png", width: 1080, height: 2400, transparente: false, descripcion: "Mapa de Argentina con Malvinas, sin textos" },
 } satisfies Record<string, ArtSpec>;
 

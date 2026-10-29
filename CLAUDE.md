@@ -169,6 +169,11 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
 - **Voz** (`src/audio/voz.ts`): cantos y tantos con `speechSynthesis` (voz es-AR si hay); se apaga con el sonido.
 - **Botones** (`src/index.css`): `.boton` + `boton-rojo/azul/verde/oro/cuero/fantasma` (borde nítido, brillo, canto que se
   hunde al tocar) para toda acción; `.hundido` para la canaleta de selectores e interruptores. No usar degradés sueltos.
+- **Mesa del truco** (look de boliche): fondo `.boliche` (+ ilustraciones opcionales `mesa-fondo-vertical/horizontal`), barra
+  `.madera` con marcador `.marcador` (fósforos en dos filas: malas arriba, buenas abajo) y Sol de Mayo, mesa `.mesa-pano`
+  (marco de madera, filete dorado, cintas), botones de canto con ícono (`ui/adornos.tsx`: Sol, banderitas, cintas, volutas,
+  mate de respaldo, `GrupoFosforos`, `Icono`). En pantalla ancha la mesa se centra (max 42rem) y a los costados van el cartel
+  y el mate (`mesa-cartel`, `mesa-mate`; con respaldo dibujado). Faltan del usuario: fondo, mate, poncho, cartel (docs/arte.md).
 - **Truco, fin de mano**: `useTrucoMatch` guarda `congelada` (las bazas de la mano que terminó) y la mesa las muestra, con la
   última carta, hasta cerrar el resumen (que aparece a los 1,6 s); mientras tanto no juegan los bots.
 - **Materiales** (`src/index.css`, en `@layer components` para que las utilidades de Tailwind les ganen): `.pano`, `.cuero`

@@ -47,3 +47,16 @@ Son personajes inventados, sin gente real. Si querés otros, se cambian.
 - Fondos de mesa por región (1080×1920).
 - Victoria y derrota (1080×1080).
 - 8 a 12 avatares para el jugador (512×512, transparentes).
+
+
+## Mesa (look de boliche) — opcionales
+
+| Archivo | Tamaño | Notas |
+|---|---|---|
+| `apps/web/public/arte/mesa/fondo-vertical.webp` | 1290×2796 | Interior de boliche/pulpería, luz cálida, desenfocado, sin gente ni texto |
+| `apps/web/public/arte/mesa/fondo-horizontal.webp` | 2560×1440 | Lo mismo, apaisado (tablet/compu) |
+| `apps/web/public/arte/mesa/mate.png` | 600×600, transparente | Mate con bombilla |
+| `apps/web/public/arte/mesa/poncho.png` | 800×600, transparente | Poncho o manta doblada |
+| `apps/web/public/arte/mesa/cartel.png` | 600×800, transparente | Cartel de madera **sin texto** (el texto va en código) |
+
+Mientras falten, la app usa madera con luz cálida, un mate dibujado y un cartel de madera hecho en CSS.

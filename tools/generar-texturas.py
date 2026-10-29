@@ -89,9 +89,10 @@ def madera(size=SIZE):
     # Madera: vetas horizontales onduladas + fibra fina.
     y = np.linspace(0, 1, size, endpoint=False)[:, None]
     warp = fbm(size, [(4, 1.0), (8, 0.5)])
-    rings = 0.5 + 0.5 * np.sin((y * 18 + warp * 2.5) * 2 * np.pi)
-    t = 0.55 * rings + 0.25 * fbm(size, [(16, 1.0), (48, 0.5)]) + 0.2 * fino(size, 0.8, stretch=8)
-    return colorize(0.2 + 0.65 * t, (70, 38, 16), (172, 114, 64))
+    # Pocas vetas y suaves (a 256 px de pantalla, muchas parecen rayas de cebra).
+    rings = 0.5 + 0.5 * np.sin((y * 6 + warp * 1.6) * 2 * np.pi)
+    t = 0.32 * rings + 0.38 * fbm(size, [(8, 1.0), (24, 0.6)]) + 0.3 * fino(size, 0.9, stretch=12)
+    return colorize(0.3 + 0.45 * t, (78, 44, 20), (160, 104, 58))
 
 
 def papel(size=SIZE):
