@@ -13,6 +13,7 @@ import { useSave } from "../save/SaveContext.tsx";
 import { momentosTruco } from "../partidas/momentos.ts";
 import type { Remoto } from "../partidas/remoto.ts";
 import { Art } from "../art/Art.tsx";
+import { FondoMesa } from "../fondos/fondos.tsx";
 import { Banderita, CintaEsquina, Icono, MateDibujo, SolDeMayo, VolutaTexto, type IconoCanto } from "../ui/adornos.tsx";
 import { Modal } from "../ui/Modal.tsx";
 import { FileteEsquinas, IconButton } from "../ui/ui.tsx";
@@ -177,9 +178,8 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
   const equipos = [view.team, (1 - view.team) as 0 | 1] as const;
   return (
     <div className="boliche relative flex h-dvh flex-col overflow-hidden">
-      {/* Fondo de boliche (ilustración del usuario; si no está, queda la madera con luz cálida). */}
-      <Art id="mesa-fondo-vertical" className="pointer-events-none absolute inset-0 size-full object-cover landscape:hidden" fallback={<></>} />
-      <Art id="mesa-fondo-horizontal" className="pointer-events-none absolute inset-0 hidden size-full object-cover landscape:block" fallback={<></>} />
+      {/* El fondo elegido (boliche, patio, bodega…); si falta la imagen, queda la madera con luz cálida. */}
+      <FondoMesa />
       {/* En pantallas anchas la mesa queda centrada y a los costados se ve el boliche: el cartel y el mate. */}
       <div className="pointer-events-none absolute right-[max(1.5rem,calc((100vw-42rem)/2-15rem))] top-1/3 hidden w-48 rotate-3 lg:block">
         <Art id="mesa-cartel" className="w-full" fallback={<CartelBoliche />} />
@@ -223,12 +223,12 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
       <LayoutGroup>
         <div className="relative min-h-0 flex-1">
           {/* La mesa de paño con marco de madera, filete dorado, cintas celeste y blanca y el mate. */}
-          <div className="mesa-pano pointer-events-none absolute inset-x-2 inset-y-1 rounded-[1.75rem]">
+          <div className="mesa-pano pointer-events-none absolute inset-x-2 bottom-1 top-[9%] rounded-[1.75rem]">
             <FileteEsquinas />
           </div>
-          <CintaEsquina className="pointer-events-none absolute right-0.5 top-0 size-14" rotar={90} />
+          <CintaEsquina className="pointer-events-none absolute right-0.5 top-[9%] size-14" rotar={90} />
           <CintaEsquina className="pointer-events-none absolute bottom-0 left-0.5 size-14" rotar={270} />
-          <div className="pointer-events-none absolute -left-1 top-1 z-[1] size-16 lg:hidden">
+          <div className="pointer-events-none absolute -left-1 top-[7%] z-[1] size-16 lg:hidden">
             <Art id="mesa-mate" className="size-full object-contain" fallback={<MateDibujo className="size-full" />} />
           </div>
           {view.players.map((p) =>

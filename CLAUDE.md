@@ -173,7 +173,10 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
   `.madera` con marcador `.marcador` (fósforos en dos filas: malas arriba, buenas abajo) y Sol de Mayo, mesa `.mesa-pano`
   (marco de madera, filete dorado, cintas), botones de canto con ícono (`ui/adornos.tsx`: Sol, banderitas, cintas, volutas,
   mate de respaldo, `GrupoFosforos`, `Icono`). En pantalla ancha la mesa se centra (max 42rem) y a los costados van el cartel
-  y el mate (`mesa-cartel`, `mesa-mate`; con respaldo dibujado). Faltan del usuario: fondo, mate, poncho, cartel (docs/arte.md).
+  y el mate (`mesa-cartel`, `mesa-mate`; con respaldo dibujado).
+- **Fondos de mesa** (`career/src/fondos.ts`: 15 fondos, se desbloquean por gira/victorias/logros o se compran; `web/src/fondos/fondos.tsx`:
+  `FondoMesa`, `FONDOS_CON_IMAGEN`): imágenes en `public/arte/fondos/<id>-{vertical,horizontal}.webp`, se eligen en "Mazos y fondos"
+  (`ajustes.fondo`). Por ahora solo el truco los usa. Faltan del usuario: fondo, mate, poncho, cartel (docs/arte.md).
 - **Truco, fin de mano**: `useTrucoMatch` guarda `congelada` (las bazas de la mano que terminó) y la mesa las muestra, con la
   última carta, hasta cerrar el resumen (que aparece a los 1,6 s); mientras tanto no juegan los bots.
 - **Materiales** (`src/index.css`, en `@layer components` para que las utilidades de Tailwind les ganen): `.pano`, `.cuero`

@@ -55,7 +55,7 @@ describe("guardado", () => {
     expect(s.version).toBe(3);
     expect(s.carrera.fosforos).toBeGreaterThan(0);
     expect(s.perfil).toEqual(v1.perfil);
-    expect(s.ajustes).toEqual({ ...v1.ajustes, menosAnimaciones: false, textoGrande: false });
+    expect(s.ajustes).toEqual({ ...v1.ajustes, fondo: "boliche", menosAnimaciones: false, textoGrande: false });
     expect(s.juegos).toEqual({});
   });
 
@@ -87,7 +87,7 @@ describe("guardado", () => {
     });
     expect(s.perfil.apodo).toBe("El Polaco de Boe");
     expect(s.perfil.avatar).toBe("🧉");
-    expect(s.ajustes).toEqual({ sonido: true, vibracion: false, tema: "pano", mazo: "criolla", menosAnimaciones: false, textoGrande: false });
+    expect(s.ajustes).toEqual({ sonido: true, vibracion: false, tema: "pano", mazo: "criolla", fondo: "boliche", menosAnimaciones: false, textoGrande: false });
   });
 
   it("no da por creado un perfil sin apodo", () => {

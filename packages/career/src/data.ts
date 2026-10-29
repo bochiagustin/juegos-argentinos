@@ -147,6 +147,10 @@ export const TIENDA: { id: string; nombre: string; precio: number }[] = [
   { id: "mazo:argento-nuevo", nombre: "Nuevo Mazo Argento", precio: 250 },
   { id: "mazo:argento-memes", nombre: "Mazo Argento Memes", precio: 400 },
   { id: "mazo:argento-campeon", nombre: "Mazo Argento Campeón del Mundo", precio: 600 },
+  // Fondos de mesa que se compran (ver fondos.ts).
+  { id: "fondo:cafe", nombre: "Fondo: Café de barrio", precio: 300 },
+  { id: "fondo:quincho", nombre: "Fondo: Quincho de verano", precio: 400 },
+  { id: "fondo:estancia", nombre: "Fondo: Galería de estancia", precio: 500 },
 ];
 
 /** Regalo por completar Buenos Aires en cualquier gira. */

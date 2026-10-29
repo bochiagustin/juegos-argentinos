@@ -146,7 +146,7 @@ Son personajes **inventados**: que no se parezcan a nadie real.
 | `arte/mapa/base.png` | 1080×2400 | lleno | `[Estilo A] Mapa ilustrado antiguo de la Argentina con las Islas Malvinas, sobre papel pergamino, relieve de la cordillera de los Andes, ríos, el mar con olitas y una rosa de los vientos, sin nombres, sin texto, sin límites de provincias` |
 | `arte/mapa/region-<id>.png` ×6 | 1080×2400 | transparente | **Mejor no generarlas:** cada región sola tiene que calzar exacto sobre el mapa y los generadores no lo logran. Con el mapa base alcanza; las regiones las marco yo encima. |
 
-## 10. Fondos desbloqueables (10)
+## 10. Fondos desbloqueables (15)
 
 Dos versiones de cada uno: **vertical 1290×2796** y **horizontal 2560×1440**, lleno.
 Archivo: `arte/fondos/<id>-vertical.webp` y `arte/fondos/<id>-horizontal.webp`. Empezá con el `[Estilo A]` y agregale al final:
@@ -164,6 +164,13 @@ Archivo: `arte/fondos/<id>-vertical.webp` y `arte/fondos/<id>-horizontal.webp`. 
 | `refugio` | Abrir Patagonia | `Refugio de montaña de madera en la Patagonia, hogar de piedra con leños encendidos, cueros de oveja en el piso, un ventanal a un lago glaciar turquesa y picos nevados` |
 | `puerto` | Abrir Malvinas | `Vieja cantina de puerto en Ushuaia, sogas y faroles en las paredes, una ventana al Canal Beagle con montañas nevadas y un faro rojo y blanco, atardecer azulado` |
 | `fogon` | Completar una gira | `Fogón de noche en el campo argentino, chispas que suben, troncos como bancos, una guitarra y una pava junto al fuego, un cielo lleno de estrellas con la Vía Láctea, caballos a lo lejos` |
+| `patio` | Desde el arranque (de día) | `Patio criollo a pleno sol, una parra con racimos de uva dando sombra, macetas con malvones, un aljibe, paredes blancas encaladas y piso de ladrillo` |
+| `quincho` | Tienda, 400 fósforos (de día) | `Quincho de verano al mediodía, techo de paja, parrilla de ladrillo, pileta y jardín verde, sillas de madera, luz clara` |
+| `costa` | Conseguir 10 logros (de día) | `Parador de madera frente al mar en la costa atlántica, sombrillas de paja, arena clara, cielo celeste con gaviotas, mañana luminosa` |
+| `vereda` | Ganar 10 partidas (de día) | `Vereda empedrada de un barrio porteño en primavera, jacarandás en flor, mesitas de café en la vereda, balcones con hierro forjado, luz de la tarde` |
+| `cataratas` | Completar las cinco giras (de día) | `Mirador de madera frente a las Cataratas del Iguazú, selva verde, un arcoíris en la bruma, mariposas de colores, sol de la mañana` |
+
+Para los de día, en vez del final de arriba usá: `luz de día clara y alegre, cielo celeste, colores vivos pero suaves, el centro tranquilo y despejado (encima va una mesa de cartas), sin gente, sin texto, sin logos`.
 
 ## 11. Opcionales (si te sobran ganas)
 

@@ -53,8 +53,8 @@ Son personajes inventados, sin gente real. Si querés otros, se cambian.
 
 | Archivo | Tamaño | Notas |
 |---|---|---|
-| `apps/web/public/arte/mesa/fondo-vertical.webp` | 1290×2796 | Interior de boliche/pulpería, luz cálida, desenfocado, sin gente ni texto |
-| `apps/web/public/arte/mesa/fondo-horizontal.webp` | 2560×1440 | Lo mismo, apaisado (tablet/compu) |
+| `apps/web/public/arte/fondos/<id>-vertical.webp` | 1290×2796 | Fondo de mesa (ids y desbloqueos en `packages/career/src/fondos.ts` y `docs/prompts-arte.md` §10) |
+| `apps/web/public/arte/fondos/<id>-horizontal.webp` | 2560×1440 | Lo mismo, apaisado. Si falta el vertical, se recorta el horizontal |
 | `apps/web/public/arte/mesa/mate.png` | 600×600, transparente | Mate con bombilla |
 | `apps/web/public/arte/mesa/poncho.png` | 800×600, transparente | Poncho o manta doblada |
 | `apps/web/public/arte/mesa/cartel.png` | 600×800, transparente | Cartel de madera **sin texto** (el texto va en código) |

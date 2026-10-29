@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { comprar, defaultCareer, estadoGira, FOSFOROS_INICIALES, normalizeCareer, progresoDe, registrarPartida, rivalAbierto } from "./career.ts";
 import { GIRA_TRUCO, GIRAS, LOGROS, PERSONAJES, REGIONES, TIENDA } from "./data.ts";
+import { comoSeDesbloquea, FONDOS, fondoDesbloqueado, TIENDA_FONDOS } from "./fondos.ts";
 import type { CareerState, Reporte } from "./types.ts";
 
 const AHORA = 1_800_000_000_000;
@@ -146,6 +147,25 @@ describe("logros y fósforos", () => {
     expect(comprar(r.state, "mazo:argento-memes").ok).toBe(false);
     expect(comprar(s, "mazo:poker").ok).toBe(false);
     expect(TIENDA.every((t) => t.precio > 0)).toBe(true);
+  });
+});
+
+describe("fondos de mesa", () => {
+  it("al principio: boliche y patio; el resto, avanzando o comprando", () => {
+    const s = defaultCareer();
+    const abiertos = FONDOS.filter((f) => fondoDesbloqueado(s, f)).map((f) => f.id);
+    expect(abiertos).toEqual(["boliche", "patio"]);
+    const { state } = jugar(s, [gano("buenos-aires-1"), gano("buenos-aires-2"), gano("buenos-aires-jefe")]);
+    const ahora = FONDOS.filter((f) => fondoDesbloqueado(state, f)).map((f) => f.id);
+    expect(ahora).toContain("bodegon");
+    expect(ahora).toContain("bodega");
+    const r = comprar({ ...state, fosforos: 1000 }, "fondo:quincho");
+    expect(r.ok && fondoDesbloqueado(r.state, FONDOS.find((f) => f.id === "quincho")!)).toBe(true);
+  });
+
+  it("los fondos de la tienda coinciden con TIENDA", () => {
+    for (const t of TIENDA_FONDOS) expect(TIENDA).toContainEqual(t);
+    for (const f of FONDOS) expect(comoSeDesbloquea(f).length).toBeGreaterThan(5);
   });
 });
 

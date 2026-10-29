@@ -6,7 +6,7 @@
  * si no se puede leer, se arranca con los valores por defecto.
  */
 
-import { defaultCareer, normalizeCareer, type CareerState } from "@juegos-argentinos/career";
+import { defaultCareer, FONDO_INICIAL, FONDOS, normalizeCareer, type CareerState } from "@juegos-argentinos/career";
 import type { GameId } from "@juegos-argentinos/engine";
 import { isDeckId, type DeckId } from "../cards/decks.ts";
 import { DEFAULT_RATING } from "../ia/nivel.ts";
@@ -29,6 +29,8 @@ export interface Ajustes {
   tema: Tema;
   /** Mazo con el que se ven las cartas. */
   mazo: DeckId;
+  /** Fondo de mesa elegido (ver FONDOS en la carrera). */
+  fondo: string;
   /** Accesibilidad: menos movimiento en pantalla. */
   menosAnimaciones: boolean;
   /** Accesibilidad: toda la letra un poco más grande. */
@@ -64,7 +66,7 @@ export function defaultSave(): Save {
   return {
     version: CURRENT_VERSION,
     perfil: { apodo: "", avatar: "🧉", creado: false },
-    ajustes: { sonido: true, vibracion: true, tema: "pano", mazo: "criolla", menosAnimaciones: false, textoGrande: false },
+    ajustes: { sonido: true, vibracion: true, tema: "pano", mazo: "criolla", fondo: FONDO_INICIAL, menosAnimaciones: false, textoGrande: false },
     juegos: {},
     carrera: defaultCareer(),
   };
@@ -119,6 +121,7 @@ function normalize(s: UnknownRecord): Save {
       vibracion: bool(ajustes.vibracion, d.ajustes.vibracion),
       tema,
       mazo: isDeckId(ajustes.mazo) ? ajustes.mazo : d.ajustes.mazo,
+      fondo: typeof ajustes.fondo === "string" && FONDOS.some((f) => f.id === ajustes.fondo) ? ajustes.fondo : d.ajustes.fondo,
       menosAnimaciones: bool(ajustes.menosAnimaciones, d.ajustes.menosAnimaciones),
       textoGrande: bool(ajustes.textoGrande, d.ajustes.textoGrande),
     },

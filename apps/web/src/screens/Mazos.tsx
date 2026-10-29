@@ -1,4 +1,7 @@
-import { comprar, TIENDA } from "@juegos-argentinos/career";
+import { comoSeDesbloquea, comprar, FONDOS, fondoDesbloqueado, TIENDA } from "@juegos-argentinos/career";
+import { Art } from "../art/Art.tsx";
+import type { ArtId } from "../art/manifest.ts";
+import { fondoEnUso, fondoListo } from "../fondos/fondos.tsx";
 import { cardFromId, createDeck, SUITS, SUIT_NAMES } from "@juegos-argentinos/engine";
 import { useMemo, useState } from "react";
 import { playSfx } from "../audio/sfx.ts";
@@ -41,8 +44,25 @@ export function Mazos() {
     usar(id);
   };
 
+  const usarFondo = (id: string) => {
+    update((s) => ({ ...s, ajustes: { ...s.ajustes, fondo: id } }));
+    playSfx("click");
+  };
+
+  const comprarFondo = (id: string) => {
+    const r = comprar(save.carrera, `fondo:${id}`);
+    if (!r.ok) {
+      setError(r.error);
+      playSfx("error");
+      return;
+    }
+    setError(null);
+    update((s) => ({ ...s, carrera: r.state, ajustes: { ...s.ajustes, fondo: id } }));
+    playSfx("barajar");
+  };
+
   return (
-    <Screen title="Mazos" onBack={back} tab="mazos" right={<Fosforos n={save.carrera.fosforos} />}>
+    <Screen title="Mazos y fondos" onBack={back} tab="mazos" right={<Fosforos n={save.carrera.fosforos} />}>
       {error && (
         <p role="alert" className="mb-3 rounded-xl bg-bordo/80 px-4 py-2 text-sm font-bold">
           {error}. Ganá partidas y logros para juntar fósforos.
@@ -97,6 +117,45 @@ export function Mazos() {
           );
         })}
       </div>
+
+      <Section title="Fondos de mesa">
+        <p className="px-1 text-sm text-crema/80">El ambiente detrás de la mesa. Se desbloquean avanzando en la Gira o se compran con fósforos.</p>
+        <div className="grid grid-cols-2 gap-3">
+          {FONDOS.map((f) => {
+            const listo = fondoListo(f);
+            const abierto = fondoDesbloqueado(save.carrera, f);
+            const activo = fondoEnUso(save) === f.id;
+            const venta = f.desbloqueo.tipo === "tienda" ? f.desbloqueo.precio : null;
+            return (
+              <div key={f.id} className={`cuero overflow-hidden rounded-2xl p-1.5 ${activo ? "outline-3 outline-naranja" : ""}`}>
+                <div className="relative z-[1] aspect-video overflow-hidden rounded-xl bg-black/40">
+                  {listo ? (
+                    <Art id={`fondo-${f.id}-horizontal` as ArtId} className={`size-full object-cover ${abierto ? "" : "blur-[2px] brightness-50 grayscale-[0.4]"}`} fallback={<></>} />
+                  ) : (
+                    <span className="grid size-full place-items-center text-xs font-bold text-crema/60">Próximamente</span>
+                  )}
+                  {!abierto && listo && <span className="absolute inset-0 grid place-items-center text-3xl" aria-hidden>🔒</span>}
+                  {activo && <span className="absolute left-1.5 top-1.5 rounded-full bg-pano px-2 text-[11px] font-black">✓ En uso</span>}
+                </div>
+                <div className="relative z-[1] px-1 pb-1 pt-1.5">
+                  <p className="text-sm leading-tight font-black">{f.nombre}</p>
+                  {!abierto && <p className="text-[11px] leading-tight text-crema/75">{comoSeDesbloquea(f)}</p>}
+                  {abierto && listo && !activo && (
+                    <button onClick={() => usarFondo(f.id)} className="boton boton-oro mt-1.5 min-h-10 w-full rounded-lg text-sm">
+                      Usar
+                    </button>
+                  )}
+                  {!abierto && venta !== null && listo && (
+                    <button onClick={() => comprarFondo(f.id)} className="boton boton-cuero mt-1.5 min-h-10 w-full rounded-lg text-sm">
+                      Comprar · <FosforoIcono /> {venta}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Section>
 
       <Section title={`Todas las cartas · ${skin.nombre}`}>
         {skin.creditos && <p className="text-sm text-texto-suave">{skin.creditos}</p>}
