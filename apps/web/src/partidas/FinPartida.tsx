@@ -69,7 +69,7 @@ export function FinPartida({
         <button disabled={!armado} className="btn-criollo min-h-14 rounded-2xl font-criolla text-2xl" onClick={onRevancha}>
           <span className="relative z-[1]">Revancha</span>
         </button>
-        <button disabled={!armado} className="min-h-12 rounded-xl bg-black/35 font-bold" onClick={onSalir}>
+        <button disabled={!armado} className="boton boton-cuero min-h-12 rounded-xl" onClick={onSalir}>
           {salirTexto}
         </button>
       </div>

@@ -244,13 +244,13 @@ function FinOnline({ r, sala, enviar, onSalir }: { r: { gane: boolean; empate: b
             <span className="relative z-[1]">{pedi ? "Esperando a los demás…" : "¡Revancha!"}</span>
           </button>
           {sala.soyHost && (
-            <button disabled={!armado} className="mb-2 min-h-12 w-full rounded-2xl bg-black/35 font-bold" onClick={() => enviar({ t: "a-la-sala" })}>
+            <button disabled={!armado} className="boton boton-cuero mb-2 min-h-12 w-full rounded-2xl" onClick={() => enviar({ t: "a-la-sala" })}>
               Cambiar de juego o de mesa
             </button>
           )}
         </>
       )}
-      <button disabled={!armado} className="min-h-12 w-full rounded-2xl bg-black/25 font-bold" onClick={onSalir}>
+      <button disabled={!armado} className="boton boton-fantasma min-h-12 w-full rounded-2xl" onClick={onSalir}>
         Salir de la sala
       </button>
     </Modal>
@@ -282,11 +282,11 @@ function Lobby({ sala, enviar }: { sala: SalaInfo; enviar: (m: ClienteMsg) => vo
             {sala.codigo}
           </p>
           <div className="mt-2 grid grid-cols-2 gap-2">
-            <a href={`https://wa.me/?text=${encodeURIComponent(texto)}`} target="_blank" rel="noreferrer" className="grid min-h-12 place-items-center rounded-xl bg-[#25d366] font-black text-tinta" onClick={() => playSfx("click")}>
+            <a href={`https://wa.me/?text=${encodeURIComponent(texto)}`} target="_blank" rel="noreferrer" className="boton boton-verde min-h-12 rounded-xl" onClick={() => playSfx("click")}>
               Invitar por WhatsApp
             </a>
             <button
-              className="min-h-12 rounded-xl bg-black/35 font-bold"
+              className="boton boton-cuero min-h-12 rounded-xl"
               onClick={async () => {
                 try {
                   if (navigator.share) await navigator.share({ title: "Juegos Argentinos", text: texto, url: link });

@@ -290,14 +290,14 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
               <button
                 disabled={!sel || sel === view.tomadaDelPozo}
                 onClick={tirar}
-                className="min-h-12 rounded-xl bg-gradient-to-b from-[#fbbf24] to-[#d97706] px-5 font-black text-tinta shadow-md shadow-black/40 disabled:opacity-40"
+                className="boton boton-oro min-h-12 rounded-xl px-5"
               >
                 Tirar al pozo
               </button>
               {mejorCorte && (
                 <button
                   onClick={() => cortar(sel && cortes.some((a) => a.card === sel) ? sel : mejorCorte.card)}
-                  className="min-h-12 rounded-xl bg-gradient-to-b from-[#43a047] to-[#1b5e20] px-5 font-black text-white shadow-md shadow-black/40"
+                  className="boton boton-verde min-h-12 rounded-xl px-5"
                 >
                   ✂ Cortar{sel && cortes.some((a) => a.card === sel) ? " con esta" : ""}
                 </button>

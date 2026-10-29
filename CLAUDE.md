@@ -167,9 +167,13 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
   cartas que vuelan a la mesa, resumen, fin con revancha), `TrucoSetup.tsx`, `ReglasTruco.tsx` (reglamento + jerarquía con cartas), `Fosforos.tsx`.
 - **Nivel adaptativo** (`src/ia/nivel.ts`): rating tipo Elo por juego, guardado en `save.juegos[juego]` (guardado v2).
 - **Voz** (`src/audio/voz.ts`): cantos y tantos con `speechSynthesis` (voz es-AR si hay); se apaga con el sonido.
+- **Botones** (`src/index.css`): `.boton` + `boton-rojo/azul/verde/oro/cuero/fantasma` (borde nítido, brillo, canto que se
+  hunde al tocar) para toda acción; `.hundido` para la canaleta de selectores e interruptores. No usar degradés sueltos.
+- **Truco, fin de mano**: `useTrucoMatch` guarda `congelada` (las bazas de la mano que terminó) y la mesa las muestra, con la
+  última carta, hasta cerrar el resumen (que aparece a los 1,6 s); mientras tanto no juegan los bots.
 - **Materiales** (`src/index.css`, en `@layer components` para que las utilidades de Tailwind les ganen): `.pano`, `.cuero`
   (+ `cuero-verde/rojo/azul/violeta/mostaza/oscuro`, con costura), `.madera`, `.bronce`, `.titulo-criollo`, `.btn-criollo`.
-  Texturas procedurales en `public/texturas/` (`tools/generar-texturas.py`). Barra de pestañas en `Screen tab=…`.
+  Texturas procedurales en `public/texturas/` (`tools/generar-texturas.py`, a 768 px = 3x: se muestran a 256 px y quedan nítidas). Barra de pestañas en `Screen tab=…`.
   Las cartas de la Criolla tienen papel envejecido (degradé + textura).
 - **PWA** (`vite.config.ts`): precachea app, fuentes y texturas; `mazos/` y `arte/` van con caché en tiempo de ejecución (CacheFirst) y
   al elegir un mazo se precargan sus 51 imágenes. Íconos provisorios en `public/icons/` (hasta que llegue `arte/icono.png`).

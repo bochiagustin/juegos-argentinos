@@ -292,7 +292,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: KMatch | null; onRevan
               {eleccion.opciones.map((a) => (
                 <button
                   key={JSON.stringify(a.jugada)}
-                  className={`min-h-12 rounded-xl px-4 font-black ${a.jugada.tipo === "robar" ? "bg-bordo text-crema" : "bg-pano text-crema"}`}
+                  className={`boton min-h-12 rounded-xl px-4 ${a.jugada.tipo === "robar" ? "boton-rojo" : "boton-verde"}`}
                   onClick={() => {
                     setEleccion(null);
                     jugar(a);

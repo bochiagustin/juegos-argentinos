@@ -51,12 +51,12 @@ const LAYOUT: Record<2 | 4 | 6, SeatPos[]> = {
 const ZONE_CARD: Record<2 | 4 | 6, number> = { 2: 64, 4: 50, 6: 40 };
 
 const TONO_CLASE: Record<Tono, string> = {
-  truco: "bg-gradient-to-b from-[#e0483a] to-[#9e1f16] text-white",
-  envido: "bg-gradient-to-b from-[#3b82c4] to-[#1d4f86] text-white",
-  flor: "bg-gradient-to-b from-[#43a047] to-[#1b5e20] text-white",
-  si: "bg-gradient-to-b from-[#fbbf24] to-[#d97706] text-tinta",
-  no: "bg-gradient-to-b from-[#6b5a4a] to-[#3b2f24] text-crema",
-  mazo: "border border-crema/40 bg-black/30 text-crema/80 text-sm",
+  truco: "boton boton-rojo",
+  envido: "boton boton-azul",
+  flor: "boton boton-verde",
+  si: "boton boton-oro",
+  no: "boton boton-cuero",
+  mazo: "boton boton-fantasma text-sm",
 };
 
 const ORDEN: Record<TrucoAction["type"], number> = {
@@ -125,7 +125,10 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
     playSfx(gane ? "turno" : "error");
   };
 
-  const { match, view, valid, jugar, globos, resumen, pendiente, cerrarResumen, yo } = useTrucoMatch(initial, onFin, remoto);
+  const { match, view, valid, jugar, globos, resumen, pendiente, congelada, cerrarResumen, yo } = useTrucoMatch(initial, onFin, remoto);
+  // Mientras se muestra cómo terminó la mano, la mesa es la de esa mano (no la nueva que ya se repartió).
+  const tricks = congelada ?? view.tricks;
+  const jugadasEn = (seat: Seat) => tricks.filter((t) => t.plays.some((x) => x.seat === seat)).length;
   const momentos = momentosTruco(view.history, view.team);
   // El fin de partida aparece recién después de ver el resumen de la última mano.
   const verFin = !resumen && !pendiente;
@@ -136,7 +139,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
   const nombre = (seat: Seat) => (seat === yo ? "Vos" : match.jugadores[seat]!.nombre);
   const equipo = (team: 0 | 1) => (team === view.team ? (n === 2 ? "Vos" : "Nosotros") : n === 2 ? match.jugadores[1 - yo]!.nombre : "Ellos");
 
-  const miTurno = view.actor === yo && !resumen && !remoto?.terminado;
+  const miTurno = view.actor === yo && !resumen && !congelada && !remoto?.terminado;
   const playable = new Set(miTurno ? valid.flatMap((a) => (a.type === "jugar" ? [a.card] : [])) : []);
   const botones = miTurno
     ? valid
@@ -208,18 +211,18 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
                 pos={layout[rel(p.seat)]!.avatar}
                 nombre={nombre(p.seat)}
                 avatar={match.jugadores[p.seat]!.avatar}
-                cartas={p.cardsLeft}
-                mano={view.mano === p.seat}
-                actua={view.actor === p.seat && !resumen}
+                cartas={congelada ? Math.max(0, 3 - jugadasEn(p.seat)) : p.cardsLeft}
+                mano={view.mano === p.seat && !congelada}
+                actua={view.actor === p.seat && !resumen && !congelada}
                 companero={teamOf(p.seat) === view.team}
                 compacto={n === 6}
               />
             ),
           )}
           {view.players.map((p) => (
-            <Zona key={p.seat} seat={p.seat} yo={yo} pos={layout[rel(p.seat)]!} tricks={view.tricks} width={ZONE_CARD[n]} />
+            <Zona key={p.seat} seat={p.seat} yo={yo} pos={layout[rel(p.seat)]!} tricks={tricks} width={ZONE_CARD[n]} />
           ))}
-          {view.mano === yo && (
+          {view.mano === yo && !congelada && (
             <span className="absolute bottom-1 left-3 rounded-full bg-naranja px-2 py-0.5 text-[11px] font-black uppercase text-tinta">Sos mano</span>
           )}
           <AnimatePresence>
@@ -231,7 +234,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
 
         <div className="cuero cuero-oscuro z-10 rounded-t-3xl px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
           <p className="relative z-[1] mb-2 min-h-5 text-center text-sm font-bold text-crema/90" aria-live="polite">
-            {estado(view, nombre, miTurno, yo)}
+            {congelada ? "Fin de la mano" : estado(view, nombre, miTurno, yo)}
           </p>
           {botones.length > 0 && (
             <div className="relative z-[1] mb-3 flex flex-wrap justify-center gap-2">
@@ -241,7 +244,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   onClick={() => act(a)}
-                  className={`min-h-12 rounded-xl px-4 font-black shadow-md shadow-black/40 active:scale-95 ${TONO_CLASE[b.tono]}`}
+                  className={`min-h-12 rounded-xl px-4 ${TONO_CLASE[b.tono]}`}
                 >
                   {b.texto}
                 </motion.button>
@@ -250,7 +253,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
           )}
           <div className="relative z-[1] flex min-h-[8.5rem] items-end justify-center gap-2">
             <AnimatePresence>
-              {view.hand.map((c, i) => (
+              {(congelada ? [] : view.hand).map((c, i) => (
                 <CartaMano key={c.id} card={c} i={i} total={view.hand.length} jugable={playable.has(c.id)} onPlay={() => act({ type: "jugar", card: c.id })} />
               ))}
             </AnimatePresence>
@@ -287,11 +290,11 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
           <Modal key="mazo" onClose={() => setConfirmarMazo(false)}>
             <p className="mb-4 text-center text-lg font-bold">¿Te vas al mazo? Los otros se llevan lo que vale la mano.</p>
             <div className="grid grid-cols-2 gap-2">
-              <button className="min-h-12 rounded-xl bg-black/35 font-bold" onClick={() => setConfirmarMazo(false)}>
+              <button className="boton boton-cuero min-h-12 rounded-xl" onClick={() => setConfirmarMazo(false)}>
                 Sigo jugando
               </button>
               <button
-                className="min-h-12 rounded-xl bg-bordo font-black text-crema"
+                className="boton boton-rojo min-h-12 rounded-xl"
                 onClick={() => {
                   setConfirmarMazo(false);
                   jugar({ type: "mazo" });

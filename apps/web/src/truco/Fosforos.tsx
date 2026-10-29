@@ -23,7 +23,7 @@ function Grupo({ n }: { n: number }) {
     { x1: 3, y1: 21, x2: 21, y2: 3 },
   ];
   return (
-    <svg viewBox="0 0 24 24" className="size-6" aria-hidden>
+    <svg viewBox="0 0 24 24" className="aspect-square min-w-0 max-w-6 flex-1" aria-hidden>
       {sticks.slice(0, n).map((s, i) => (
         <Fosforo key={i} {...s} />
       ))}
@@ -39,12 +39,13 @@ export function Fosforos({ puntos, target }: { puntos: number; target: number })
       const g = from + i;
       return <Grupo key={g} n={Math.max(0, Math.min(5, p - g * 5))} />;
     });
+  // Los grupos se achican para entrar en el ancho disponible (en el marcador del celu son 6 en ~140 px).
   return (
-    <div className="flex items-center gap-0.5" role="img" aria-label={`${puntos} puntos`}>
+    <div className="flex w-full max-w-40 items-center justify-center gap-0.5 overflow-hidden" role="img" aria-label={`${puntos} puntos`}>
       {target === 30 ? (
         <>
           {render(0, 3)}
-          <span className="mx-0.5 h-6 w-px bg-crema/50" title="Malas | Buenas" />
+          <span className="mx-0.5 h-5 w-px shrink-0 bg-crema/50" title="Malas | Buenas" />
           {render(3, 3)}
         </>
       ) : (

@@ -1,5 +1,5 @@
 import { personaje, type Hecho } from "@juegos-argentinos/career";
-import { actorSeat, chooseTrucoAction, teamOf, truco, type BotEstilo, type RoundSummary, type Seat, type TrucoAction, type TrucoEvent, type TrucoView } from "@juegos-argentinos/engine/truco";
+import { actorSeat, chooseTrucoAction, teamOf, truco, type BotEstilo, type RoundSummary, type Seat, type Trick, type TrucoAction, type TrucoEvent, type TrucoView } from "@juegos-argentinos/engine/truco";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { playSfx, vibrate } from "../audio/sfx.ts";
 import { decir, enPalabras } from "../audio/voz.ts";
@@ -23,6 +23,9 @@ function useEfectos(yo: Seat) {
   const [resumen, setResumen] = useState<RoundSummary | null>(null);
   // Terminó una mano y su resumen todavía no se cerró (el fin de partida espera).
   const [pendiente, setPendiente] = useState(false);
+  // Las bazas de la mano que terminó: la mesa las sigue mostrando (con la última carta tirada) hasta cerrar el resumen,
+  // aunque el motor ya haya repartido la mano siguiente.
+  const [congelada, setCongelada] = useState<Trick[] | null>(null);
   const timers = useRef<number[]>([]);
 
   const later = useCallback((ms: number, fn: () => void) => {
@@ -63,7 +66,9 @@ function useEfectos(yo: Seat) {
             break;
           case "fin-ronda":
             setPendiente(true);
-            later(delay + 650, () => setResumen(e.summary));
+            setCongelada(e.summary.tricks);
+            // Un momento para ver la última carta en la mesa antes del resumen.
+            later(delay + 1600, () => setResumen(e.summary));
             break;
           case "nueva-ronda":
             later(delay + 700, () => playSfx("repartir"));
@@ -81,9 +86,10 @@ function useEfectos(yo: Seat) {
   const cerrarResumen = useCallback(() => {
     setResumen(null);
     setPendiente(false);
+    setCongelada(null);
   }, []);
 
-  return { globos, resumen, pendiente, handleEvents, cerrarResumen };
+  return { globos, resumen, pendiente, congelada, handleEvents, cerrarResumen };
 }
 
 export interface TrucoCtl {
@@ -94,6 +100,8 @@ export interface TrucoCtl {
   globos: Globo[];
   resumen: RoundSummary | null;
   pendiente: boolean;
+  /** Bazas de la mano recién terminada (mientras se muestra su final). */
+  congelada: Trick[] | null;
   cerrarResumen: () => void;
   yo: Seat;
 }
@@ -111,7 +119,7 @@ function useTrucoRemoto(r: Remoto): TrucoCtl {
   useLotes(r.lotes, (events) => ef.handleEvents(events as TrucoEvent[]));
   const view = r.view as TrucoView;
   const valid = r.valid as TrucoAction[];
-  const miTurno = view.actor === r.yo && !ef.resumen && !r.terminado;
+  const miTurno = view.actor === r.yo && !ef.resumen && !ef.congelada && !r.terminado;
   useEffect(() => {
     if (!miTurno) return;
     vibrate(25);
@@ -164,7 +172,7 @@ function useTrucoLocal(initial: TrucoMatch, onFin: (m: TrucoMatch) => void): Tru
 
   // Turno de los bots: piensan un ratito (más si tienen que contestar un canto).
   const actor = actorSeat(match.state);
-  const pausado = ef.resumen !== null;
+  const pausado = ef.resumen !== null || ef.congelada !== null;
   useEffect(() => {
     if (actor === null || actor === HUMAN_SEAT || pausado) return;
     const m = match;

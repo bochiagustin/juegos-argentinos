@@ -87,7 +87,7 @@ export function BigButton({ children, onClick, disabled = false, variant = "crio
         onClick?.();
       }}
       className={`flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl px-5 text-xl font-black tracking-wide transition disabled:opacity-50 ${
-        variant === "criollo" ? "btn-criollo font-criolla" : "cuero cuero-oscuro active:scale-[0.98]"
+        variant === "criollo" ? "btn-criollo font-criolla" : "boton boton-cuero"
       }`}
     >
       <span className="relative z-[1]">{children}</span>
@@ -115,7 +115,7 @@ export function Toggle({ label, detail, checked, onChange }: { label: string; de
         <span className="block font-bold">{label}</span>
         {detail && <span className="block text-sm text-crema/75">{detail}</span>}
       </span>
-      <span className={`relative z-[1] h-7 w-12 shrink-0 rounded-full border border-black/40 transition ${checked ? "bg-pano" : "bg-black/35"}`}>
+      <span className={`hundido relative z-[1] h-7 w-12 shrink-0 rounded-full transition ${checked ? "hundido-on" : ""}`}>
         <span className={`bronce absolute top-0.5 size-5.5 rounded-full transition-all ${checked ? "left-6" : "left-0.5"}`} />
       </span>
     </button>
@@ -126,7 +126,7 @@ export function Segmented<T extends string>({ label, value, options, onChange }:
   return (
     <Row>
       <p className="relative z-[1] mb-2 font-bold">{label}</p>
-      <div className="relative z-[1] flex gap-1 rounded-full bg-black/35 p-1" role="radiogroup" aria-label={label}>
+      <div className="hundido relative z-[1] flex gap-1 rounded-full p-1" role="radiogroup" aria-label={label}>
         {options.map((o) => (
           <button
             key={o.value}
@@ -136,7 +136,7 @@ export function Segmented<T extends string>({ label, value, options, onChange }:
               onChange(o.value);
               playSfx("click");
             }}
-            className={`min-h-11 flex-1 rounded-full px-3 text-sm font-bold transition ${value === o.value ? "bg-naranja text-tinta" : "text-crema/80"}`}
+            className={`min-h-11 flex-1 rounded-full px-3 text-sm font-bold leading-tight transition ${value === o.value ? "boton boton-oro" : "text-crema/80 active:bg-black/20"}`}
           >
             {o.label}
           </button>

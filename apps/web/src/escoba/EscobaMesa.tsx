@@ -273,7 +273,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: EMatch | null; onRevan
                 const levanta = view.mesa.filter((c) => a.levanta.includes(c.id));
                 const esEscoba = levanta.length === view.mesa.length;
                 return (
-                  <button key={a.levanta.join(",")} onClick={() => hacer(a)} className={`flex min-h-12 items-center gap-2 rounded-xl px-3 font-black ${esEscoba ? "bg-gradient-to-b from-[#fbbf24] to-[#d97706] text-tinta" : "bg-pano"}`}>
+                  <button key={a.levanta.join(",")} onClick={() => hacer(a)} className={`boton min-h-12 justify-start rounded-xl px-3 ${esEscoba ? "boton-oro" : "boton-verde"}`}>
                     <span className="shrink-0">{esEscoba ? "🧹 Escoba:" : "Levantar"}</span>
                     <span className="flex -space-x-2">
                       {levanta.map((c) => (
@@ -285,7 +285,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: EMatch | null; onRevan
                 );
               })}
               {puedeDejar && (
-                <button onClick={() => hacer({ type: "tirar", card: cartaSel.id, levanta: [] })} className="min-h-11 rounded-xl bg-black/40 px-3 font-bold">
+                <button onClick={() => hacer({ type: "tirar", card: cartaSel.id, levanta: [] })} className="boton boton-cuero min-h-11 rounded-xl px-3">
                   Dejarla en la mesa
                 </button>
               )}
