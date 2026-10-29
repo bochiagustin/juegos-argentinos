@@ -307,7 +307,6 @@ reglamento rioplatense estándar, dudas en `MEMORY.md`.)*
   gira y 3 logros. 146 tests en total.
 - [x] **Fase 7** — Tutti-Frutti: motor (ruleta sin repetir, basta + cuenta, validación, repetidas, 20/10/5, votación,
   rondas o puntos con desempate), diccionario rioplatense, bot por nivel, mesa en tiempo real, gira y 3 logros.
-- [ ] **Fase 7** — Tutti-Frutti (motor, bot con diccionario, gira).
 - [x] **Fase 8** — Online con amigos: servidor de salas (Cloudflare Durable Objects + Node para desarrollo), los cinco juegos,
   salas con código + WhatsApp, lobby con máquinas y equipos, reconexión, reloj de turno, chat/reacciones/señas, revancha.
 - [x] **Fase 9** — Pulido: momentos destacados, accesibilidad (diálogos, foco, menos animaciones, letra grande), CI, configs de
