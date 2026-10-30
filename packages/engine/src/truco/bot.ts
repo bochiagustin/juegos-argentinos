@@ -139,6 +139,31 @@ function heuristicStrength(view: TrucoView): number {
   return Math.min(0.95, Math.max(0.05, 0.15 + avg / 25 + top / 40 + won * 0.25 - lost * 0.25));
 }
 
+/**
+ * ¿La mano está ganada pase lo que pase? Cuenta las cartas que no puede matar nadie (más altas que todas las que
+ * no vi y que lo que ya hay en la mesa) y supone lo peor para el resto: las tiro primero y pierdo las demás bazas.
+ */
+export function manoAsegurada(view: TrucoView): boolean {
+  const unseen = unseenCards(view);
+  const topUnseen = unseen.reduce((m, c) => Math.max(m, rankOf(c)), 0);
+  const trick = view.tricks[view.tricks.length - 1];
+  const done: (Team | "parda")[] = view.tricks.filter((t) => t.result !== undefined).map((t) => t.result!);
+  const enCurso = trick && trick.result === undefined ? trick : null;
+  const yaTire = enCurso?.plays.some((pl) => pl.seat === view.seat) ?? false;
+  const enMesa = enCurso && !yaTire ? Math.max(0, ...enCurso.plays.filter((pl) => teamOf(pl.seat) !== view.team).map((pl) => rankOf(pl.card))) : 0;
+  const sure = view.hand.filter((c) => rankOf(c) > topUnseen && rankOf(c) > enMesa).length;
+  const rival: Team = view.team === 0 ? 1 : 0;
+  const seq = [...done];
+  if (yaTire) seq.push(rival);
+  for (let i = 0; i < sure; i++) seq.push(view.team);
+  while (seq.length < 3) seq.push(rival);
+  for (let i = 1; i <= 3; i++) {
+    const w = roundWinner(seq.slice(0, i), teamOf(view.mano));
+    if (w !== null) return w === view.team;
+  }
+  return false;
+}
+
 const has = (valid: readonly TrucoAction[], type: TrucoAction["type"]) => valid.find((a) => a.type === type);
 
 function envidoAction(valid: readonly TrucoAction[], call: "envido" | "real-envido" | "falta-envido"): TrucoAction | undefined {
@@ -155,10 +180,11 @@ export function chooseTrucoAction(view: TrucoView, valid: readonly TrucoAction[]
     return v;
   };
 
-  // Errores de principiante: cualquier jugada válida (menos irse al mazo).
-  if (roll() < prof.errorRate) {
-    const options = valid.filter((a) => a.type !== "mazo");
-    const [a, next] = pick(rng, options.length ? options : valid);
+  // Errores de principiante: tirar una carta cualquiera. Nunca contestar o cantar sin sentido
+  // (los errores en los cantos son de cálculo: ver el ruido en `prob`).
+  const cartas = valid.filter((a) => a.type === "jugar");
+  if (!view.pending && cartas.length > 1 && roll() < prof.errorRate) {
+    const [a, next] = pick(rng, cartas);
     return [a, next];
   }
 
@@ -168,11 +194,13 @@ export function chooseTrucoAction(view: TrucoView, valid: readonly TrucoAction[]
   const myTanto = tanto(view.dealt);
   const manoTeam = teamOf(view.mano) === view.team;
   const p = view.pending;
-  const prob = () => {
-    const [v, next] = winProbability(view, rng, prof.samples);
+  const prob = (samples = prof.samples) => {
+    const [v, next] = winProbability(view, rng, samples);
     rng = next;
     return v;
   };
+  const segura = manoAsegurada(view);
+  const rival: Team = view.team === 0 ? 1 : 0;
 
   // --- Contestar flor ---
   if (p?.kind === "flor") {
@@ -217,10 +245,23 @@ export function chooseTrucoAction(view: TrucoView, valid: readonly TrucoAction[]
 
   // --- Contestar truco ---
   if (p?.kind === "truco") {
-    const pr = prob();
-    if (pr >= 0.8 && has(valid, "truco") && roll() < Math.min(0.97, 0.5 + prof.aggression / 2 + prof.pesca / 2)) return [has(valid, "truco")!, rng];
-    if (pr >= 0.5 - prof.aggression * 0.15) return [has(valid, "quiero")!, rng];
-    if (has(valid, "truco") && roll() < prof.bluff * 0.5) return [has(valid, "truco")!, rng];
+    const subir = has(valid, "truco");
+    const quiero = has(valid, "quiero")!;
+    // Con la mano ganada pase lo que pase: subir (o querer callado, para subir después).
+    if (segura) return [subir && roll() >= prof.pesca * 0.5 ? subir : quiero, rng];
+    // Para contestar siempre piensa (aunque sea poco), con un error de cálculo según el nivel.
+    const pr = Math.min(1, Math.max(0, prob(Math.max(40, prof.samples)) + (roll() - 0.5) * prof.errorRate));
+    if (pr >= 0.8 && subir && roll() < Math.min(0.97, 0.5 + prof.aggression / 2 + prof.pesca / 2)) return [subir, rng];
+    const target = view.config.target;
+    // No querer le da al rival lo que valía antes: si con eso gana la partida, no hay nada que perder.
+    if (view.score[rival] + p.level - 1 >= target) return [quiero, rng];
+    // Querer conviene si pr·L − (1−pr)·L > −(L−1), o sea pr > 1/(2L) (truco 25%, retruco 17%, vale cuatro 12,5%).
+    // El margen es porque el que canta suele tener cartas (la simulación reparte al azar).
+    let need = 1 / (2 * p.level) + 0.17 - prof.aggression * 0.1;
+    if (view.score[rival] + p.level >= target) need += 0.15; // si lo pierdo, pierdo la partida
+    if (view.score[view.team] + p.level >= target) need -= 0.05; // si lo gano, gano la partida
+    if (pr >= need) return [quiero, rng];
+    if (subir && roll() < prof.bluff * 0.5) return [subir, rng];
     return [has(valid, "no-quiero")!, rng];
   }
 
@@ -232,8 +273,8 @@ export function chooseTrucoAction(view: TrucoView, valid: readonly TrucoAction[]
     const threshold = 0.72 - prof.aggression * 0.12 + (view.trucoLevel - 1) * 0.06;
     const lateBluff = view.tricks.length >= 2 && roll() < prof.bluff;
     // Pescar: con la mano casi ganada y sin truco cantado, tirar callado para que el otro cante y retrucarle.
-    const pesca = pr >= 0.85 && view.trucoLevel === 1 && view.tricks.length < 3 && roll() < prof.pesca;
-    if ((pr >= threshold && !pesca) || lateBluff) return [trucoCall, rng];
+    const pesca = (segura || pr >= 0.85) && view.trucoLevel === 1 && view.tricks.length < 3 && roll() < prof.pesca;
+    if (((segura || pr >= threshold) && !pesca) || lateBluff) return [trucoCall, rng];
   }
   if (plays.length === 0) return [valid[0]!, rng];
   if (plays.length === 1) return [plays[0]!, rng];

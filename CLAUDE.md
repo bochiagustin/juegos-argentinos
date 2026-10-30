@@ -111,6 +111,10 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
 - `chooseAction(view, valid, rng, skill)`: **juega limpio**, solo con la vista de su jugador (nunca ve cartas ocultas).
 - `skill` 1–10 combina `errorRate`, `memory` (recuerda cartas jugadas), `bluff` (mentir truco/envido), `aggression`, `lookahead`.
   Niveles altos de Truco/Chinchón: Monte Carlo con determinización (reparte con semilla las cartas que no ve y simula).
+  Truco: los errores de nivel bajo son solo de carta tirada (nunca un canto o una respuesta al azar). Para contestar un truco
+  siempre simula (40+ repartos) y quiere si conviene en puntos (`pr > 1/(2L)` + margen; retruco ≈ 30%), mirando si no querer
+  o perder le da la partida al rival. `manoAsegurada`: con la mano ganada pase lo que pase (cartas que nadie mata + bazas
+  ganadas) siempre quiere o sube. Tests en `truco/bot.test.ts`.
 - Carrera: skill fijo por rival, sube por región y por lugar en el ranking inicial. **Rasgos** (`core/rasgos.ts`, 0–10, 5 = normal)
   que solo tienen los rivales de la gira (`useBotMatch`/`useTrucoMatch` los pasan al asiento 1): truco → mentiroso = más
   bluff, pescador = `pesca` (se calla con 30+ de tanto o la mano casi ganada para que el otro cante, y después sube),
