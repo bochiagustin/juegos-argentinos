@@ -21,7 +21,7 @@ import { FileteEsquinas, IconButton } from "../ui/ui.tsx";
 import { Fosforos } from "./Fosforos.tsx";
 import { clearMatch, loadMatch, newMatch, saveMatch, type TrucoMatch } from "./partida.ts";
 import { ReglasTruco } from "./ReglasTruco.tsx";
-import { botonDe, describirPendiente, ENVIDO_NOMBRE, NIVEL_TRUCO, type Tono } from "./textos.ts";
+import { botonDe, describirPendiente, ENVIDO_NOMBRE, NIVEL_TRUCO } from "./textos.ts";
 import { useTrucoMatch, type Globo } from "./useTrucoMatch.ts";
 
 type Punto = { x: number; y: number };
@@ -53,15 +53,6 @@ const LAYOUT: Record<2 | 4 | 6, SeatPos[]> = {
 };
 
 const ZONE_CARD: Record<2 | 4 | 6, number> = { 2: 64, 4: 50, 6: 40 };
-
-const TONO_CLASE: Record<Tono, string> = {
-  truco: "boton boton-rojo",
-  envido: "boton boton-azul",
-  flor: "boton boton-verde",
-  si: "boton boton-oro",
-  no: "boton boton-cuero",
-  mazo: "boton boton-fantasma text-sm",
-};
 
 const ORDEN: Record<TrucoAction["type"], number> = {
   quiero: 0,
@@ -224,7 +215,10 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
         </IconButton>
       </header>
 
-      <div className="z-10 flex flex-nowrap justify-center gap-1.5 overflow-hidden px-3 pt-2 text-[11px] font-bold">
+      <div className="z-10 flex flex-nowrap items-center justify-center gap-1.5 overflow-hidden px-3 pt-2 text-[11px] font-bold">
+        <span className="-my-2 size-9 shrink-0 lg:hidden" aria-hidden>
+          <Art id="mesa-mate" className="size-full object-contain drop-shadow-[0_3px_3px_rgb(0_0_0/0.5)]" fallback={<MateDibujo className="size-full" />} />
+        </span>
         <Chip>Mano {view.roundNumber} · a {view.config.target}</Chip>
         <Chip>{view.trucoLevel === 1 ? "Vale 1" : `${NIVEL_TRUCO[view.trucoLevel]} · ${view.trucoLevel}`}</Chip>
         {view.envido && <Chip>Envido {view.envido.team === view.team ? "nuestro" : "de ellos"} +{view.envido.points}</Chip>}
@@ -239,9 +233,6 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
           </div>
           <CintaEsquina className="pointer-events-none absolute right-0.5 top-[9%] size-14" rotar={90} />
           <CintaEsquina className="pointer-events-none absolute bottom-0 left-0.5 size-14" rotar={270} />
-          <div className="pointer-events-none absolute -left-1 top-[7%] z-[1] size-16 lg:hidden">
-            <Art id="mesa-mate" className="size-full object-contain" fallback={<MateDibujo className="size-full" />} />
-          </div>
           {view.players.map((p) =>
             p.seat === yo ? null : (
               <Avatar
@@ -254,6 +245,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
                 actua={view.actor === p.seat && !resumen && !congelada}
                 companero={teamOf(p.seat) === view.team}
                 compacto={n === 6}
+                canto={view.pending && view.pending.caller === p.seat && !congelada ? describirPendiente(view.pending) : null}
               />
             ),
           )}
@@ -271,35 +263,19 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
         </div>
 
         <div className="madera z-10 rounded-t-3xl px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
-          <FileteEsquinas />
           <p className="relative z-[1] mb-2 flex min-h-5 items-center justify-center gap-2 text-center text-sm font-bold text-crema" aria-live="polite">
             <VolutaTexto className="h-4 w-8 shrink-0" />
             <span>{congelada ? "Fin de la mano" : estado(view, nombre, miTurno, yo)}</span>
             <VolutaTexto className="h-4 w-8 shrink-0" espejo />
           </p>
-          {botones.length > 0 && (
-            <div className="relative z-[1] mb-3 flex flex-wrap justify-center gap-2">
-              {botones.map(({ a, b }) => (
-                <motion.button
-                  key={JSON.stringify(a)}
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  onClick={() => act(a)}
-                  className={`min-h-12 rounded-xl px-4 ${TONO_CLASE[b.tono]}`}
-                >
-                  <IconoCantoArte tipo={iconoDe(a)} />
-                  {b.texto}
-                </motion.button>
-              ))}
-            </div>
-          )}
-          <div className="relative z-[1] flex min-h-[8.5rem] items-end justify-center gap-2">
+          <div className="relative z-[1] flex min-h-[8.5rem] items-end justify-center gap-2 pb-1">
             <AnimatePresence>
               {(congelada ? [] : view.hand).map((c, i) => (
                 <CartaMano key={c.id} card={c} i={i} total={view.hand.length} jugable={playable.has(c.id)} onPlay={() => act({ type: "jugar", card: c.id })} />
               ))}
             </AnimatePresence>
           </div>
+          <BarraCantos acciones={botones.map(({ a }) => a)} view={view} activa={miTurno} onAct={act} />
         </div>
       </LayoutGroup>
       </div>
@@ -360,8 +336,14 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
 
 /** Ícono de cada canto (sombrero para el truco, copa para el envido, corona para el real…). */
 /** El ícono ilustrado del canto, o el de trazo si falta la imagen. */
-function IconoCantoArte({ tipo }: { tipo: IconoCanto }) {
-  return <Art id={`canto-${tipo}`} className="-my-1 size-8 shrink-0 object-contain drop-shadow-[0_1px_1px_rgb(0_0_0_/_0.5)]" fallback={<Icono tipo={tipo} className="size-5 shrink-0" />} />;
+function IconoCantoArte({ tipo, chico = false }: { tipo: IconoCanto; chico?: boolean }) {
+  return (
+    <Art
+      id={`canto-${tipo}`}
+      className={`${chico ? "size-6" : "-my-1 size-8"} shrink-0 object-contain drop-shadow-[0_1px_1px_rgb(0_0_0_/_0.5)]`}
+      fallback={<Icono tipo={tipo} className="size-5 shrink-0" />}
+    />
+  );
 }
 
 function iconoDe(a: TrucoAction): IconoCanto {
@@ -409,8 +391,8 @@ function Chip({ children }: { children: React.ReactNode }) {
   return <span className="shrink-0 whitespace-nowrap rounded-full border border-[#c9a24a]/60 bg-black/55 px-3 py-1 text-crema shadow-[inset_0_1px_0_rgb(255_230_190/0.15)]">{children}</span>;
 }
 
-function Avatar(props: { pos: Punto; nombre: string; avatar: React.ReactNode; cartas: number; mano: boolean; actua: boolean; companero: boolean; compacto: boolean }) {
-  const { pos, nombre, avatar, cartas, mano, actua, companero, compacto } = props;
+function Avatar(props: { pos: Punto; nombre: string; avatar: React.ReactNode; cartas: number; mano: boolean; actua: boolean; companero: boolean; compacto: boolean; canto: string | null }) {
+  const { pos, nombre, avatar, cartas, mano, actua, companero, compacto, canto } = props;
   const size = compacto ? "size-11 text-2xl" : "size-14 text-3xl";
   return (
     <div className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center" style={{ left: `${pos.x}%`, top: `${pos.y}%` }}>
@@ -427,9 +409,24 @@ function Avatar(props: { pos: Punto; nombre: string; avatar: React.ReactNode; ca
         </span>
         {mano && <span className="absolute -right-3 -top-1 rounded-full bg-naranja px-1.5 text-[10px] font-black uppercase text-tinta">Mano</span>}
       </div>
-      <span className="mt-1 max-w-24 truncate rounded-full bg-black/45 px-2 text-xs font-bold">
-        {nombre}
-        {companero ? " 🤝" : ""}
+      <span className="mt-1 flex items-center gap-1">
+        <span className="max-w-24 truncate rounded-full bg-black/45 px-2 text-xs font-bold">
+          {nombre}
+          {companero ? " 🤝" : ""}
+        </span>
+        <AnimatePresence>
+          {canto && (
+            <motion.span
+              key={canto}
+              initial={{ scale: 0.3, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              className="whitespace-nowrap rounded-full border border-[#7a4a06] bg-naranja px-2 text-xs font-black text-tinta shadow"
+            >
+              ¡{canto.charAt(0).toUpperCase() + canto.slice(1)}!
+            </motion.span>
+          )}
+        </AnimatePresence>
       </span>
       <div className="mt-0.5 flex -space-x-3">
         {Array.from({ length: cartas }, (_, i) => (
@@ -498,20 +495,109 @@ function CartaMano({ card, i, total, jugable, onPlay }: { card: SuitedCard; i: n
   );
 }
 
+type Grupo = "truco" | "envido" | "flor" | "mazo";
+const GRUPO_DE: Partial<Record<TrucoAction["type"], Grupo>> = {
+  truco: "truco",
+  envido: "envido",
+  flor: "flor",
+  contraflor: "flor",
+  "contraflor-al-resto": "flor",
+  "con-flor-me-achico": "flor",
+  mazo: "mazo",
+};
+
+/**
+ * La botonera del truco, siempre del mismo tamaño para no achicar la mesa: cuatro lugares fijos (Truco, Envido, Flor, Mazo)
+ * que se apagan cuando no se pueden usar. Envido y flor abren sus opciones en la misma barra; cuando te cantan,
+ * "Quiero" y "No quiero" aparecen como dos pestañas arriba.
+ */
+function BarraCantos({ acciones, view, activa, onAct }: { acciones: TrucoAction[]; view: TrucoView; activa: boolean; onAct: (a: TrucoAction) => void }) {
+  const [abierto, setAbierto] = useState<"envido" | "flor" | null>(null);
+  const de = (g: Grupo) => (activa ? acciones.filter((a) => GRUPO_DE[a.type] === g) : []);
+  const quiero = activa ? acciones.find((a) => a.type === "quiero") : undefined;
+  const noQuiero = activa ? acciones.find((a) => a.type === "no-quiero") : undefined;
+  // Si cambia lo que se puede hacer (contestaron, se jugó una carta), el submenú se cierra.
+  const firma = acciones.map((a) => JSON.stringify(a)).join("|");
+  useEffect(() => setAbierto(null), [firma]);
+
+  const truco = de("truco")[0];
+  const proximo = view.pending?.kind === "truco" ? view.pending.level + 1 : view.trucoLevel + 1;
+  const textoTruco = proximo <= 2 ? "Truco" : proximo === 3 ? "Retruco" : "Vale 4";
+  const tocar = (g: "envido" | "flor") => {
+    const ops = de(g);
+    // La flor sola se canta directo; el envido siempre muestra qué se canta (puede quedar solo "Falta envido").
+    if (g === "flor" && ops.length === 1 && ops[0]!.type === "flor") onAct(ops[0]!);
+    else if (ops.length > 0) setAbierto(g);
+    playSfx("click");
+  };
+  const celda = (contenido: React.ReactNode, onClick: (() => void) | null, key: string, icono?: IconoCanto) => (
+    <button
+      key={key}
+      disabled={!onClick}
+      onClick={onClick ?? undefined}
+      className="flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 font-criolla text-[15px] leading-tight text-crema transition active:bg-black/25 disabled:opacity-30"
+    >
+      {icono && <IconoCantoArte tipo={icono} chico />}
+      <span className="text-center">{contenido}</span>
+    </button>
+  );
+
+  return (
+    <div className="relative z-[1] -mx-3 -mb-[calc(env(safe-area-inset-bottom)+0.75rem)] mt-1">
+      {/* Contestar: pestañas arriba de la barra, sin tapar la mesa. */}
+      <AnimatePresence>
+        {(quiero || noQuiero) && (
+          <motion.div initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }} className="absolute inset-x-0 bottom-full flex justify-center">
+            {quiero && (
+              <button onClick={() => onAct(quiero)} className="boton boton-oro min-h-12 min-w-32 rounded-b-none rounded-t-2xl px-5 text-lg">
+                <IconoCantoArte tipo="si" />
+                Quiero
+              </button>
+            )}
+            {noQuiero && (
+              <button onClick={() => onAct(noQuiero)} className="boton boton-cuero min-h-12 min-w-32 rounded-b-none rounded-t-2xl px-5 text-lg">
+                <IconoCantoArte tipo="no" />
+                No quiero
+              </button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <div className="grid grid-cols-4 divide-x divide-[#e8c27a]/30 border-t-2 border-[#e8c27a]/40 bg-black/45 pb-[env(safe-area-inset-bottom)]">
+        {abierto
+          ? [
+              ...de(abierto).map((a) => celda(botonDe(a, view)!.texto.replace("Quiero ", ""), () => onAct(a), JSON.stringify(a), iconoDe(a))),
+              ...Array.from({ length: Math.max(0, 3 - de(abierto).length) }, (_, k) => <span key={`v${k}`} />),
+              celda("Volver", () => setAbierto(null), "volver"),
+            ]
+          : [
+              celda(textoTruco, truco ? () => onAct(truco) : null, "truco", "sombrero"),
+              celda("Envido", de("envido").length ? () => tocar("envido") : null, "envido", "copa"),
+              celda("Flor", de("flor").length ? () => tocar("flor") : null, "flor", "flor"),
+              celda("Mazo", de("mazo")[0] ? () => onAct(de("mazo")[0]!) : null, "mazo", "mazo"),
+            ]}
+      </div>
+    </div>
+  );
+}
+
 function Burbuja({ globo, pos }: { globo: Globo; pos: Punto }) {
-  const abajo = pos.y < 25;
-  const top = abajo ? pos.y + 11 : pos.y > 90 ? 78 : pos.y - 13;
+  // Al costado del avatar (no encima de las cartas de la mesa); el de uno mismo, un poco más arriba.
+  const derecha = pos.x <= 60;
+  const left = derecha ? Math.min(pos.x + 17, 88) : Math.max(pos.x - 17, 12);
+  // Un poco arriba del centro del avatar, para no tapar el nombre ni lo que cantó.
+  const top = pos.y > 90 ? 80 : Math.max(4, pos.y - 7);
   const color = globo.tono === "canto" ? "bg-crema text-tinta" : globo.tono === "tanto" ? "bg-celeste text-tinta" : "bg-[#d9cfc0] text-tinta/80";
   return (
     <motion.div
-      initial={{ scale: 0.3, opacity: 0, y: 10 }}
-      animate={{ scale: 1, opacity: 1, y: 0 }}
+      initial={{ scale: 0.3, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
       exit={{ scale: 0.6, opacity: 0 }}
       transition={{ type: "spring", stiffness: 400, damping: 18 }}
-      className="pointer-events-none absolute z-30 -translate-x-1/2"
-      style={{ left: `${Math.min(80, Math.max(20, pos.x))}%`, top: `${top}%` }}
+      className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-1/2"
+      style={{ left: `${left}%`, top: `${top}%` }}
     >
-      <div className={`relative whitespace-nowrap rounded-2xl border-2 border-tinta/60 px-4 py-2 font-criolla text-2xl shadow-xl shadow-black/40 ${color}`}>
+      <div className={`relative whitespace-nowrap rounded-2xl border-2 border-tinta/60 px-3 py-1 font-criolla text-lg shadow-xl shadow-black/40 ${color}`}>
         {globo.texto}
       </div>
     </motion.div>

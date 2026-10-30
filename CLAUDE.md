@@ -199,8 +199,11 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
   hunde al tocar) para toda acción; `.hundido` para la canaleta de selectores e interruptores. No usar degradés sueltos.
 - **Mesa del truco** (look de boliche): fondo `.boliche` (+ ilustraciones opcionales `mesa-fondo-vertical/horizontal`), barra
   `.madera` con marcador `.marcador` (fósforos en dos filas: malas arriba, buenas abajo) y Sol de Mayo, mesa `.mesa-pano`
-  (marco de madera, filete dorado, cintas), botones de canto con ícono (`ui/adornos.tsx`: Sol, banderitas, cintas, volutas,
-  mate de respaldo, `GrupoFosforos`, `Icono`). En pantalla ancha la mesa se centra (max 42rem) y a los costados van el cartel
+  (marco de madera, filete dorado, cintas). **Botonera** `BarraCantos`: barra fija de 4 lugares (Truco/Retruco/Vale 4, Envido,
+  Flor, Mazo) que se apagan si no se pueden usar; Envido (y la flor con opciones) abre su menú en la misma barra con "Volver";
+  "Quiero"/"No quiero" son pestañas arriba de la barra. Así la mesa no cambia de tamaño. Lo que cantó el rival queda en una
+  etiqueta al lado de su nombre mientras espera respuesta, y el globo sale chico al costado del avatar. El mate, en el celu,
+  va al lado de los datos de la mano (`ui/adornos.tsx`: Sol, banderitas, cintas, volutas, mate de respaldo, `GrupoFosforos`, `Icono`). En pantalla ancha la mesa se centra (max 42rem) y a los costados van el cartel
   y el mate (`mesa-cartel`, `mesa-mate`; con respaldo dibujado).
 - **Fondos de mesa** (`career/src/fondos.ts`: 15 fondos, se desbloquean por gira/victorias/logros o se compran; `web/src/fondos/fondos.tsx`:
   `FondoMesa`, `FONDOS_CON_IMAGEN`): imágenes en `public/arte/fondos/<id>-{vertical,horizontal}.webp`, se eligen en "Mazos y fondos"
