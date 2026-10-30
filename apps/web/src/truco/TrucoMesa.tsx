@@ -169,7 +169,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
 
   const equipos = [view.team, (1 - view.team) as 0 | 1] as const;
   return (
-    <div className="boliche relative flex h-dvh flex-col overflow-hidden">
+    <div className="boliche relative isolate flex h-dvh flex-col overflow-hidden">
       {/* El fondo elegido (boliche, patio, bodega…); si falta la imagen, queda la madera con luz cálida. */}
       <FondoMesa />
       {/* En pantallas anchas la mesa queda centrada y a los costados se ve el boliche: el cartel y el mate. */}

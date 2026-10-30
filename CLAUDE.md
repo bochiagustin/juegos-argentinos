@@ -208,6 +208,12 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
 - **Fondos de mesa** (`career/src/fondos.ts`: 15 fondos, se desbloquean por gira/victorias/logros o se compran; `web/src/fondos/fondos.tsx`:
   `FondoMesa`, `FONDOS_CON_IMAGEN`): imágenes en `public/arte/fondos/<id>-{vertical,horizontal}.webp`, se eligen en "Mazos y fondos"
   (`ajustes.fondo`). Por ahora solo el truco los usa. El café tiene borroneado el diario (traía un logo real).
+- **Mesas de chinchón, escoba y casita** con el mismo look que el truco: `FondoMesa` (el fondo elegido; las pantallas son
+  `isolate` y el fondo va en `-z-10`), paño `.mesa-pano` con filetes y panel `.madera`. Botonera fija `ui/barra.tsx`
+  (`BarraAcciones`: lugares que se apagan, opciones que se eligen en la barra con "Volver", pestañas arriba; sin opciones,
+  muestra el estado): chinchón = Mazo / Levantar del pozo / Tirar / Cortar; escoba = las combinaciones que suman 15 con la
+  carta elegida (con mini cartas) + Dejarla + Volver; casita = las jugadas de la carta (si hay más de una) + Volver.
+  `EtiquetaJugada` + `useUltimasJugadas`: lo último que hizo cada rival al lado de su nombre ("Tiró el 9 de copa").
 - **Truco, fin de mano**: `useTrucoMatch` guarda `congelada` (las bazas de la mano que terminó) y la mesa las muestra, con la
   última carta, hasta cerrar el resumen (que aparece a los 1,6 s); mientras tanto no juegan los bots.
 - **Materiales** (`src/index.css`, en `@layer components` para que las utilidades de Tailwind les ganen): `.pano`, `.cuero`

@@ -1,4 +1,6 @@
 import { personaje, type Hecho } from "@juegos-argentinos/career";
+import { FondoMesa } from "../fondos/fondos.tsx";
+import { BarraAcciones, EtiquetaJugada, laCarta, useUltimasJugadas } from "../ui/barra.tsx";
 import { Cara, rivalEn } from "../carrera/Cara.tsx";
 import type { Card } from "@juegos-argentinos/engine";
 import {
@@ -32,7 +34,7 @@ import { useBotMatch } from "../partidas/useBotMatch.ts";
 import { statsDe } from "../save/save.ts";
 import { useSave } from "../save/SaveContext.tsx";
 import { Modal } from "../ui/Modal.tsx";
-import { IconButton } from "../ui/ui.tsx";
+import { FileteEsquinas, IconButton } from "../ui/ui.tsx";
 
 type CMatch = BotMatch<ChinchonConfig, ChinchonState>;
 
@@ -117,6 +119,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
   const [repartiendo, setRepartiendo] = useState(false);
   const repartida = useRef<number | null>(null);
   const [arrastrando, setArrastrando] = useState<string | null>(null);
+  const [jugadas, anotar, limpiarJugadas] = useUltimasJugadas();
   const pozoRef = useRef<HTMLButtonElement>(null);
   const corteRef = useRef<HTMLDivElement>(null);
 
@@ -134,6 +137,10 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
       const hechos: Hecho[] = [];
       for (const e of events) {
         if (e.type === "robo" || e.type === "descarte") playSfx("carta");
+        if (e.type === "robo" && e.seat !== yo) anotar(e.seat, e.de === "pozo" && e.card ? `Levantó ${laCarta(e.card)}` : "Robó del mazo");
+        if (e.type === "descarte" && e.seat !== yo) anotar(e.seat, `Tiró ${laCarta(e.card)}`);
+        if (e.type === "corte" && e.seat !== yo) anotar(e.seat, "¡Cortó!");
+        if (e.type === "nueva-ronda") limpiarJugadas();
         if (e.type === "rebarajar") playSfx("barajar");
         if (e.type === "corte") {
           const quien = nombre(e.seat, next);
@@ -298,7 +305,8 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
   const rivales = view.players.filter((p) => p.seat !== yo);
 
   return (
-    <div className="pano flex h-dvh flex-col overflow-hidden">
+    <div className="boliche relative isolate flex h-dvh flex-col overflow-hidden">
+      <FondoMesa />
       <header className="cuero cuero-oscuro z-20 flex items-center gap-2 rounded-b-2xl px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)]">
         <IconButton label={remoto ? "Salir de la sala" : "Salir (la partida queda guardada)"} onClick={back}>
           ←
@@ -324,6 +332,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
             </span>
             <span className="mt-0.5 max-w-20 truncate text-xs font-bold">{match.jugadores[p.seat]!.nombre}</span>
             <span className="text-xs font-black text-naranja">{p.out ? "Afuera" : `${p.score} pts`}</span>
+            <EtiquetaJugada texto={jugadas[p.seat]} />
             <div className="mt-0.5 flex -space-x-3">
               {Array.from({ length: ocupado ? 0 : Math.min(p.cards, 8) }, (_, i) => (
                 <motion.div
@@ -340,7 +349,10 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
         ))}
       </div>
 
-      <div className="relative flex min-h-0 flex-1 items-center justify-center gap-6">
+      <div className="relative mx-2 my-2 flex min-h-0 flex-1 items-center justify-center gap-6">
+        <div className="mesa-pano pointer-events-none absolute inset-0 rounded-[1.75rem]">
+          <FileteEsquinas />
+        </div>
         {bajada ? (
           <Bajada r={bajada} yo={yo} nombre={(s) => nombre(s, match)} onVer={() => setResumen(bajada)} />
         ) : (
@@ -402,7 +414,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
         </AnimatePresence>
       </div>
 
-      <div className="cuero cuero-oscuro z-10 rounded-t-3xl px-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
+      <div className="madera z-10 rounded-t-3xl px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
         <div className="relative z-[1]">
           <div className="mb-1 flex items-center justify-between gap-2 px-1 text-xs font-bold">
             <span className="rounded-full bg-black/35 px-2 py-1">
@@ -433,25 +445,6 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
           <p className="mb-2 min-h-5 text-center text-sm font-bold text-crema/90" aria-live="polite">
             {estado}
           </p>
-          {miTurno && view.phase === "descartar" && (
-            <div className="mb-2 flex flex-wrap justify-center gap-2">
-              <button
-                disabled={!sel || sel === view.tomadaDelPozo}
-                onClick={tirar}
-                className="boton boton-oro min-h-12 rounded-xl px-5"
-              >
-                Tirar al pozo
-              </button>
-              {mejorCorte && (
-                <button
-                  onClick={() => cortar(sel && cortes.some((a) => a.card === sel) ? sel : mejorCorte.card)}
-                  className="boton boton-verde min-h-12 rounded-xl px-5"
-                >
-                  ✂ Cortar{sel && cortes.some((a) => a.card === sel) ? " con esta" : ""}
-                </button>
-              )}
-            </div>
-          )}
           <Reorder.Group axis="x" values={mano.map((c) => c.id)} onReorder={reordenar} className="flex justify-center" as="div">
             {(ocupado ? [] : mano).map((c, i) => {
               const combo = comboDe.get(c.id);
@@ -487,9 +480,22 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
               );
             })}
           </Reorder.Group>
-          <p className="mt-2 text-center text-[11px] text-crema/60">
-            {miTurno && view.phase === "descartar" ? "Arrastrá una carta al pozo para tirarla" + (mejorCorte ? " o a la tijera para cortar." : ".") : "Arrastrá las cartas para ordenarlas. Los bordes de color marcan las combinaciones."}
+          <p className="mt-1 text-center text-[11px] text-crema/60">
+            {miTurno && view.phase === "descartar" ? "Tocá una carta y tirala, o arrastrala al pozo" + (mejorCorte ? " o a la tijera." : ".") : "Arrastrá las cartas para ordenarlas. Los bordes de color marcan las combinaciones."}
           </p>
+          <BarraAcciones
+            opciones={[
+              { key: "mazo", contenido: <>Mazo<span className="font-sans text-[10px] font-bold opacity-80">{view.mazoCount} cartas</span></>, onClick: miTurno && view.phase === "robar" && valid.some((a) => a.type === "robar" && a.de === "mazo") ? () => robar("mazo") : null },
+              { key: "pozo", contenido: "Levantar del pozo", onClick: miTurno && view.phase === "robar" && valid.some((a) => a.type === "robar" && a.de === "pozo") ? () => robar("pozo") : null },
+              { key: "tirar", contenido: "Tirar", onClick: miTurno && view.phase === "descartar" && !!sel && valid.some((a) => a.type === "descartar" && a.card === sel) ? tirar : null },
+              {
+                key: "cortar",
+                contenido: sel && cortes.some((a) => a.card === sel) ? "✂ Cortar con esta" : "✂ Cortar",
+                onClick: miTurno && view.phase === "descartar" && mejorCorte ? () => cortar(sel && cortes.some((a) => a.card === sel) ? sel : mejorCorte.card) : null,
+                destacada: !!mejorCorte,
+              },
+            ]}
+          />
         </div>
       </div>
 

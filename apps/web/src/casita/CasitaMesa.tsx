@@ -20,7 +20,9 @@ import { useBotMatch } from "../partidas/useBotMatch.ts";
 import { statsDe } from "../save/save.ts";
 import { useSave } from "../save/SaveContext.tsx";
 import { Modal } from "../ui/Modal.tsx";
-import { IconButton } from "../ui/ui.tsx";
+import { BarraAcciones, EtiquetaJugada, laCarta, useUltimasJugadas, type OpcionBarra } from "../ui/barra.tsx";
+import { FileteEsquinas, IconButton } from "../ui/ui.tsx";
+import { FondoMesa } from "../fondos/fondos.tsx";
 
 type KMatch = BotMatch<CasitaConfig, CasitaState>;
 type Robo = { ladron: number; victima: number; cartas: number };
@@ -94,6 +96,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: KMatch | null; onRevan
   const [final, setFinal] = useState<ResultadoCierre | null>(null);
   const [robo, setRobo] = useState<Robo | null>(null);
   const [eleccion, setEleccion] = useState<{ card: string; opciones: CasitaAction[] } | null>(null);
+  const [jugadas, anotar] = useUltimasJugadas();
   const [reglas, setReglas] = useState(false);
   const nombre = (seat: number, m: KMatch) => (seat === yo ? "Vos" : m.jugadores[seat]!.nombre);
 
@@ -108,7 +111,13 @@ function Mesa({ initial, onRevancha, remoto }: { initial: KMatch | null; onRevan
     onEvents: (events: readonly CasitaEvent[], next) => {
       const hechos: Hecho[] = [];
       for (const e of events) {
-        if (e.type === "tirada") playSfx("carta");
+        if (e.type === "tirada") {
+          playSfx("carta");
+          if (e.seat !== yo && e.jugada.tipo === "mesa") anotar(e.seat, `Levantó con ${laCarta(e.card)}`);
+          if (e.seat !== yo && e.jugada.tipo === "propia") anotar(e.seat, "Agrandó su casita");
+          if (e.seat !== yo && e.jugada.tipo === "dejar") anotar(e.seat, `Tiró ${laCarta(e.card)}`);
+        }
+        if (e.type === "robo" && e.seat !== yo) anotar(e.seat, e.victima === yo ? "¡Te robó la casita!" : `¡Le robó a ${nombre(e.victima, next)}!`);
         if (e.type === "reparto") window.setTimeout(() => playSfx("repartir"), 300);
         if (e.type === "robo") {
           setRobo({ ladron: e.seat, victima: e.victima, cartas: e.cartas });
@@ -180,9 +189,25 @@ function Mesa({ initial, onRevancha, remoto }: { initial: KMatch | null; onRevan
         : a.jugada.tipo === "propia"
           ? "Agrandar mi casita"
           : "Dejarla en la mesa";
+  // Una carta con varias jugadas posibles: se elige en la barra (no en una ventana encima de la mesa).
+  const eleccionOpciones: OpcionBarra[] = eleccion
+    ? [
+        ...eleccion.opciones.map((a): OpcionBarra => ({
+          key: JSON.stringify(a.jugada),
+          destacada: a.jugada.tipo === "robar",
+          contenido: a.jugada.tipo === "robar" ? `Robarle a ${nombre(a.jugada.de, match)} (${view.players[a.jugada.de]!.casita})` : textoJugada(a),
+          onClick: () => {
+            setEleccion(null);
+            jugar(a);
+          },
+        })),
+        { key: "volver", contenido: "Volver", onClick: () => setEleccion(null) },
+      ]
+    : [];
 
   return (
-    <motion.div className="pano flex h-dvh flex-col overflow-hidden" animate={robo?.victima === yo ? { x: [0, -10, 10, -8, 8, 0] } : { x: 0 }} transition={{ duration: 0.5 }}>
+    <motion.div className="boliche relative isolate flex h-dvh flex-col overflow-hidden" animate={robo?.victima === yo ? { x: [0, -10, 10, -8, 8, 0] } : { x: 0 }} transition={{ duration: 0.5 }}>
+      <FondoMesa />
       <header className="cuero cuero-oscuro z-20 flex items-center gap-2 rounded-b-2xl px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)]">
         <IconButton label={remoto ? "Salir de la sala" : "Salir (la partida queda guardada)"} onClick={back}>
           ←
@@ -209,6 +234,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: KMatch | null; onRevan
               activo={view.turn === p.seat && !view.result}
               compa={sonCompaneros(view.config, yo, p.seat)}
             />
+            <EtiquetaJugada texto={jugadas[p.seat]} />
             <div className="mt-1 flex -space-x-2">
               {Array.from({ length: p.cards }, (_, i) => (
                 <SpanishCard key={i} card={null} width={16} />
@@ -218,9 +244,12 @@ function Mesa({ initial, onRevancha, remoto }: { initial: KMatch | null; onRevan
         ))}
       </div>
 
-      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-3">
-        <p className="mb-2 text-xs font-black uppercase tracking-widest text-crema/60">La mesa</p>
-        <div className="flex max-w-full flex-wrap justify-center gap-2">
+      <div className="relative mx-2 my-2 flex min-h-0 flex-1 flex-col items-center justify-center px-4">
+        <div className="mesa-pano pointer-events-none absolute inset-0 rounded-[1.75rem]">
+          <FileteEsquinas />
+        </div>
+        <p className="relative mb-2 text-xs font-black uppercase tracking-widest text-crema/70">La mesa</p>
+        <div className="relative flex max-w-full flex-wrap justify-center gap-2">
           <AnimatePresence>
             {view.mesa.map((c) => (
               <motion.div key={c.id} layout initial={{ scale: 0.5, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.6, opacity: 0, y: 60 }} className="rounded-lg shadow-lg shadow-black/40">
@@ -251,13 +280,10 @@ function Mesa({ initial, onRevancha, remoto }: { initial: KMatch | null; onRevan
         </AnimatePresence>
       </div>
 
-      <div className="cuero cuero-oscuro z-10 rounded-t-3xl px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
+      <div className="madera z-10 rounded-t-3xl px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
         <div className="relative z-[1] flex items-end gap-3">
           <Casita top={mio.top} cartas={mio.casita} nombre="Tu casita" avatar={<Cara avatar={match.jugadores[yo]!.avatar} />} activo={miTurno} grande />
           <div className="flex-1">
-            <p className="mb-2 min-h-5 text-center text-sm font-bold text-crema/90" aria-live="polite">
-              {view.result ? "Partida terminada" : view.turn === yo ? "Te toca: tocá una carta." : `Juega ${nombre(view.turn, match)}…`}
-            </p>
             <div className="flex justify-center gap-2">
               <AnimatePresence>
                 {view.hand.map((c) => {
@@ -285,28 +311,13 @@ function Mesa({ initial, onRevancha, remoto }: { initial: KMatch | null; onRevan
             </div>
           </div>
         </div>
+        <BarraAcciones
+          opciones={eleccionOpciones}
+          vacio={view.result ? "Partida terminada" : view.turn === yo ? "Te toca: tocá una carta." : `Juega ${nombre(view.turn, match)}…`}
+        />
       </div>
 
       <AnimatePresence>
-        {eleccion && (
-          <Modal key="eleccion" onClose={() => setEleccion(null)}>
-            <p className="mb-3 text-center text-lg font-black">¿Qué hacés con esta carta?</p>
-            <div className="flex flex-col gap-2">
-              {eleccion.opciones.map((a) => (
-                <button
-                  key={JSON.stringify(a.jugada)}
-                  className={`boton min-h-12 rounded-xl px-4 ${a.jugada.tipo === "robar" ? "boton-rojo" : "boton-verde"}`}
-                  onClick={() => {
-                    setEleccion(null);
-                    jugar(a);
-                  }}
-                >
-                  {textoJugada(a)}
-                </button>
-              ))}
-            </div>
-          </Modal>
-        )}
         {final && view.result && (
           <FinPartida
             key="fin"

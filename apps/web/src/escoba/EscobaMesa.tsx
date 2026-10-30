@@ -20,7 +20,9 @@ import { useBotMatch } from "../partidas/useBotMatch.ts";
 import { statsDe } from "../save/save.ts";
 import { useSave } from "../save/SaveContext.tsx";
 import { Modal } from "../ui/Modal.tsx";
-import { IconButton } from "../ui/ui.tsx";
+import { BarraAcciones, EtiquetaJugada, laCarta, useUltimasJugadas, type OpcionBarra } from "../ui/barra.tsx";
+import { FileteEsquinas, IconButton } from "../ui/ui.tsx";
+import { FondoMesa } from "../fondos/fondos.tsx";
 
 type EMatch = BotMatch<EscobaConfig, EscobaState>;
 
@@ -72,6 +74,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: EMatch | null; onRevan
   const [resumen, setResumen] = useState<EscobaRoundSummary | null>(null);
   const [cartel, setCartel] = useState<{ texto: string; mio: boolean } | null>(null);
   const [sel, setSel] = useState<string | null>(null);
+  const [jugadas, anotar, limpiarJugadas] = useUltimasJugadas();
   const [reglas, setReglas] = useState(false);
   // Hay un resumen de ronda por mostrar: el fin de partida espera a que se vea.
   const [pendiente, setPendiente] = useState(false);
@@ -90,6 +93,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: EMatch | null; onRevan
       for (const e of events) {
         if (e.type === "tirada") {
           playSfx("carta");
+          if (e.seat !== yo) anotar(e.seat, e.escoba ? "¡Escoba!" : e.levanta.length ? `Levantó ${e.levanta.length + 1} con ${laCarta(e.card)}` : `Tiró ${laCarta(e.card)}`);
           if (e.escoba) {
             const mio = e.seat === yo;
             setCartel({ texto: mio ? "¡ESCOBA!" : `¡Escoba de ${nombre(e.seat, next)}!`, mio });
@@ -99,6 +103,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: EMatch | null; onRevan
             if (mio) hechos.push({ tipo: "escoba-escobas", cantidad: 1 });
           }
         }
+        if (e.type === "nueva-ronda") limpiarJugadas();
         if (e.type === "escoba-de-mano") {
           setCartel({ texto: `¡Escoba de mano${e.seat === yo ? "!" : ` de ${nombre(e.seat, next)}!`}`, mio: e.seat === yo });
           window.setTimeout(() => setCartel(null), 1600);
@@ -169,8 +174,39 @@ function Mesa({ initial, onRevancha, remoto }: { initial: EMatch | null; onRevan
   const otros = view.players.filter((p) => p.seat !== yo);
   const mio = view.players[yo]!;
 
+  const estadoTexto =
+    view.winner !== null ? "Partida terminada" : view.turn === yo ? "Te toca: elegí una carta." : `Juega ${nombre(view.turn, match)}…`;
+  // Con una carta elegida, la barra muestra qué se puede levantar con ella (y dejarla o volver).
+  const opcionesBarra: OpcionBarra[] =
+    miTurno && cartaSel
+      ? [
+          ...combos.map((a): OpcionBarra => {
+            const levanta = view.mesa.filter((c) => a.levanta.includes(c.id));
+            const esEscoba = levanta.length === view.mesa.length;
+            return {
+              key: a.levanta.join(","),
+              destacada: esEscoba,
+              onClick: () => hacer(a),
+              contenido: (
+                <>
+                  <span className="flex -space-x-2">
+                    {levanta.map((c) => (
+                      <SpanishCard key={c.id} card={c} width={18} />
+                    ))}
+                  </span>
+                  {esEscoba ? "¡Escoba!" : "Levantar"}
+                </>
+              ),
+            };
+          }),
+          ...(puedeDejar ? [{ key: "dejar", contenido: combos.length ? "Dejarla" : "Dejarla en la mesa", onClick: () => hacer({ type: "tirar", card: cartaSel.id, levanta: [] }) }] : []),
+          { key: "volver", contenido: "Volver", onClick: () => setSel(null) },
+        ]
+      : [];
+
   return (
-    <div className="pano flex h-dvh flex-col overflow-hidden">
+    <div className="boliche relative isolate flex h-dvh flex-col overflow-hidden">
+      <FondoMesa />
       <header className="cuero cuero-oscuro z-20 flex items-center gap-2 rounded-b-2xl px-3 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)]">
         <IconButton label={remoto ? "Salir de la sala" : "Salir (la partida queda guardada)"} onClick={back}>
           ←
@@ -202,6 +238,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: EMatch | null; onRevan
               <Cara avatar={match.jugadores[p.seat]!.avatar} rivalId={rivalEn(match, p.seat)} />
             </span>
             <span className="mt-0.5 max-w-20 truncate text-xs font-bold">{match.jugadores[p.seat]!.nombre}</span>
+            <EtiquetaJugada texto={jugadas[p.seat]} />
             <span className="text-[11px] font-bold text-crema/80">
               🂠 {p.pila}
               {p.escobas > 0 && <span className="ml-1 text-naranja">🧹{p.escobas}</span>}
@@ -215,11 +252,14 @@ function Mesa({ initial, onRevancha, remoto }: { initial: EMatch | null; onRevan
         ))}
       </div>
 
-      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-3">
-        <p className="mb-2 text-xs font-black uppercase tracking-widest text-crema/60">
+      <div className="relative mx-2 my-2 flex min-h-0 flex-1 flex-col items-center justify-center px-4">
+        <div className="mesa-pano pointer-events-none absolute inset-0 rounded-[1.75rem]">
+          <FileteEsquinas />
+        </div>
+        <p className="relative mb-2 text-xs font-black uppercase tracking-widest text-crema/70">
           La mesa suma {sumaDe(view.mesa)} · quedan {view.mazoCount} en el mazo
         </p>
-        <div className="flex max-w-full flex-wrap justify-center gap-2">
+        <div className="relative flex max-w-full flex-wrap justify-center gap-2">
           <AnimatePresence>
             {view.mesa.map((c) => (
               <motion.div
@@ -251,47 +291,12 @@ function Mesa({ initial, onRevancha, remoto }: { initial: EMatch | null; onRevan
         </AnimatePresence>
       </div>
 
-      <div className="cuero cuero-oscuro z-10 rounded-t-3xl px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
+      <div className="madera z-10 rounded-t-3xl px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
         <div className="relative z-[1]">
-          <div className="mb-1 flex items-center justify-between text-xs font-bold">
+          <div className="mb-3 flex items-center justify-between text-xs font-bold">
             <span className="rounded-full bg-black/35 px-2 py-1">Tu pila: {mio.pila}</span>
             {mio.escobas > 0 && <span className="rounded-full bg-naranja px-2 py-1 text-tinta">🧹 {mio.escobas} escoba{mio.escobas === 1 ? "" : "s"}</span>}
           </div>
-          <p className="mb-2 min-h-5 text-center text-sm font-bold text-crema/90" aria-live="polite">
-            {view.winner !== null
-              ? "Partida terminada"
-              : view.turn === yo
-                ? cartaSel
-                  ? combos.length
-                    ? "Elegí qué levantar (o dejala en la mesa)."
-                    : "Con esta no sumás 15: va a la mesa."
-                  : "Te toca: elegí una carta."
-                : `Juega ${nombre(view.turn, match)}…`}
-          </p>
-          {miTurno && cartaSel && (
-            <div className="mb-2 flex max-h-40 flex-col gap-1.5 overflow-y-auto">
-              {combos.map((a) => {
-                const levanta = view.mesa.filter((c) => a.levanta.includes(c.id));
-                const esEscoba = levanta.length === view.mesa.length;
-                return (
-                  <button key={a.levanta.join(",")} onClick={() => hacer(a)} className={`boton min-h-12 justify-start rounded-xl px-3 ${esEscoba ? "boton-oro" : "boton-verde"}`}>
-                    <span className="shrink-0">{esEscoba ? "🧹 Escoba:" : "Levantar"}</span>
-                    <span className="flex -space-x-2">
-                      {levanta.map((c) => (
-                        <SpanishCard key={c.id} card={c} width={26} />
-                      ))}
-                    </span>
-                    <span className="ml-auto text-xs">+{levanta.length + 1} cartas</span>
-                  </button>
-                );
-              })}
-              {puedeDejar && (
-                <button onClick={() => hacer({ type: "tirar", card: cartaSel.id, levanta: [] })} className="boton boton-cuero min-h-11 rounded-xl px-3">
-                  Dejarla en la mesa
-                </button>
-              )}
-            </div>
-          )}
           <div className="flex justify-center gap-2">
             <AnimatePresence>
               {view.hand.map((c) => {
@@ -319,6 +324,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: EMatch | null; onRevan
               })}
             </AnimatePresence>
           </div>
+          <BarraAcciones opciones={opcionesBarra} vacio={estadoTexto} />
         </div>
       </div>
 

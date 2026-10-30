@@ -24,7 +24,8 @@ export function FondoMesa({ id }: { id?: string }) {
   const f = id ?? fondoEnUso(save);
   const horizontal = <Art id={`fondo-${f}-horizontal` as ArtId} className="size-full object-cover" fallback={<></>} />;
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+    // Detrás de todo lo de la mesa (la pantalla que lo usa tiene que ser `isolate`).
+    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden>
       <div className="absolute inset-0 landscape:hidden">
         <Art id={`fondo-${f}-vertical` as ArtId} className="size-full object-cover" fallback={horizontal} />
       </div>
