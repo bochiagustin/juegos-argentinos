@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { playTuttiBotGame } from "./bot.ts";
 import { DICCIONARIO } from "./diccionario.ts";
-import { ALFABETO, conocida, DEFAULT_TUTTI_CONFIG, esValidaAuto, normalizar, puntuarCategoria, rechazadaPorVotos, tuttiFrutti } from "./game.ts";
+import { ALFABETO, conocida, DEFAULT_TUTTI_CONFIG, esValidaAuto, normalizar, puntuarCategoria, rechazadaPorVotos, tuttiFrutti, usarLexico, usarPalabrasPropias, veredicto } from "./game.ts";
 import { MESA, type TuttiAction, type TuttiConfig, type TuttiState } from "./types.ts";
 
 const ids = ["a", "b", "c"];
@@ -46,6 +46,64 @@ describe("normalización y validación", () => {
     expect(conocida("Animal", "carpincho")).toBe(true);
     expect(conocida("Animal", "Carpinchón")).toBe(false);
     expect(conocida("Superhéroe", "Batman")).toBeNull();
+  });
+});
+
+describe("diccionario: faltas de ortografía", () => {
+  it("bien escrita vale; con una falta se perdona; con dos se rechaza", () => {
+    expect(veredicto("País", "Argentina").tipo).toBe("conocida");
+    expect(veredicto("País", "árgentína").tipo).toBe("conocida"); // los acentos no cuentan
+    expect(veredicto("País", "Arjentina")).toEqual({ tipo: "perdonada", correccion: "argentina" });
+    expect(veredicto("País", "Argentna").tipo).toBe("perdonada"); // una de menos
+    expect(veredicto("País", "Argenitna").tipo).toBe("perdonada"); // dos dadas vuelta
+    expect(veredicto("País", "Arjentyna").tipo).toBe("desconocida");
+    expect(veredicto("Animal", "Pinguino").tipo).toBe("conocida");
+    expect(veredicto("Animal", "Pingüinoo").tipo).toBe("perdonada");
+    expect(veredicto("Animal", "Perrro").tipo).toBe("perdonada");
+    expect(veredicto("Animal", "Mesa").tipo).toBe("desconocida");
+  });
+
+  it("en palabras cortas no se perdona (una letra cambia todo) y la falta no puede cambiar la inicial", () => {
+    expect(veredicto("Animal", "Oso").tipo).toBe("conocida");
+    expect(veredicto("Animal", "Ozo").tipo).toBe("desconocida");
+    expect(veredicto("Animal", "Baca").tipo).toBe("desconocida"); // "vaca" empieza con otra letra
+  });
+
+  it("apellidos y marcas que no conoce quedan dudosos; las categorías propias no se validan", () => {
+    expect(veredicto("Apellido", "Zarlenga").tipo).toBe("dudosa");
+    expect(veredicto("Apellido", "Gonzalez").tipo).toBe("conocida");
+    expect(veredicto("Superhéroe", "Batman").tipo).toBe("conocida");
+  });
+
+  it("Cosa: con el léxico cargado se valida contra el castellano; sin léxico queda dudosa", () => {
+    usarLexico(null);
+    expect(veredicto("Cosa", "Zaranda").tipo).toBe("dudosa");
+    usarLexico(["mesa", "zaranda", "heladera"]);
+    expect(veredicto("Cosa", "Zaranda").tipo).toBe("conocida");
+    expect(veredicto("Cosa", "Eladera").tipo).toBe("desconocida"); // le falta la h: cambia la inicial
+    expect(veredicto("Cosa", "Heladerra").tipo).toBe("perdonada");
+    expect(veredicto("Cosa", "Zxcvbn").tipo).toBe("desconocida");
+    usarLexico(null);
+  });
+
+  it("las palabras reportadas por el jugador valen en su dispositivo", () => {
+    expect(veredicto("Animal", "Yaguarundí").tipo).toBe("desconocida");
+    usarPalabrasPropias([{ categoria: "Animal", palabra: "Yaguarundí" }]);
+    expect(veredicto("Animal", "yaguarundi").tipo).toBe("conocida");
+    usarPalabrasPropias([]);
+  });
+
+  it("en la ronda: la desconocida vale 0 y la perdonada es repetida de la bien escrita", () => {
+    let s = conLetra(nueva({ categorias: ["País", "Animal"] }), "P");
+    s = escribir(s, "a", ["Paraguay", "Perro"]);
+    s = escribir(s, "b", ["Paraguai", "Pxrrqo"]);
+    s = escribir(s, "c", ["Perú", ""]);
+    s = hacer(s, MESA, { type: "cerrar" });
+    const r = s.history[0]!;
+    expect(r.estados[1]![1]).toBe("desconocida");
+    expect(r.correcciones[1]![0]).toBe("paraguay");
+    expect(r.puntos.map((p) => p[0])).toEqual([5, 5, 10]);
+    expect(r.puntos.map((p) => p[1])).toEqual([20, 0, 0]);
   });
 });
 
@@ -112,13 +170,13 @@ describe("una ronda", () => {
 
   it("con votación: la mayoría rechaza, el autor no vota lo suyo y el empate se acepta", () => {
     let s = conLetra(nueva({ votacion: true }), "G");
-    s = escribir(s, "a", ["Gonzalo", "Gatopardo", "Gris"]);
+    s = escribir(s, "a", ["Gonzalo", "Gaviota", "Gris"]);
     s = escribir(s, "b", ["Gabriela", "Gato", ""]);
     s = escribir(s, "c", ["Gustavo", "", "Granate"]);
     s = hacer(s, MESA, { type: "cerrar" });
     expect(s.fase).toBe("revision");
     const v = tuttiFrutti.getPlayerView(s, "b");
-    expect(v.revision?.dudosas[0]![1]).toBe(true);
+    expect(v.revision?.estados[0]![1]).toBe("valida");
     expect(tuttiFrutti.applyAction(s, "a", { type: "votar", autor: 0, categoria: 1, rechazar: true }).ok).toBe(false);
     s = hacer(s, "b", { type: "votar", autor: 0, categoria: 1, rechazar: true });
     s = hacer(s, "c", { type: "votar", autor: 0, categoria: 1, rechazar: true });

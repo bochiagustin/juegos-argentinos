@@ -1,5 +1,7 @@
 import { clone, createRng, nextInt, type ActionResult, type GameDefinition, type PlayerId } from "../core/index.ts";
+import { COLORES_EXTRA, PAISES_EXTRA } from "./colores-paises.ts";
 import { DICCIONARIO } from "./diccionario.ts";
+import { ANIMALES_EXTRA, APELLIDOS_EXTRA, CIUDADES_EXTRA, COMIDAS_EXTRA, FRUTAS_VERDURAS_EXTRA, MARCAS_EXTRA, NOMBRES_EXTRA } from "./listas.ts";
 import { MESA, type EstadoRespuesta, type TuttiAction, type TuttiConfig, type TuttiEvent, type TuttiRoundResult, type TuttiState, type TuttiView } from "./types.ts";
 
 export const ALFABETO = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ".split("");
@@ -45,18 +47,105 @@ export function esValidaAuto(texto: string, letra: string): boolean {
   return true;
 }
 
+const separar = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
+
+/** Lo que se valida además del diccionario de los bots (listas grandes por categoría). */
+const EXTRAS: Readonly<Record<string, readonly string[]>> = {
+  nombre: separar(NOMBRES_EXTRA),
+  apellido: separar(APELLIDOS_EXTRA),
+  pais: PAISES_EXTRA,
+  ciudad: separar(CIUDADES_EXTRA),
+  animal: separar(ANIMALES_EXTRA),
+  "fruta o verdura": separar(FRUTAS_VERDURAS_EXTRA),
+  color: COLORES_EXTRA,
+  comida: separar(COMIDAS_EXTRA),
+  marca: separar(MARCAS_EXTRA),
+};
+
+/**
+ * Categorías "abiertas": no hay lista que las cubra enteras (apellidos, marcas), así que lo que no se conoce
+ * no se rechaza: queda dudoso (vale, salvo que la mesa lo vote en contra).
+ */
+const ABIERTAS = new Set(["apellido", "marca"]);
+
 const indice: Record<string, Set<string>> = {};
 function conocidas(categoria: string): Set<string> | null {
   const key = normalizar(categoria);
   const lista = DICCIONARIO[key];
   if (!lista) return null;
-  return (indice[key] ??= new Set(lista.map(normalizar)));
+  return (indice[key] ??= new Set([...lista, ...(EXTRAS[key] ?? [])].map(normalizar)));
+}
+
+// ── Palabras que se cargan aparte (no viven en el estado: son datos de referencia, como el diccionario) ──
+
+/** Léxico general del castellano para la categoría "Cosa" (lo carga la app; si no está, "Cosa" queda abierta). */
+let lexico: Set<string> | null = null;
+/** Palabras que el jugador reportó como válidas en este dispositivo: `categoría normalizada` → palabras. */
+let propias: Map<string, Set<string>> = new Map();
+
+export function usarLexico(palabras: Iterable<string> | null): void {
+  lexico = palabras ? new Set([...palabras].map(normalizar).filter(Boolean)) : null;
+}
+
+export function usarPalabrasPropias(lista: readonly { categoria: string; palabra: string }[]): void {
+  propias = new Map();
+  for (const { categoria, palabra } of lista) {
+    const k = normalizar(categoria);
+    if (!propias.has(k)) propias.set(k, new Set());
+    propias.get(k)!.add(normalizar(palabra));
+  }
 }
 
 /** ¿La máquina conoce esta respuesta? (null si la categoría no está en el diccionario) */
 export function conocida(categoria: string, texto: string): boolean | null {
+  const k = normalizar(categoria);
+  const n = normalizar(texto);
+  if (propias.get(k)?.has(n)) return true;
+  if (k === "cosa" && lexico?.has(n)) return true;
   const set = conocidas(categoria);
-  return set ? set.has(normalizar(texto)) : null;
+  return set ? set.has(n) : null;
+}
+
+const LETRAS = "abcdefghijklmnñopqrstuvwxyz ";
+
+/** Las palabras a una falta de ortografía (una letra de más, de menos, cambiada o dos dadas vuelta), con la misma inicial. */
+function aUnaFalta(n: string): Set<string> {
+  const out = new Set<string>();
+  for (let i = 0; i <= n.length; i++) {
+    for (const l of LETRAS) {
+      out.add(n.slice(0, i) + l + n.slice(i)); // de menos
+      if (i < n.length) out.add(n.slice(0, i) + l + n.slice(i + 1)); // cambiada
+    }
+    if (i < n.length) out.add(n.slice(0, i) + n.slice(i + 1)); // de más
+    if (i + 1 < n.length) out.add(n.slice(0, i) + n[i + 1] + n[i] + n.slice(i + 2)); // dadas vuelta
+  }
+  out.delete(n);
+  return new Set([...out].filter((x) => x[0] === n[0] && x.trim() === x && !x.includes("  ")));
+}
+
+/** Largo mínimo para perdonar una falta (en palabras cortas, una letra cambia todo: "oso" / "ojo"). */
+const LARGO_PARA_PERDONAR = 4;
+
+/**
+ * Qué dice el diccionario de una respuesta que ya pasó la validación automática (letra, vocales):
+ * - "conocida": está tal cual (sin contar acentos ni mayúsculas).
+ * - "perdonada": tiene una falta de ortografía; vale como `correccion`.
+ * - "dudosa": no la conoce, pero la categoría es abierta (apellidos, marcas) o no tiene diccionario cargado.
+ * - "desconocida": no está ni con una falta: se rechaza.
+ * Categorías propias (sin diccionario): siempre "conocida".
+ */
+export function veredicto(categoria: string, texto: string): { tipo: "conocida" | "perdonada" | "dudosa" | "desconocida"; correccion: string | null } {
+  const k = normalizar(categoria);
+  const n = normalizar(texto);
+  const curada = conocidas(categoria);
+  const sets = [curada, propias.get(k) ?? null, k === "cosa" ? lexico : null].filter((x): x is Set<string> => x !== null);
+  if (sets.length === 0) return { tipo: "conocida", correccion: null };
+  if (sets.some((s) => s.has(n))) return { tipo: "conocida", correccion: null };
+  if (n.replace(/ /g, "").length >= LARGO_PARA_PERDONAR) {
+    for (const v of aUnaFalta(n)) if (sets.some((s) => s.has(v))) return { tipo: "perdonada", correccion: v };
+  }
+  if (ABIERTAS.has(k) || (k === "cosa" && !lexico)) return { tipo: "dudosa", correccion: null };
+  return { tipo: "desconocida", correccion: null };
 }
 
 /** Palabras del diccionario para una categoría y una letra (las más comunes primero). */
@@ -95,11 +184,29 @@ function abrirRonda(s: TuttiState, ev: TuttiEvent[]) {
   ev.push({ type: "nueva-ronda", ronda: s.ronda, letra: s.letra });
 }
 
-/** Estado de cada respuesta antes de los votos. */
-function evaluar(s: TuttiState): { estados: EstadoRespuesta[][]; dudosas: boolean[][] } {
-  const estados = s.respuestas.map((rs) => rs.map((r): EstadoRespuesta => (normalizar(r) === "" ? "vacia" : esValidaAuto(r, s.letra) ? "valida" : "invalida")));
-  const dudosas = s.respuestas.map((rs, p) => rs.map((r, c) => estados[p]![c] === "valida" && conocida(s.config.categorias[c]!, r) === false));
-  return { estados, dudosas };
+/** Estado de cada respuesta antes de los votos (con el diccionario: faltas perdonadas, desconocidas y dudosas). */
+function evaluar(s: TuttiState): { estados: EstadoRespuesta[][]; dudosas: boolean[][]; correcciones: (string | null)[][] } {
+  const dudosas: boolean[][] = [];
+  const correcciones: (string | null)[][] = [];
+  const estados = s.respuestas.map((rs, p) => {
+    dudosas.push([]);
+    correcciones.push([]);
+    return rs.map((r, c): EstadoRespuesta => {
+      let estado: EstadoRespuesta = normalizar(r) === "" ? "vacia" : esValidaAuto(r, s.letra) ? "valida" : "invalida";
+      let correccion: string | null = null;
+      let dudosa = false;
+      if (estado === "valida") {
+        const v = veredicto(s.config.categorias[c]!, r);
+        if (v.tipo === "desconocida") estado = "desconocida";
+        correccion = v.correccion;
+        dudosa = v.tipo === "dudosa";
+      }
+      dudosas[p]!.push(dudosa);
+      correcciones[p]!.push(correccion);
+      return estado;
+    });
+  });
+  return { estados, dudosas, correcciones };
 }
 
 /** Rechazada si la mayoría de los demás votó en contra (empate: se acepta). */
@@ -129,22 +236,23 @@ function terminaPartida(s: TuttiState): boolean {
 }
 
 function cerrarRevision(s: TuttiState, ev: TuttiEvent[]) {
-  const { estados, dudosas } = evaluar(s);
+  const { estados, dudosas, correcciones } = evaluar(s);
   const n = s.players.length;
   for (let p = 0; p < n; p++)
     for (let c = 0; c < s.config.categorias.length; c++)
       if (estados[p]![c] === "valida" && rechazadaPorVotos(s.rechazos[clave(p, c)]?.length ?? 0, n)) estados[p]![c] = "rechazada";
   const puntos: number[][] = s.players.map(() => []);
   s.config.categorias.forEach((_, c) => {
+    // Las perdonadas cuentan como la palabra bien escrita (así "Arjentina" y "Argentina" son repetidas).
     const pts = puntuarCategoria(
-      s.respuestas.map((rs) => rs[c]!),
+      s.respuestas.map((rs, p) => correcciones[p]![c] ?? rs[c]!),
       estados.map((e) => e[c] === "valida"),
     );
     pts.forEach((x, p) => puntos[p]!.push(x));
   });
   const total = puntos.map((ps) => ps.reduce((a, b) => a + b, 0));
   s.score = s.score.map((x, p) => x + total[p]!);
-  const result: TuttiRoundResult = { ronda: s.ronda, letra: s.letra, respuestas: clone(s.respuestas), estados, dudosas, puntos, total, score: [...s.score], bastaPor: s.bastaPor };
+  const result: TuttiRoundResult = { ronda: s.ronda, letra: s.letra, respuestas: clone(s.respuestas), estados, dudosas, correcciones, puntos, total, score: [...s.score], bastaPor: s.bastaPor };
   s.history.push(result);
   ev.push({ type: "fin-ronda", result });
   s.listos = s.players.map(() => false);

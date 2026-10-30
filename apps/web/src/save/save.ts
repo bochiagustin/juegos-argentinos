@@ -51,7 +51,21 @@ export interface Save {
   juegos: Partial<Record<GameId, StatsJuego>>;
   /** Gira Nacional, fósforos, logros y lo desbloqueado. */
   carrera: CareerState;
+  /** Palabras del tutti-frutti que el jugador reportó como válidas (valen en este dispositivo y se mandan para corregir). */
+  reportadas: PalabraReportada[];
 }
+
+export interface PalabraReportada {
+  categoria: string;
+  palabra: string;
+  letra: string;
+  /** Cuándo (ms). */
+  fecha: number;
+  /** Ya llegó al servidor. */
+  enviada: boolean;
+}
+
+export const MAX_REPORTADAS = 300;
 
 const GAME_IDS: readonly GameId[] = ["truco", "chinchon", "casita-robada", "escoba", "tutti-frutti"];
 
@@ -69,6 +83,7 @@ export function defaultSave(): Save {
     ajustes: { sonido: true, vibracion: true, tema: "pano", mazo: MAZO_INICIAL, fondo: FONDO_INICIAL, menosAnimaciones: false, textoGrande: false },
     juegos: {},
     carrera: defaultCareer(),
+    reportadas: [],
   };
 }
 
@@ -129,6 +144,7 @@ function normalize(s: UnknownRecord): Save {
     },
     juegos: normalizeJuegos(s.juegos),
     carrera: normalizeCareer(s.carrera),
+    reportadas: normalizeReportadas(s.reportadas),
   };
 }
 
@@ -182,4 +198,20 @@ export function clearSave(store: KeyValueStore | undefined = defaultStore()): vo
   } catch {
     // Nada que hacer: si el storage no anda, tampoco hay nada guardado.
   }
+}
+
+const texto = (v: unknown, max: number) => (typeof v === "string" && v.trim().length > 0 && v.length <= max ? v.trim() : null);
+
+function normalizeReportadas(raw: unknown): PalabraReportada[] {
+  if (!Array.isArray(raw)) return [];
+  const out: PalabraReportada[] = [];
+  for (const r of raw) {
+    if (!isRecord(r)) continue;
+    const categoria = texto(r.categoria, 40);
+    const palabra = texto(r.palabra, 40);
+    const letra = texto(r.letra, 2);
+    if (!categoria || !palabra || !letra) continue;
+    out.push({ categoria, palabra, letra, fecha: num(r.fecha, 0), enviada: bool(r.enviada, false) });
+  }
+  return out.slice(-MAX_REPORTADAS);
 }

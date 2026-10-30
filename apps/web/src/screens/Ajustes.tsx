@@ -100,6 +100,41 @@ export function Ajustes() {
         </div>
       </Section>
 
+      <Section title="Tutti-Frutti: palabras reportadas">
+        {save.reportadas.length === 0 ? (
+          <p className="px-1 text-sm text-crema/75">Cuando el diccionario te rechace una palabra que está bien, reportala desde el resumen de la ronda. Valen desde ese momento en este dispositivo.</p>
+        ) : (
+          <div className="cuero rounded-2xl p-3">
+            <ul className="relative z-[1] flex max-h-56 flex-col gap-1 overflow-y-auto text-sm">
+              {[...save.reportadas].reverse().map((r) => (
+                <li key={`${r.categoria}|${r.palabra}`} className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1 truncate">
+                    <span className="font-black">{r.palabra}</span> <span className="text-crema/70">· {r.categoria}</span>
+                  </span>
+                  <span className="shrink-0 text-xs text-crema/70">{r.enviada ? "Enviada ✓" : "Sin enviar"}</span>
+                  <button
+                    aria-label={`Sacar ${r.palabra}`}
+                    onClick={() => update((s) => ({ ...s, reportadas: s.reportadas.filter((x) => x !== r) }))}
+                    className="grid size-9 shrink-0 place-items-center rounded-full bg-black/35 text-sm"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => {
+                const texto = save.reportadas.map((r) => `${r.categoria}: ${r.palabra} (${r.letra})`).join("\n");
+                void navigator.clipboard?.writeText(texto).then(() => playSfx("click"), () => playSfx("error"));
+              }}
+              className="boton boton-cuero relative z-[1] mt-2 min-h-11 w-full rounded-xl"
+            >
+              Copiar la lista
+            </button>
+          </div>
+        )}
+      </Section>
+
       <Section title="Datos">
         {confirmando ? (
           <div className="cuero cuero-rojo rounded-2xl p-4"><div className="relative z-[1]">

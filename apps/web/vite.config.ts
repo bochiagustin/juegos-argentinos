@@ -35,7 +35,7 @@ export default defineConfig({
       },
       workbox: {
         // La app (código, fuentes, íconos) queda precacheada: anda sin internet desde la primera visita.
-        globPatterns: ["**/*.{js,css,html,woff2,svg,png}", "texturas/*.webp", "arte/iconos/*.webp", "arte/logo-marco.webp", "arte/portada/*.webp", "mazos/argento-nuevo/*.webp"],
+        globPatterns: ["**/*.{js,css,html,woff2,svg,png}", "texturas/*.webp", "arte/iconos/*.webp", "arte/logo-marco.webp", "arte/portada/*.webp", "mazos/argento-nuevo/*.webp", "tutti/palabras.txt"],
         // El mazo de entrada (Nuevo Mazo Argento) viene precacheado; los otros se bajan al elegirlos.
         globIgnores: ["mazos/argento-memes/**", "mazos/argento-campeon/**"],
         // Mazos e ilustraciones: se guardan en caché a medida que se ven (o al elegir un mazo).

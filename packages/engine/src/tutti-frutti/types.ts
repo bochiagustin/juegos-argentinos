@@ -18,8 +18,8 @@ export interface TuttiConfig {
 
 export type TuttiFase = "escribiendo" | "basta" | "revision" | "resultado" | "fin";
 
-/** Cómo quedó una respuesta. */
-export type EstadoRespuesta = "vacia" | "invalida" | "rechazada" | "valida";
+/** Cómo quedó una respuesta. "desconocida": no está en el diccionario (ni con una falta de ortografía). */
+export type EstadoRespuesta = "vacia" | "invalida" | "desconocida" | "rechazada" | "valida";
 
 export interface TuttiRoundResult {
   ronda: number;
@@ -29,6 +29,8 @@ export interface TuttiRoundResult {
   estados: EstadoRespuesta[][];
   /** Válida, pero la máquina no la conoce. */
   dudosas: boolean[][];
+  /** Con una falta de ortografía perdonada: cómo se escribe bien (null si no tenía faltas). */
+  correcciones: (string | null)[][];
   puntos: number[][];
   /** Puntos de la ronda por jugador. */
   total: number[];
@@ -89,7 +91,7 @@ export interface TuttiView {
   misRespuestas: string[];
   bastaPor: number | null;
   /** En la revisión: todas las respuestas, cómo quedarían y los votos. */
-  revision: { respuestas: string[][]; estados: EstadoRespuesta[][]; dudosas: boolean[][]; rechazos: Record<string, number[]> } | null;
+  revision: { respuestas: string[][]; estados: EstadoRespuesta[][]; dudosas: boolean[][]; correcciones: (string | null)[][]; rechazos: Record<string, number[]> } | null;
   score: number[];
   history: TuttiRoundResult[];
   ganadores: number[] | null;

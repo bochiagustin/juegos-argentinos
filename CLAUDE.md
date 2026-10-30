@@ -84,7 +84,13 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
   `game.ts` (fases escribiendo → basta → [revision] → resultado → fin; `normalizar`, `esValidaAuto`, `puntuarCategoria`,
   `conocida`). El tiempo no está en el motor: la **mesa** (`MESA`, el servidor o la app) manda `cerrar` (tiempo o cuenta
   regresiva) y `seguir`. El texto de `escribir` es libre (las acciones válidas son representativas); `applyAction` valida.
-  Respuestas que la máquina no conoce = "dudosas": valen igual salvo que se voten (votación por mayoría, empate se acepta).
+  **Diccionario** (`veredicto`): listas por categoría (`diccionario.ts` de los bots + `listas.ts` + `colores-paises.ts` generado
+  con `tools/generar-listas-tutti.py`, licencias en `docs/licencias/listas-tutti.md`). Bien escrita (sin contar acentos) = vale;
+  **una falta** (letra de más/de menos/cambiada/dadas vuelta, misma inicial, 4+ letras) = vale como la bien escrita
+  (`correcciones`, cuenta como repetida); **dos o más** = `"desconocida"` (0 puntos). Apellido y Marca son abiertas: lo que no
+  conoce queda "dudoso" (vale salvo voto). "Cosa" usa el léxico general (`usarLexico`, lo baja la web de `public/tutti/palabras.txt`;
+  sin léxico, Cosa queda abierta). `usarPalabrasPropias`: las que el jugador reportó valen en su dispositivo.
+  Categorías propias: sin diccionario. La votación (por mayoría, empate se acepta) sigue para las válidas.
   Bot: `planTutti` (qué escribe y a qué ms), `votosTutti`; nivel = cuánto sabe y qué tan rápido escribe (20 s → 7 s por respuesta).
 
 ### Truco: decisiones de implementación
@@ -157,14 +163,16 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
   íconos de la PWA) y **no** se dejan en el repo. Ya están: logo (marco + texto en código), gaucho de portada, 10 rivales,
   íconos de canto y de pestañas, tarjeta del truco, mapa de la gira (medallones por región en `MapaGira.tsx`) e ícono de la app.
   De los 60 rivales faltan 50 retratos (prompts generados desde `aspecto` en `docs/prompts-arte.md` §5); sin retrato, emoji.
-- **Mazos** (`src/cards/decks.ts`): `criolla` (SVG propio) y los tres **Mazo Argento** (`argento-nuevo`, `argento-memes`,
+- **Mazos** (`src/cards/decks.ts`): todos gratis; de entrada el **Nuevo Mazo Argento** (`MAZO_INICIAL`, precacheado; guardado v4
+  pasa a quien tenía la Criolla de fábrica). `criolla` (SVG propio) y los tres **Mazo Argento** (`argento-nuevo`, `argento-memes`,
   `argento-campeon`, imágenes en `public/mazos/<id>/<cardId>.webp` + `dorso.webp`, usados con licencia: `docs/licencias/mazo-argento.md`).
   `<SpanishCard card width deck?>` dibuja con el mazo del `DeckContext` (el elegido en Ajustes); si falta una imagen, cae a la Criolla.
 - **La Criolla** (`src/cards/`): `SpanishCard.tsx` (SVG 200×300, índice en dos esquinas, marco con pausas oro 0 / copa 1 /
   espada 2 / basto 3, ases fileteados, dorso fileteado), `suits.tsx` (oro con Sol de Mayo, copa con filete, espada con gavilanes,
   basto de algarrobo), `figures.tsx` (Sota = peón con boina, Caballo = gaucho en un overo, Rey = patrón con bigotón y rastra;
   caricatura, el color del palo en la ropa), `filete.tsx` (voluta, hoja, cinta celeste y blanca, borla).
-- **Tutti-Frutti en la web** (`src/tutti/`): `TuttiSetup.tsx` (jugadores, rondas/puntos, tiempo, cuenta, categorías propias,
+- **Tutti-Frutti en la web** (`src/tutti/`): `palabras.ts` (carga el léxico, aplica las reportadas, `reportarPalabra` →
+  `save.reportadas` + POST `/reportes` al servidor de salas; Ajustes las lista y copia), `TuttiSetup.tsx` (jugadores, rondas/puntos, tiempo, cuenta, categorías propias,
   letras), `TuttiMesa.tsx` (ruleta, reloj, bots que escriben con su plan, ¡BASTA! con cuenta regresiva, revisión con votos,
   resumen por categoría; controlador propio porque es en tiempo real).
 - **Escoba en la web** (`src/escoba/`): `EscobaSetup.tsx`, `EscobaMesa.tsx` (sobre `useBotMatch`: tocás una carta y aparecen
@@ -221,6 +229,9 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
 - Identidad sin registro: token secreto por dispositivo (`online/conexion.ts`, localStorage) + apodo + avatar. Reconectar con
   el mismo token devuelve el asiento y la vista. Código de sala: 5 letras (sin I ni O); link `?sala=CODIGO`.
 - Protocolo en `src/protocolo.ts` (la web lo importa como `@juegos-argentinos/server/protocolo`).
+- **Palabras reportadas** (`reportes.ts`, Durable Object `ReportesServer`; en desarrollo, memoria): POST `/reportes` suma
+  `[{categoria, palabra, letra}]` (saneado, hasta 50), GET `/reportes` las devuelve de la más reportada a la menos. Para leerlas:
+  abrir `https://<servidor>/reportes`.
 
 ## Reglas de los juegos (fuente de verdad para el motor)
 
@@ -344,3 +355,6 @@ reglamento rioplatense estándar, dudas en `MEMORY.md`.)*
   *Fases 7, 8 y 9 hechas seguidas a pedido del usuario ("completá todas las fases"). Esperando correcciones.*
 - [x] **Después de la Fase 9** — Arte del usuario en la app (logo, gaucho, íconos, mapa, rivales), fondos de mesa
   desbloqueables, y Gira con ranking: 60 rivales con historia y rasgos (mentiroso/pescador/agresivo) que cambian el bot.
+  Retrato del rival en las mesas (`carrera/Cara.tsx`), mazos gratis. Chinchón: ordenar (juegos/menor/mayor/palo, se acomoda
+  sola), arrastrar al pozo o a la tijera para cortar, juegos bajados en la mesa al cortar, reparto carta por carta.
+  Tutti-Frutti: diccionario con una falta perdonada y botón de reportar palabra.

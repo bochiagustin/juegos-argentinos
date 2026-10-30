@@ -7,6 +7,7 @@ import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
 import { esCodigo } from "./protocolo.ts";
+import { acumular, claveReporte, CORS, MAX_GUARDADOS, ordenar, sanearReportes, type Acumulado } from "./reportes.ts";
 import { Sala, type Reloj } from "./sala.ts";
 
 const reloj: Reloj = {
@@ -18,7 +19,43 @@ const reloj: Reloj = {
 const port = Number(process.env.PORT ?? 8787);
 const salas = new Map<string, { sala: Sala; sockets: Map<string, WebSocket> }>();
 
-const http = createServer((_req, res) => {
+/** Palabras reportadas del tutti-frutti (en memoria: se pierden al reiniciar el servidor de desarrollo). */
+const reportados = new Map<string, Acumulado>();
+
+const http = createServer((req, res) => {
+  if ((req.url ?? "").split("?")[0] === "/reportes") {
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, CORS);
+      res.end();
+      return;
+    }
+    if (req.method === "GET") {
+      res.writeHead(200, { ...CORS, "content-type": "application/json" });
+      res.end(JSON.stringify(ordenar([...reportados.values()])));
+      return;
+    }
+    let datos = "";
+    req.on("data", (c: Buffer) => {
+      if (datos.length < 50_000) datos += c.toString();
+    });
+    req.on("end", () => {
+      let body: unknown = null;
+      try {
+        body = JSON.parse(datos);
+      } catch {
+        // queda en null: no se suma nada
+      }
+      const nuevos = sanearReportes(body);
+      for (const r of nuevos) {
+        const k = claveReporte(r);
+        if (!reportados.has(k) && reportados.size >= MAX_GUARDADOS) continue;
+        reportados.set(k, acumular(reportados.get(k), r, Date.now()));
+      }
+      res.writeHead(200, { ...CORS, "content-type": "application/json" });
+      res.end(JSON.stringify({ ok: true, recibidos: nuevos.length }));
+    });
+    return;
+  }
   res.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
   res.end("Juegos Argentinos: servidor de salas (desarrollo)");
 });

@@ -6,7 +6,13 @@
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
   "durable_objects": {
-    "bindings": [{ "name": "Sala", "class_name": "SalaServer" }]
+    "bindings": [
+      { "name": "Sala", "class_name": "SalaServer" },
+      { "name": "Reportes", "class_name": "ReportesServer" }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SalaServer"] }]
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["SalaServer"] },
+    { "tag": "v2", "new_sqlite_classes": ["ReportesServer"] }
+  ]
 }

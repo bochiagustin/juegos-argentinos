@@ -1,4 +1,5 @@
 import { personaje, type Hecho } from "@juegos-argentinos/career";
+import { aplicarPropias, cargarLexico, reintentarReportes, reportarPalabra } from "./palabras.ts";
 import { Cara } from "../carrera/Cara.tsx";
 import {
   ALFABETO,
@@ -72,7 +73,15 @@ const mmss = (s: number) => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.ma
 
 function Mesa({ initial, onRevancha, remoto }: { initial: TMatch | null; onRevancha?: (m: TMatch) => void; remoto?: Remoto }) {
   const { back } = useNav();
-  const { save } = useSave();
+  const { save, update } = useSave();
+  // El diccionario grande ("Cosa") se baja una vez; las palabras reportadas valen en este dispositivo.
+  useEffect(() => {
+    void cargarLexico();
+    reintentarReportes(save, update);
+    // Solo al entrar a la mesa.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => aplicarPropias(save.reportadas), [save.reportadas]);
   const cerrar = useCerrarPartida();
   const cerrarRef = useRef(cerrar);
   cerrarRef.current = cerrar;
@@ -439,7 +448,17 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TMatch | null; onRevan
         {view.fase === "revision" && <Revision key="revision" view={view} yo={yo} nombre={nombre} onVotar={(a) => apply(HUMAN_ID, a)} onListo={() => apply(HUMAN_ID, { type: "listo" })} />}
         {resumen && (
           <Modal key="resumen" onClose={() => {}} grande>
-            <Resumen r={resumen} categorias={view.config.categorias} nombre={nombre} />
+            <Resumen
+              r={resumen}
+              categorias={view.config.categorias}
+              nombre={nombre}
+              yo={yo}
+              reportada={(categoria, palabra) => save.reportadas.some((x) => x.categoria === categoria && x.palabra.toLowerCase() === palabra.trim().toLowerCase())}
+              onReportar={(categoria, palabra) => {
+                playSfx("click");
+                reportarPalabra(update, { categoria, palabra, letra: resumen.letra });
+              }}
+            />
             <button
               className="btn-criollo mt-4 min-h-14 w-full rounded-2xl font-criolla text-xl"
               onClick={() => {
@@ -474,7 +493,11 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TMatch | null; onRevan
               ))}
               <li>
                 En esta partida: {mmss(view.config.tiempoMaximo)} por ronda, {view.config.cuentaRegresiva} segundos después del ¡BASTA!
-                {view.config.votacion ? ", y las dudosas se votan." : ". Las que la máquina no conoce valen igual (salen marcadas como dudosas)."}
+                {view.config.votacion ? ", y las dudosas se votan." : "."}
+              </li>
+              <li>
+                Las respuestas se controlan con un diccionario argentino: con una falta de ortografía te la perdonamos; con dos, no vale. Los apellidos y las marcas que no conoce
+                valen igual (salen como dudosas). Si te rechaza una que está bien, reportala: desde ese momento vale en este dispositivo y nos llega para corregirla.
               </li>
             </ol>
           </Modal>
@@ -486,7 +509,21 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TMatch | null; onRevan
 
 const COLOR_PUNTOS: Record<number, string> = { 0: "bg-black/40 text-crema/60", 5: "bg-amber-700", 10: "bg-pano", 20: "bg-naranja text-tinta" };
 
-function Resumen({ r, categorias, nombre }: { r: TuttiRoundResult; categorias: string[]; nombre: (s: number) => string }) {
+function Resumen({
+  r,
+  categorias,
+  nombre,
+  yo,
+  reportada,
+  onReportar,
+}: {
+  r: TuttiRoundResult;
+  categorias: string[];
+  nombre: (s: number) => string;
+  yo: number;
+  reportada: (categoria: string, palabra: string) => boolean;
+  onReportar: (categoria: string, palabra: string) => void;
+}) {
   return (
     <>
       <h2 className="titulo-criollo text-center text-3xl">
@@ -498,21 +535,40 @@ function Resumen({ r, categorias, nombre }: { r: TuttiRoundResult; categorias: s
           <div key={cat} className="border-t border-crema/10 py-1.5">
             <p className="text-xs font-black uppercase tracking-wider text-crema/70">{cat}</p>
             <div className="flex flex-col gap-0.5">
-              {r.respuestas.map((rs, p) => (
-                <div key={p} className="flex items-center gap-2 text-sm">
-                  <span className="w-16 shrink-0 truncate text-xs text-crema/70">{nombre(p)}</span>
-                  <span className={`min-w-0 flex-1 truncate font-bold ${r.estados[p]![c] === "valida" ? "" : "text-crema/45 line-through"}`}>
-                    {rs[c]?.trim() || "—"}
-                    {r.dudosas[p]![c] && r.estados[p]![c] === "valida" && (
-                      <span className="ml-1 text-xs no-underline" title="La máquina no la conoce">
-                        🤔
+              {r.respuestas.map((rs, p) => {
+                const estado = r.estados[p]![c];
+                const correccion = r.correcciones?.[p]?.[c] ?? null;
+                const palabra = rs[c]?.trim() ?? "";
+                // Se puede reportar una propia que la máquina no aceptó o no conoce (para que se corrija el diccionario).
+                const reportable = p === yo && palabra !== "" && (estado === "desconocida" || (estado === "valida" && r.dudosas[p]![c]));
+                return (
+                  <div key={p} className="flex flex-col py-0.5">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="w-16 shrink-0 truncate text-xs text-crema/70">{nombre(p)}</span>
+                      <span className={`min-w-0 flex-1 truncate font-bold ${estado === "valida" ? "" : "text-crema/45 line-through"}`}>
+                        {palabra || "—"}
+                        {r.dudosas[p]![c] && estado === "valida" && (
+                          <span className="ml-1 text-xs no-underline" title="La máquina no la conoce">
+                            🤔
+                          </span>
+                        )}
+                        {estado === "rechazada" && <span className="ml-1 text-xs">(rechazada)</span>}
                       </span>
-                    )}
-                    {r.estados[p]![c] === "rechazada" && <span className="ml-1 text-xs">(rechazada)</span>}
-                  </span>
-                  <span className={`shrink-0 rounded-full px-2 text-xs font-black ${COLOR_PUNTOS[r.puntos[p]![c]!] ?? ""}`}>+{r.puntos[p]![c]}</span>
-                </div>
-              ))}
+                      {reportable &&
+                        (reportada(categorias[c]!, palabra) ? (
+                          <span className="shrink-0 text-[11px] font-bold text-crema/70">Reportada ✓</span>
+                        ) : (
+                          <button onClick={() => onReportar(categorias[c]!, palabra)} className="boton boton-fantasma min-h-8 shrink-0 rounded-lg px-2 text-[11px]">
+                            🚩 Reportar
+                          </button>
+                        ))}
+                      <span className={`shrink-0 rounded-full px-2 text-xs font-black ${COLOR_PUNTOS[r.puntos[p]![c]!] ?? ""}`}>+{r.puntos[p]![c]}</span>
+                    </div>
+                    {estado === "desconocida" && <span className="pl-[4.5rem] text-[11px] text-red-300">No está en el diccionario{reportable ? ": si es válida, reportala" : ""}</span>}
+                    {estado === "valida" && correccion && <span className="pl-[4.5rem] text-[11px] text-[#9be37a]">✏️ Con una falta, vale: se escribe “{correccion}”</span>}
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
