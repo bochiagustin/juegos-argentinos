@@ -15,7 +15,7 @@ import {
   type Meld,
 } from "@juegos-argentinos/engine/chinchon";
 import { AnimatePresence, motion, Reorder } from "motion/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { playSfx } from "../audio/sfx.ts";
 import { decir } from "../audio/voz.ts";
 import { SpanishCard } from "../cards/SpanishCard.tsx";
@@ -37,6 +37,40 @@ import { IconButton } from "../ui/ui.tsx";
 type CMatch = BotMatch<ChinchonConfig, ChinchonState>;
 
 const COLORES_COMBO = ["#f59e0b", "#63b3ed", "#8bc34a", "#e57373"];
+
+/** Cómo se ordena la mano: a mano (arrastrando) o sola, con cada carta nueva. */
+type ModoOrden = "manual" | "juegos" | "menor" | "mayor" | "palo";
+const MODOS_ORDEN: { id: Exclude<ModoOrden, "manual">; texto: string }[] = [
+  { id: "juegos", texto: "Juegos" },
+  { id: "menor", texto: "Menor a mayor" },
+  { id: "mayor", texto: "Mayor a menor" },
+  { id: "palo", texto: "Por palo" },
+];
+const CLAVE_ORDEN = "juegos-argentinos:chinchon-orden";
+const PALOS = ["espada", "basto", "oro", "copa"];
+
+function leerModoOrden(): ModoOrden {
+  try {
+    const v = localStorage.getItem(CLAVE_ORDEN);
+    return v === "juegos" || v === "menor" || v === "mayor" || v === "palo" ? v : "manual";
+  } catch {
+    return "manual";
+  }
+}
+
+/** La mano ordenada según el modo (los comodines, al final de lo suelto). */
+function ordenarMano(hand: readonly Card[], modo: Exclude<ModoOrden, "manual">, melds: readonly Meld[]): Card[] {
+  const valor = (c: Card) => (c.kind === "joker" ? 1000 : c.rank * 10 + PALOS.indexOf(c.suit));
+  const porPalo = (c: Card) => (c.kind === "joker" ? 1000 : PALOS.indexOf(c.suit) * 100 + c.rank);
+  if (modo === "palo") return [...hand].sort((a, b) => porPalo(a) - porPalo(b));
+  if (modo === "menor") return [...hand].sort((a, b) => valor(a) - valor(b));
+  if (modo === "mayor") return [...hand].sort((a, b) => (a.kind === "joker" ? 1 : b.kind === "joker" ? -1 : valor(b) - valor(a)));
+  // Juegos: cada combinación junta, y después las sueltas de menor a mayor.
+  const enJuego = new Set(melds.flatMap((m) => m.cards.map((c) => c.id)));
+  const juegos = melds.flatMap((m) => m.cards.map((c) => hand.find((h) => h.id === c.id)!).filter(Boolean));
+  const sueltas = hand.filter((c) => !enJuego.has(c.id)).sort((a, b) => valor(a) - valor(b));
+  return [...juegos, ...sueltas];
+}
 
 export function ChinchonMesa() {
   const { back, replace } = useNav();
@@ -75,6 +109,16 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
   const [reglas, setReglas] = useState(false);
   const [sel, setSel] = useState<string | null>(null);
   const [orden, setOrden] = useState<string[]>([]);
+  const [modoOrden, setModoOrden] = useState<ModoOrden>(leerModoOrden);
+  const [menuOrden, setMenuOrden] = useState(false);
+  /** Cuando alguien corta: las manos de todos bajadas en la mesa, antes de los puntos. */
+  const [bajada, setBajada] = useState<ChinchonRoundSummary | null>(null);
+  /** Reparto animado de una mano nueva (carta por carta). */
+  const [repartiendo, setRepartiendo] = useState(false);
+  const repartida = useRef<number | null>(null);
+  const [arrastrando, setArrastrando] = useState<string | null>(null);
+  const pozoRef = useRef<HTMLButtonElement>(null);
+  const corteRef = useRef<HTMLDivElement>(null);
 
   const nombre = (seat: number, m: CMatch) => (seat === yo ? "Vos" : m.jugadores[seat]!.nombre);
 
@@ -84,7 +128,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
     remoto,
     actor: (s) => (s.winner === null ? s.turn : null),
     choose: (v, va, rng, skill, _seat, rasgos) => chooseChinchonAction(v, va, rng, skill, chinchonProfile(skill, rasgos)),
-    pausa: resumen !== null || cartel !== null,
+    pausa: resumen !== null || cartel !== null || bajada !== null || repartiendo,
     pensar: (s) => (s.phase === "robar" ? 650 : 900),
     onEvents: (events: readonly ChinchonEvent[], next) => {
       const hechos: Hecho[] = [];
@@ -104,9 +148,9 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
           const mio = e.summary.results.find((r) => r.seat === yo);
           if (mio && e.summary.cutter !== yo && mio.laid.length > 0) hechos.push({ tipo: "ligadas", cantidad: mio.laid.length });
           setPendiente(true);
-          window.setTimeout(() => setResumen(e.summary), 1350);
+          // Primero se bajan los juegos de todos en la mesa; los puntos, cuando lo pidas (o solos al rato).
+          window.setTimeout(() => setBajada(e.summary), 1300);
         }
-        if (e.type === "nueva-ronda") window.setTimeout(() => playSfx("repartir"), 1500);
       }
       return hechos;
     },
@@ -132,14 +176,15 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
   const verFin = !resumen && !pendiente;
   const rules = rulesOf(view.config);
   // Orden de la mano: el que eligió el jugador; las cartas nuevas van al final.
+  const arreglo = useMemo(() => bestArrangement(view.hand, rules), [view.hand, rules]);
   const mano = useMemo(() => {
+    if (modoOrden !== "manual") return ordenarMano(view.hand, modoOrden, arreglo.melds);
     const ids = new Set(view.hand.map((c) => c.id));
     const kept = orden.filter((id) => ids.has(id as Card["id"]));
     const nuevas = view.hand.filter((c) => !kept.includes(c.id)).map((c) => c.id);
     const all = [...kept, ...nuevas];
     return all.map((id) => view.hand.find((c) => c.id === id)!);
-  }, [view.hand, orden]);
-  const arreglo = useMemo(() => bestArrangement(view.hand, rules), [view.hand, rules]);
+  }, [view.hand, orden, modoOrden, arreglo]);
   const comboDe = useMemo(() => {
     const m = new Map<string, number>();
     arreglo.melds.forEach((meld, i) => meld.cards.forEach((c) => m.set(c.id, i)));
@@ -167,11 +212,68 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
   const tirar = () => sel && valid.some((a) => a.type === "descartar" && a.card === sel) && (jugar({ type: "descartar", card: sel as Card["id"] }), setSel(null));
   const cortar = (card: string) => valid.some((a) => a.type === "cortar" && a.card === card) && (jugar({ type: "cortar", card: card as Card["id"] }), setSel(null));
 
-  const ordenar = (por: "palo" | "numero") => {
-    const key = (c: Card) => (c.kind === "joker" ? [9, 99] : por === "palo" ? ["espada", "basto", "oro", "copa"].indexOf(c.suit) * 100 + c.rank : c.rank * 10 + ["espada", "basto", "oro", "copa"].indexOf(c.suit));
-    setOrden([...view.hand].sort((a, b) => Number(key(a)) - Number(key(b))).map((c) => c.id));
+  const elegirOrden = (modo: ModoOrden) => {
+    setModoOrden(modo);
+    setMenuOrden(false);
+    try {
+      localStorage.setItem(CLAVE_ORDEN, modo);
+    } catch {
+      // Sin almacenamiento: el orden vale solo para esta partida.
+    }
     playSfx("click");
   };
+  /** Ordenar arrastrando deja la mano como la acomodaste (y, al soltar, deja de ordenarse sola). */
+  const reordenado = useRef(false);
+  const reordenar = (ids: string[]) => {
+    setOrden(ids);
+    reordenado.current = true;
+  };
+
+  /** Soltar una carta arrastrada: sobre el pozo la tira, sobre la zona de corte corta con ella. */
+  const soltar = (card: string, x: number, y: number) => {
+    setArrastrando(null);
+    const dentro = (el: HTMLElement | null) => {
+      const r = el?.getBoundingClientRect();
+      return !!r && x >= r.left - 12 && x <= r.right + 12 && y >= r.top - 12 && y <= r.bottom + 12;
+    };
+    const sobreAlgo = miTurno && view.phase === "descartar" && (dentro(corteRef.current) || dentro(pozoRef.current));
+    if (!sobreAlgo && reordenado.current && modoOrden !== "manual") elegirOrden("manual");
+    reordenado.current = false;
+    if (!sobreAlgo) return;
+    if (dentro(corteRef.current)) {
+      if (cortes.some((a) => a.card === card)) cortar(card);
+      else {
+        setCartel("Con esa no podés cortar");
+        playSfx("error");
+        window.setTimeout(() => setCartel(null), 1100);
+      }
+    } else if (dentro(pozoRef.current)) {
+      if (valid.some((a) => a.type === "descartar" && a.card === card)) {
+        jugar({ type: "descartar", card: card as Card["id"] });
+        setSel(null);
+      } else {
+        setCartel("Esa la levantaste del pozo");
+        playSfx("error");
+        window.setTimeout(() => setCartel(null), 1100);
+      }
+    }
+  };
+
+  // Mano nueva: se reparte carta por carta (después de cerrar los puntos de la anterior).
+  const ocupado = bajada !== null || resumen !== null || pendiente;
+  // Las cartas entran animadas desde el primer render de una mano nueva (el efecto de abajo arranca un instante después).
+  const animarReparto = repartiendo || (!ocupado && view.winner === null && repartida.current !== view.round);
+  useEffect(() => {
+    if (ocupado || view.winner !== null || repartida.current === view.round) return;
+    repartida.current = view.round;
+    setRepartiendo(true);
+    playSfx("barajar");
+    const n = view.players.filter((p) => !p.out).length;
+    const total = 7 * n;
+    const timers = Array.from({ length: total }, (_, k) => window.setTimeout(() => playSfx("carta"), 350 + k * 90));
+    timers.push(window.setTimeout(() => setRepartiendo(false), 450 + total * 90));
+    return () => timers.forEach(clearTimeout);
+  }, [view.round, ocupado, view.winner, view.players]);
 
   const revancha = () => {
     const skill = match.adaptativo ? skillForRating(statsDe(save, "chinchon").rating) : match.skills[1]!;
@@ -223,8 +325,15 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
             <span className="mt-0.5 max-w-20 truncate text-xs font-bold">{match.jugadores[p.seat]!.nombre}</span>
             <span className="text-xs font-black text-naranja">{p.out ? "Afuera" : `${p.score} pts`}</span>
             <div className="mt-0.5 flex -space-x-3">
-              {Array.from({ length: Math.min(p.cards, 8) }, (_, i) => (
-                <SpanishCard key={i} card={null} width={14} />
+              {Array.from({ length: ocupado ? 0 : Math.min(p.cards, 8) }, (_, i) => (
+                <motion.div
+                  key={`${view.round}-${i}`}
+                  initial={animarReparto ? { y: 90, opacity: 0 } : false}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: animarReparto ? 0.35 + (i * view.players.length + ((p.seat - yo + view.players.length) % view.players.length)) * 0.09 : 0 }}
+                >
+                  <SpanishCard card={null} width={14} />
+                </motion.div>
               ))}
             </div>
           </div>
@@ -232,6 +341,10 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
       </div>
 
       <div className="relative flex min-h-0 flex-1 items-center justify-center gap-6">
+        {bajada ? (
+          <Bajada r={bajada} yo={yo} nombre={(s) => nombre(s, match)} onVer={() => setResumen(bajada)} />
+        ) : (
+        <>
         <button onClick={() => robar("mazo")} disabled={!miTurno || view.phase !== "robar"} className="relative rounded-xl disabled:cursor-default" aria-label={`Robar del mazo (${view.mazoCount} cartas)`}>
           {[2, 1, 0].map((k) => (
             <div key={k} className="absolute" style={{ top: -k * 2, left: -k * 2 }}>
@@ -241,7 +354,13 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
           <SpanishCard card={null} width={72} highlight={miTurno && view.phase === "robar"} />
           <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-bold">Mazo · {view.mazoCount}</span>
         </button>
-        <button onClick={() => robar("pozo")} disabled={!miTurno || view.phase !== "robar" || !view.pozoTop} className="relative rounded-xl disabled:cursor-default" aria-label="Levantar del pozo">
+        <button
+          ref={pozoRef}
+          onClick={() => robar("pozo")}
+          disabled={!miTurno || view.phase !== "robar" || !view.pozoTop}
+          className={`relative rounded-xl transition disabled:cursor-default ${arrastrando ? "outline-3 outline-offset-4 outline-naranja" : ""}`}
+          aria-label="Levantar del pozo"
+        >
           <AnimatePresence mode="popLayout">
             {view.pozoTop ? (
               <motion.div key={view.pozoTop.id} initial={{ y: -40, opacity: 0, rotate: -15 }} animate={{ y: 0, opacity: 1, rotate: 4 }} className="rounded-xl shadow-lg shadow-black/40">
@@ -253,6 +372,21 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
           </AnimatePresence>
           <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-bold">Pozo · {view.pozoCount}</span>
         </button>
+        {miTurno && view.phase === "descartar" && mejorCorte && (
+          <motion.div
+            ref={corteRef}
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{ scale: arrastrando ? 1.08 : 1, opacity: 1 }}
+            className={`grid h-[108px] w-[72px] place-items-center rounded-xl border-2 border-dashed text-center text-xs font-black ${arrastrando ? "border-[#8bc34a] bg-[#2e7d32]/40" : "border-[#8bc34a]/70 bg-black/25"}`}
+          >
+            <span>
+              <span className="block text-2xl">✂</span>
+              Soltá acá para cortar
+            </span>
+          </motion.div>
+        )}
+        </>
+        )}
         <AnimatePresence>
           {cartel && (
             <motion.div
@@ -275,15 +409,27 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
               Vos: <span className="text-naranja">{view.players[yo]!.score} pts</span>
             </span>
             <span className={`rounded-full px-2 py-1 ${arreglo.looseSum <= view.config.corteMax ? "bg-pano" : "bg-black/35"}`}>Sueltas: {arreglo.looseSum}</span>
-            <span className="flex gap-1">
-              <button className="rounded-full bg-black/35 px-2 py-1" onClick={() => ordenar("palo")}>
-                Por palo
-              </button>
-              <button className="rounded-full bg-black/35 px-2 py-1" onClick={() => ordenar("numero")}>
-                Por número
-              </button>
-            </span>
+            <button className={`rounded-full px-3 py-1 ${modoOrden === "manual" ? "bg-black/35" : "bg-naranja text-tinta"}`} onClick={() => setMenuOrden((x) => !x)} aria-expanded={menuOrden}>
+              ⇅ Ordenar{modoOrden !== "manual" ? `: ${MODOS_ORDEN.find((m) => m.id === modoOrden)!.texto}` : ""}
+            </button>
           </div>
+          <AnimatePresence>
+            {menuOrden && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                <div className="hundido mb-2 flex flex-wrap justify-center gap-1.5 rounded-2xl p-1.5">
+                  {MODOS_ORDEN.map((m) => (
+                    <button key={m.id} onClick={() => elegirOrden(m.id)} className={`boton min-h-10 rounded-xl px-3 text-sm ${modoOrden === m.id ? "boton-oro" : "boton-cuero"}`}>
+                      {m.texto}
+                    </button>
+                  ))}
+                  <button onClick={() => elegirOrden("manual")} className={`boton min-h-10 rounded-xl px-3 text-sm ${modoOrden === "manual" ? "boton-oro" : "boton-fantasma"}`}>
+                    A mano
+                  </button>
+                </div>
+                <p className="mb-2 text-center text-[11px] text-crema/70">Elegido un orden, la mano se acomoda sola con cada carta que entra. Si arrastrás una carta, vuelve a ser a mano.</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <p className="mb-2 min-h-5 text-center text-sm font-bold text-crema/90" aria-live="polite">
             {estado}
           </p>
@@ -306,8 +452,8 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
               )}
             </div>
           )}
-          <Reorder.Group axis="x" values={mano.map((c) => c.id)} onReorder={setOrden} className="flex justify-center" as="div">
-            {mano.map((c, i) => {
+          <Reorder.Group axis="x" values={mano.map((c) => c.id)} onReorder={reordenar} className="flex justify-center" as="div">
+            {(ocupado ? [] : mano).map((c, i) => {
               const combo = comboDe.get(c.id);
               // Que entren todas (con 12 px de solapamiento entre cartas) en el ancho disponible.
               const n = Math.max(mano.length, 7);
@@ -318,21 +464,32 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
                   value={c.id}
                   as="div"
                   className="relative -ml-3 first:ml-0"
-                  style={{ zIndex: i }}
+                  style={{ zIndex: arrastrando === c.id ? 50 : i }}
+                  // En tu turno de tirar, la carta se puede levantar y soltar sobre el pozo o la zona de corte.
+                  drag={miTurno && view.phase === "descartar" ? true : "x"}
+                  onDragStart={() => setArrastrando(c.id)}
+                  onDragEnd={(e: PointerEvent) => soltar(c.id, e.clientX, e.clientY)}
                   onTap={() => {
                     if (!miTurno || view.phase !== "descartar") return;
                     setSel((x) => (x === c.id ? null : c.id));
                     playSfx("click");
                   }}
                 >
-                  <motion.div animate={{ y: sel === c.id ? -16 : 0 }} className="rounded-lg shadow-lg shadow-black/40" style={combo !== undefined ? { boxShadow: `0 0 0 3px ${COLORES_COMBO[combo % COLORES_COMBO.length]}` } : {}}>
+                  <motion.div
+                    key={view.round}
+                    initial={animarReparto ? { y: -260, x: -40, opacity: 0, rotate: -12 } : false}
+                    animate={{ y: sel === c.id ? -16 : 0, x: 0, opacity: 1, rotate: 0 }}
+                    transition={animarReparto ? { delay: 0.35 + i * view.players.length * 0.09, type: "spring", stiffness: 260, damping: 24 } : {}}
+                    className="rounded-lg shadow-lg shadow-black/40" style={combo !== undefined ? { boxShadow: `0 0 0 3px ${COLORES_COMBO[combo % COLORES_COMBO.length]}` } : {}}>
                     <SpanishCard card={c} width={width} highlight={sel === c.id} dimmed={c.id === view.tomadaDelPozo && view.phase === "descartar" && sel === c.id} />
                   </motion.div>
                 </Reorder.Item>
               );
             })}
           </Reorder.Group>
-          <p className="mt-2 text-center text-[11px] text-crema/60">Arrastrá las cartas para ordenarlas. Los bordes de color marcan las combinaciones.</p>
+          <p className="mt-2 text-center text-[11px] text-crema/60">
+            {miTurno && view.phase === "descartar" ? "Arrastrá una carta al pozo para tirarla" + (mejorCorte ? " o a la tijera para cortar." : ".") : "Arrastrá las cartas para ordenarlas. Los bordes de color marcan las combinaciones."}
+          </p>
         </div>
       </div>
 
@@ -345,6 +502,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
             yo={yo}
             onSeguir={() => {
               setResumen(null);
+              setBajada(null);
               setPendiente(false);
             }}
             terminado={view.winner !== null}
@@ -382,27 +540,53 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
   );
 }
 
-function MiniMano({ melds, loose, laid }: { melds: Meld[]; loose: Card[]; laid: Card[] }) {
+/** Las manos de todos bajadas en la mesa después de un corte: juegos, ligadas y sueltas. */
+function Bajada({ r, yo, nombre, onVer }: { r: ChinchonRoundSummary; yo: number; nombre: (seat: number) => string; onVer: () => void }) {
+  // Si no la cerrás, los puntos aparecen solos al rato.
+  useEffect(() => {
+    const t = window.setTimeout(onVer, 6000);
+    return () => clearTimeout(t);
+  }, [onVer]);
+  return (
+    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex max-h-full w-full max-w-lg flex-col gap-2 overflow-y-auto px-3 py-2">
+      <p className="titulo-criollo text-center text-2xl">{r.chinchon ? "¡Chinchón!" : r.menosDiez ? "¡Menos diez!" : r.cutter === yo ? "Cortaste" : `Cortó ${nombre(r.cutter)}`}</p>
+      {r.results.map((x, k) => (
+        <motion.div key={x.seat} initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 + k * 0.25 }} className="rounded-xl bg-black/35 px-2 py-1.5">
+          <p className="mb-1 text-xs font-black">
+            {x.seat === r.cutter ? "✂ " : ""}
+            {nombre(x.seat)} <span className="font-bold text-crema/70">· {x.points > 0 ? `+${x.points}` : x.points}</span>
+          </p>
+          <MiniMano melds={x.melds} loose={x.loose} laid={x.laid} ancho={34} />
+        </motion.div>
+      ))}
+      <button className="boton boton-oro mx-auto min-h-12 rounded-xl px-6" onClick={onVer}>
+        Ver los puntos
+      </button>
+    </motion.div>
+  );
+}
+
+function MiniMano({ melds, loose, laid, ancho = 26 }: { melds: Meld[]; loose: Card[]; laid: Card[]; ancho?: number }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       {melds.map((m, i) => (
         <div key={i} className="flex -space-x-2 rounded-md p-0.5" style={{ boxShadow: `0 0 0 2px ${COLORES_COMBO[i % COLORES_COMBO.length]}` }}>
           {m.cards.map((c) => (
-            <SpanishCard key={c.id} card={c} width={26} />
+            <SpanishCard key={c.id} card={c} width={ancho} />
           ))}
         </div>
       ))}
       {laid.length > 0 && (
         <div className="flex -space-x-2 rounded-md p-0.5 outline-2 outline-dashed outline-celeste" title="Ligadas">
           {laid.map((c) => (
-            <SpanishCard key={c.id} card={c} width={26} />
+            <SpanishCard key={c.id} card={c} width={ancho} />
           ))}
         </div>
       )}
       {loose.length > 0 && (
         <div className="flex -space-x-2 opacity-80">
           {loose.map((c) => (
-            <SpanishCard key={c.id} card={c} width={26} dimmed />
+            <SpanishCard key={c.id} card={c} width={ancho} dimmed />
           ))}
         </div>
       )}
@@ -414,7 +598,7 @@ function ResumenRonda({ r, match, yo, onSeguir, terminado }: { r: ChinchonRoundS
   const nombre = (seat: number) => (seat === yo ? "Vos" : match.jugadores[seat]!.nombre);
   return (
     <Modal onClose={onSeguir} grande>
-      <h2 className="titulo-criollo mb-1 text-center text-3xl">{r.chinchon ? "¡Chinchón!" : r.menosDiez ? "¡Menos diez!" : `Cortó ${nombre(r.cutter)}`}</h2>
+      <h2 className="titulo-criollo mb-1 text-center text-3xl">{r.chinchon ? "¡Chinchón!" : r.menosDiez ? "¡Menos diez!" : r.cutter === yo ? "Cortaste" : `Cortó ${nombre(r.cutter)}`}</h2>
       <p className="mb-3 text-center text-sm text-crema/80">Mano {r.number}</p>
       <div className="flex flex-col gap-2">
         {r.results.map((x) => (
