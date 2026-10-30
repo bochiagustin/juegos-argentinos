@@ -1,5 +1,4 @@
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
-import { deckDisponible } from "./cards/decks.ts";
 import { DeckContext } from "./cards/SpanishCard.tsx";
 import { Gira } from "./carrera/Gira.tsx";
 import { Logros } from "./carrera/Logros.tsx";
@@ -77,7 +76,7 @@ function Shell() {
   const { route } = useNav();
   const { save } = useSave();
   return (
-    <DeckContext.Provider value={deckDisponible(save.ajustes.mazo, save.carrera) ? save.ajustes.mazo : "criolla"}>
+    <DeckContext.Provider value={save.ajustes.mazo}>
       {/* Respeta "reducir movimiento" del sistema, o el ajuste propio. */}
       <MotionConfig reducedMotion={save.ajustes.menosAnimaciones ? "always" : "user"}>
       <AnimatePresence mode="wait" initial={false}>

@@ -1,4 +1,3 @@
-import { tiene, type CareerState } from "@juegos-argentinos/career";
 import type { Card } from "@juegos-argentinos/engine";
 
 /**
@@ -74,7 +73,5 @@ export function prefetchDeck(deck: DeckId, cards: readonly Card[]): void {
   }
 }
 
-/** La Criolla viene de entrada; los demás se compran con fósforos o se ganan en la gira. */
-export function deckDisponible(deck: DeckId, carrera: CareerState): boolean {
-  return deck === "criolla" || tiene(carrera, `mazo:${deck}`);
-}
+/** El mazo que se usa si no elegiste otro: el Nuevo Mazo Argento (todos los mazos son gratis). */
+export const MAZO_INICIAL: DeckId = "argento-nuevo";

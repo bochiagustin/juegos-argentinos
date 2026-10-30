@@ -1,4 +1,5 @@
 import { personaje, type Hecho } from "@juegos-argentinos/career";
+import { Cara } from "../carrera/Cara.tsx";
 import {
   ALFABETO,
   esValidaAuto,
@@ -360,7 +361,9 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TMatch | null; onRevan
           <div className="mt-1.5 flex gap-2 overflow-x-auto text-[11px] font-bold">
             {view.players.map((p) => (
               <span key={p.seat} className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 ${p.seat === yo ? "bg-pano" : "bg-black/35"}`}>
-                <span aria-hidden>{jugadores[p.seat]!.avatar}</span>
+                <span aria-hidden className="relative grid size-5 place-items-center overflow-hidden rounded-full">
+                  <Cara avatar={jugadores[p.seat]!.avatar} rivalId={carrera && p.seat === 1 ? carrera.rivalId : undefined} />
+                </span>
                 {nombre(p.seat)} {p.seat === yo ? respuestas.filter((r) => r.trim()).length : p.llenas}/{view.config.categorias.length} · <span className="text-naranja">{view.score[p.seat]}</span>
               </span>
             ))}

@@ -112,7 +112,7 @@ export const LOGROS: LogroDef[] = [
   { id: "pasaporte", nombre: "Pasaporte", descripcion: "Desbloqueá Cuyo en cualquier gira.", icono: "🛂", fosforos: 30 },
   { id: "gira-completa", nombre: "Gira Nacional", descripcion: "Ganale al Capitán de la Fragata en cualquier gira.", icono: "🇦🇷", fosforos: 300 },
   { id: "campeon-nacional", nombre: "Campeón nacional", descripcion: "Completá todas las giras.", icono: "👑", fosforos: 1000 },
-  { id: "coleccionista", nombre: "Coleccionista", descripcion: "Conseguí un Mazo Argento.", icono: "🃏", fosforos: 20 },
+  { id: "coleccionista", nombre: "Coleccionista", descripcion: "Conseguí un fondo de mesa de la tienda.", icono: "🖼️", fosforos: 20 },
   { id: "treinta-y-tres", nombre: "Treinta y tres", descripcion: "Cantá 33 de envido.", icono: "🎯", fosforos: 30, juego: "truco" },
   { id: "vale-cuatro", nombre: "¡Vale cuatro!", descripcion: "Ganá una mano con el vale cuatro querido.", icono: "4️⃣", fosforos: 30, juego: "truco" },
   { id: "ancho-en-tercera", nombre: "El ancho en la tercera", descripcion: "Ganá la tercera baza con el ancho de espada.", icono: "🗡️", fosforos: 20, juego: "truco" },
@@ -132,14 +132,11 @@ export const LOGROS: LogroDef[] = [
 
 /** Lo que se compra con fósforos. */
 export const TIENDA: { id: string; nombre: string; precio: number }[] = [
-  { id: "mazo:argento-nuevo", nombre: "Nuevo Mazo Argento", precio: 250 },
-  { id: "mazo:argento-memes", nombre: "Mazo Argento Memes", precio: 400 },
-  { id: "mazo:argento-campeon", nombre: "Mazo Argento Campeón del Mundo", precio: 600 },
-  // Fondos de mesa que se compran (ver fondos.ts).
+  // Fondos de mesa que se compran (ver fondos.ts). Los mazos son todos gratis.
   { id: "fondo:cafe", nombre: "Fondo: Café de barrio", precio: 300 },
   { id: "fondo:quincho", nombre: "Fondo: Quincho de verano", precio: 400 },
   { id: "fondo:estancia", nombre: "Fondo: Galería de estancia", precio: 500 },
 ];
 
-/** Regalo por completar Buenos Aires en cualquier gira. */
-export const REGALO_BUENOS_AIRES = "mazo:argento-nuevo";
+/** Regalo por completar Buenos Aires en cualquier gira (un fondo de la tienda). */
+export const REGALO_BUENOS_AIRES = "fondo:estancia";

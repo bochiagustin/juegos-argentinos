@@ -92,7 +92,7 @@ describe("gira con ranking", () => {
     const ultimo = premios[premios.length - 1]!;
     expect(ultimo.puntos).toBe(200);
     expect(ultimo.regionDesbloqueada).toBe("cuyo");
-    expect(ultimo.regalo).toBe("mazo:argento-nuevo");
+    expect(ultimo.regalo).toBe("fondo:estancia");
     const e = estadoGira(GIRA_TRUCO, progresoDe(state, "truco"));
     expect(e[0]!.miPuesto).toBe(1);
     expect(e[0]!.completa).toBe(true);
@@ -178,15 +178,15 @@ describe("logros y fósforos", () => {
     expect(new Set(LOGROS.map((l) => l.id)).size).toBe(LOGROS.length);
   });
 
-  it("tienda: comprar con fósforos", () => {
-    const s = { ...defaultCareer(), fosforos: 300 };
-    const r = comprar(s, "mazo:argento-nuevo");
+  it("tienda: comprar con fósforos (los mazos ya no se venden: son gratis)", () => {
+    const s = { ...defaultCareer(), fosforos: 450 };
+    const r = comprar(s, "fondo:cafe");
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.state.fosforos).toBe(50);
-    expect(comprar(r.state, "mazo:argento-nuevo")).toEqual({ ok: false, error: "Ya lo tenés" });
-    expect(comprar(r.state, "mazo:argento-memes").ok).toBe(false);
-    expect(comprar(s, "mazo:poker").ok).toBe(false);
+    expect(r.state.fosforos).toBe(150);
+    expect(comprar(r.state, "fondo:cafe")).toEqual({ ok: false, error: "Ya lo tenés" });
+    expect(comprar(r.state, "fondo:quincho").ok).toBe(false);
+    expect(comprar(s, "mazo:argento-nuevo").ok).toBe(false);
     expect(TIENDA.every((t) => t.precio > 0)).toBe(true);
   });
 });
@@ -217,13 +217,13 @@ describe("guardado de la carrera", () => {
       fosforos: -5,
       giras: { truco: { puntos: 450, vencidos: { "buenos-aires-1": 2, "<script>": 1 }, jugadas: 3, puestos: { "buenos-aires": ["yo", "yo"], cuyo: "x" } }, poker: {} },
       logros: { "primera-victoria": 123, inventado: 1 },
-      desbloqueados: ["mazo:argento-nuevo", "mazo:argento-nuevo", "trucho"],
+      desbloqueados: ["fondo:cafe", "fondo:cafe", "mazo:argento-nuevo", "trucho"],
     });
     expect(s.fosforos).toBe(FOSFOROS_INICIALES);
     expect(s.giras.truco).toEqual({ puntos: 450, vencidos: { "buenos-aires-1": 2 }, jugadas: 3, puestos: {} });
     expect(Object.keys(s.giras)).toEqual(["truco"]);
     expect(s.logros).toEqual({ "primera-victoria": 123 });
-    expect(s.desbloqueados).toEqual(["mazo:argento-nuevo"]);
+    expect(s.desbloqueados).toEqual(["fondo:cafe"]);
   });
 
   it("registrar no muta la carrera recibida", () => {

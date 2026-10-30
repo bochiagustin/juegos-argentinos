@@ -8,11 +8,11 @@
 
 import { defaultCareer, FONDO_INICIAL, FONDOS, normalizeCareer, type CareerState } from "@juegos-argentinos/career";
 import type { GameId } from "@juegos-argentinos/engine";
-import { isDeckId, type DeckId } from "../cards/decks.ts";
+import { isDeckId, MAZO_INICIAL, type DeckId } from "../cards/decks.ts";
 import { DEFAULT_RATING } from "../ia/nivel.ts";
 
 export const SAVE_KEY = "juegos-argentinos:save";
-export const CURRENT_VERSION = 3;
+export const CURRENT_VERSION = 4;
 
 export type Tema = "pano" | "claro" | "auto";
 
@@ -66,7 +66,7 @@ export function defaultSave(): Save {
   return {
     version: CURRENT_VERSION,
     perfil: { apodo: "", avatar: "🧉", creado: false },
-    ajustes: { sonido: true, vibracion: true, tema: "pano", mazo: "criolla", fondo: FONDO_INICIAL, menosAnimaciones: false, textoGrande: false },
+    ajustes: { sonido: true, vibracion: true, tema: "pano", mazo: MAZO_INICIAL, fondo: FONDO_INICIAL, menosAnimaciones: false, textoGrande: false },
     juegos: {},
     carrera: defaultCareer(),
   };
@@ -86,6 +86,8 @@ const MIGRATIONS: Record<number, (s: UnknownRecord) => UnknownRecord> = {
   1: (s) => ({ ...s, version: 2, juegos: {} }),
   // v3: modo carrera (arranca vacío; los mazos que ya se usaban se respetan abajo en normalize).
   2: (s) => ({ ...s, version: 3, carrera: defaultCareer() }),
+  // v4: los Mazo Argento pasan a ser gratis y el Nuevo es el de entrada: quien seguía con la Criolla de fábrica, cambia.
+  3: (s) => ({ ...s, version: 4, ajustes: isRecord(s.ajustes) && s.ajustes.mazo !== "criolla" ? s.ajustes : { ...(isRecord(s.ajustes) ? s.ajustes : {}), mazo: MAZO_INICIAL } }),
 };
 
 const num = (v: unknown, fallback: number, min = 0) => (typeof v === "number" && Number.isFinite(v) && v >= min ? v : fallback);

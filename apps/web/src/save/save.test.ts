@@ -52,11 +52,19 @@ describe("guardado", () => {
   it("migra un guardado v1 hasta la versión actual sin perder el perfil", () => {
     const v1 = { version: 1, perfil: { apodo: "Tito", avatar: "🤠", creado: true }, ajustes: { sonido: false, vibracion: true, tema: "claro", mazo: "argento-memes" } };
     const s = migrate(v1);
-    expect(s.version).toBe(3);
+    expect(s.version).toBe(4);
     expect(s.carrera.fosforos).toBeGreaterThan(0);
     expect(s.perfil).toEqual(v1.perfil);
     expect(s.ajustes).toEqual({ ...v1.ajustes, fondo: "boliche", menosAnimaciones: false, textoGrande: false });
     expect(s.juegos).toEqual({});
+  });
+
+  it("v4: quien tenía la Criolla de fábrica pasa al Nuevo Mazo Argento; el que eligió otro, lo conserva", () => {
+    expect(migrate({ version: 3, ajustes: { mazo: "criolla" } }).ajustes.mazo).toBe("argento-nuevo");
+    expect(migrate({ version: 3, ajustes: { mazo: "argento-memes" } }).ajustes.mazo).toBe("argento-memes");
+    expect(migrate({ version: 3 }).ajustes.mazo).toBe("argento-nuevo");
+    // Ya en v4 la Criolla es una elección: se respeta.
+    expect(migrate({ version: 4, ajustes: { mazo: "criolla" } }).ajustes.mazo).toBe("criolla");
   });
 
   it("normaliza las estadísticas por juego", () => {
@@ -87,7 +95,7 @@ describe("guardado", () => {
     });
     expect(s.perfil.apodo).toBe("El Polaco de Boe");
     expect(s.perfil.avatar).toBe("🧉");
-    expect(s.ajustes).toEqual({ sonido: true, vibracion: false, tema: "pano", mazo: "criolla", fondo: "boliche", menosAnimaciones: false, textoGrande: false });
+    expect(s.ajustes).toEqual({ sonido: true, vibracion: false, tema: "pano", mazo: "argento-nuevo", fondo: "boliche", menosAnimaciones: false, textoGrande: false });
   });
 
   it("no da por creado un perfil sin apodo", () => {

@@ -177,7 +177,7 @@ function cumple(id: string, s: CareerState, r: Reporte): boolean {
     case "campeon-nacional":
       return CAREER_GAMES.every(giraCompleta);
     case "coleccionista":
-      return s.desbloqueados.some((d) => d.startsWith("mazo:"));
+      return s.desbloqueados.some((d) => d.startsWith("fondo:"));
     case "treinta-y-tres":
       return hecho(r, "truco-tanto").some((h) => h.valor === 33);
     case "vale-cuatro":

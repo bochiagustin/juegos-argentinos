@@ -1,8 +1,9 @@
 import { personaje, type Hecho } from "@juegos-argentinos/career";
+import { Cara, rivalEn } from "../carrera/Cara.tsx";
 import type { SuitedCard } from "@juegos-argentinos/engine";
 import { casita, casitaProfile, chooseCasitaAction, sonCompaneros, type CasitaAction, type CasitaConfig, type CasitaEvent, type CasitaState, type CasitaView } from "@juegos-argentinos/engine/casita";
 import { AnimatePresence, motion } from "motion/react";
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { playSfx, vibrate } from "../audio/sfx.ts";
 import { decir } from "../audio/voz.ts";
 import { SpanishCard } from "../cards/SpanishCard.tsx";
@@ -45,12 +46,14 @@ export function CasitaMesa() {
   return <Mesa key={partida.n} initial={partida.m} onRevancha={(m) => setPartida((p) => ({ m, n: p.n + 1 }))} />;
 }
 
-function Casita({ top, cartas, nombre, avatar, activo, grande, compa }: { top: SuitedCard | null; cartas: number; nombre: string; avatar: string; activo: boolean; grande?: boolean; compa?: boolean }) {
+function Casita({ top, cartas, nombre, avatar, activo, grande, compa }: { top: SuitedCard | null; cartas: number; nombre: string; avatar: ReactNode; activo: boolean; grande?: boolean; compa?: boolean }) {
   const w = grande ? 70 : 54;
   return (
     <div className="flex flex-col items-center gap-1">
       <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold ${activo ? "bg-naranja text-tinta" : "bg-black/45"}`}>
-        <span aria-hidden>{avatar}</span>
+        <span aria-hidden className="relative grid size-6 place-items-center overflow-hidden rounded-full">
+          {avatar}
+        </span>
         <span className="max-w-20 truncate">{nombre}</span>
         {compa && <span aria-label="compañero">🤝</span>}
       </span>
@@ -202,7 +205,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: KMatch | null; onRevan
               top={p.top}
               cartas={p.casita}
               nombre={match.jugadores[p.seat]!.nombre}
-              avatar={match.jugadores[p.seat]!.avatar}
+              avatar={<Cara avatar={match.jugadores[p.seat]!.avatar} rivalId={rivalEn(match, p.seat)} />}
               activo={view.turn === p.seat && !view.result}
               compa={sonCompaneros(view.config, yo, p.seat)}
             />

@@ -3,7 +3,7 @@
  * Lógica pura: dice qué fondos tiene el jugador mirando su carrera.
  */
 import { estadoGira, progresoDe, tiene } from "./career.ts";
-import { GIRAS, LOGROS } from "./data.ts";
+import { GIRAS, LOGROS, REGALO_BUENOS_AIRES } from "./data.ts";
 import { CAREER_GAMES, type CareerState, type RegionId } from "./types.ts";
 
 export type Desbloqueo =
@@ -91,6 +91,6 @@ export function comoSeDesbloquea(f: FondoDef): string {
     case "logros":
       return `Conseguí ${d.cantidad} logros`;
     case "tienda":
-      return `Se compra con ${d.precio} fósforos`;
+      return `Se compra con ${d.precio} fósforos${`fondo:${f.id}` === REGALO_BUENOS_AIRES ? " (o ganale al jefe de Buenos Aires)" : ""}`;
   }
 }

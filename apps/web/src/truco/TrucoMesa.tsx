@@ -1,4 +1,5 @@
 import type { SuitedCard } from "@juegos-argentinos/engine";
+import { Cara, rivalEn } from "../carrera/Cara.tsx";
 import { teamOf, type RoundSummary, type Seat, type Trick, type TrucoAction, type TrucoView } from "@juegos-argentinos/engine/truco";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { useEffect, useState } from "react";
@@ -237,7 +238,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
                 key={p.seat}
                 pos={layout[rel(p.seat)]!.avatar}
                 nombre={nombre(p.seat)}
-                avatar={match.jugadores[p.seat]!.avatar}
+                avatar={<Cara avatar={match.jugadores[p.seat]!.avatar} rivalId={rivalEn(match, p.seat)} />}
                 cartas={congelada ? Math.max(0, 3 - jugadasEn(p.seat)) : p.cardsLeft}
                 mano={view.mano === p.seat && !congelada}
                 actua={view.actor === p.seat && !resumen && !congelada}
@@ -406,7 +407,7 @@ function Chip({ children }: { children: React.ReactNode }) {
   return <span className="shrink-0 whitespace-nowrap rounded-full border border-[#c9a24a]/60 bg-black/55 px-3 py-1 text-crema shadow-[inset_0_1px_0_rgb(255_230_190/0.15)]">{children}</span>;
 }
 
-function Avatar(props: { pos: Punto; nombre: string; avatar: string; cartas: number; mano: boolean; actua: boolean; companero: boolean; compacto: boolean }) {
+function Avatar(props: { pos: Punto; nombre: string; avatar: React.ReactNode; cartas: number; mano: boolean; actua: boolean; companero: boolean; compacto: boolean }) {
   const { pos, nombre, avatar, cartas, mano, actua, companero, compacto } = props;
   const size = compacto ? "size-11 text-2xl" : "size-14 text-3xl";
   return (
@@ -419,7 +420,7 @@ function Avatar(props: { pos: Punto; nombre: string; avatar: string; cartas: num
             transition={{ duration: 1.2, repeat: Infinity }}
           />
         )}
-        <span className={`grid ${size} place-items-center rounded-full border-[3px] bg-black/40 shadow-lg shadow-black/40 ${companero ? "border-celeste" : "border-[#d9a066]"}`}>
+        <span className={`relative grid ${size} place-items-center overflow-hidden rounded-full border-[3px] bg-black/40 shadow-lg shadow-black/40 ${companero ? "border-celeste" : "border-[#d9a066]"}`}>
           {avatar}
         </span>
         {mano && <span className="absolute -right-3 -top-1 rounded-full bg-naranja px-1.5 text-[10px] font-black uppercase text-tinta">Mano</span>}

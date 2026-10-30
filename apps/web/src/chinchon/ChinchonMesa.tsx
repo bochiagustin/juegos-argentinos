@@ -1,4 +1,5 @@
 import { personaje, type Hecho } from "@juegos-argentinos/career";
+import { Cara, rivalEn } from "../carrera/Cara.tsx";
 import type { Card } from "@juegos-argentinos/engine";
 import {
   bestArrangement,
@@ -216,7 +217,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
         {rivales.map((p) => (
           <div key={p.seat} className={`flex flex-col items-center ${p.out ? "opacity-40" : ""}`}>
             <span className={`relative grid size-12 place-items-center rounded-full border-[3px] bg-black/40 text-2xl ${view.turn === p.seat && view.winner === null ? "border-naranja" : "border-[#d9a066]"}`}>
-              {match.jugadores[p.seat]!.avatar}
+              <Cara avatar={match.jugadores[p.seat]!.avatar} rivalId={rivalEn(match, p.seat)} />
               {view.mano === p.seat && <span className="absolute -right-3 -top-1 rounded-full bg-naranja px-1 text-[9px] font-black uppercase text-tinta">Mano</span>}
             </span>
             <span className="mt-0.5 max-w-20 truncate text-xs font-bold">{match.jugadores[p.seat]!.nombre}</span>

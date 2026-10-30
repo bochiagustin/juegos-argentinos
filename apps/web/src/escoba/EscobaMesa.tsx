@@ -1,4 +1,5 @@
 import { personaje, type Hecho } from "@juegos-argentinos/career";
+import { Cara, rivalEn } from "../carrera/Cara.tsx";
 import type { SuitedCard } from "@juegos-argentinos/engine";
 import { bandoDe, chooseEscobaAction, escoba, valorEscoba, type EscobaAction, type EscobaConfig, type EscobaEvent, type EscobaRoundSummary, type EscobaState } from "@juegos-argentinos/engine/escoba";
 import { AnimatePresence, motion } from "motion/react";
@@ -197,8 +198,8 @@ function Mesa({ initial, onRevancha, remoto }: { initial: EMatch | null; onRevan
       <div className="flex justify-center gap-4 px-3 pt-2">
         {otros.map((p) => (
           <div key={p.seat} className="flex flex-col items-center">
-            <span className={`grid size-12 place-items-center rounded-full border-[3px] bg-black/40 text-2xl ${view.turn === p.seat && view.winner === null ? "border-naranja" : bandoDe(view.config, p.seat) === miBando ? "border-celeste" : "border-[#d9a066]"}`}>
-              {match.jugadores[p.seat]!.avatar}
+            <span className={`relative grid size-12 place-items-center overflow-hidden rounded-full border-[3px] bg-black/40 text-2xl ${view.turn === p.seat && view.winner === null ? "border-naranja" : bandoDe(view.config, p.seat) === miBando ? "border-celeste" : "border-[#d9a066]"}`}>
+              <Cara avatar={match.jugadores[p.seat]!.avatar} rivalId={rivalEn(match, p.seat)} />
             </span>
             <span className="mt-0.5 max-w-20 truncate text-xs font-bold">{match.jugadores[p.seat]!.nombre}</span>
             <span className="text-[11px] font-bold text-crema/80">

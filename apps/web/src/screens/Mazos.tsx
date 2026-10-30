@@ -1,11 +1,11 @@
-import { comoSeDesbloquea, comprar, FONDOS, fondoDesbloqueado, TIENDA } from "@juegos-argentinos/career";
+import { comoSeDesbloquea, comprar, FONDOS, fondoDesbloqueado } from "@juegos-argentinos/career";
 import { Art } from "../art/Art.tsx";
 import type { ArtId } from "../art/manifest.ts";
 import { fondoEnUso, fondoListo } from "../fondos/fondos.tsx";
 import { cardFromId, createDeck, SUITS, SUIT_NAMES } from "@juegos-argentinos/engine";
 import { useMemo, useState } from "react";
 import { playSfx } from "../audio/sfx.ts";
-import { DECK_IDS, DECKS, deckDisponible, prefetchDeck, type DeckId } from "../cards/decks.ts";
+import { DECK_IDS, DECKS, prefetchDeck, type DeckId } from "../cards/decks.ts";
 import { SpanishCard } from "../cards/SpanishCard.tsx";
 import { SuitBadge } from "../cards/suits.tsx";
 import { useNav } from "../nav.tsx";
@@ -19,7 +19,7 @@ const FULL_DECK = createDeck({ size: 48, jokers: 2 });
 export function Mazos() {
   const { back } = useNav();
   const { save, update } = useSave();
-  const enUso = deckDisponible(save.ajustes.mazo, save.carrera) ? save.ajustes.mazo : "criolla";
+  const enUso = save.ajustes.mazo;
   const [error, setError] = useState<string | null>(null);
   const [viendo, setViendo] = useState<DeckId>(enUso);
   const skin = DECKS[viendo];
@@ -30,18 +30,6 @@ export function Mazos() {
     setViendo(id);
     prefetchDeck(id, FULL_DECK);
     playSfx("barajar");
-  };
-
-  const comprarMazo = (id: DeckId) => {
-    const r = comprar(save.carrera, `mazo:${id}`);
-    if (!r.ok) {
-      setError(r.error);
-      playSfx("error");
-      return;
-    }
-    setError(null);
-    update((s) => ({ ...s, carrera: r.state }));
-    usar(id);
   };
 
   const usarFondo = (id: string) => {
@@ -72,8 +60,6 @@ export function Mazos() {
         {DECK_IDS.map((id) => {
           const d = DECKS[id];
           const activo = id === enUso;
-          const disponible = deckDisponible(id, save.carrera);
-          const precio = TIENDA.find((t) => t.id === `mazo:${id}`)?.precio;
           return (
             <div
               key={id}
@@ -103,10 +89,6 @@ export function Mazos() {
               <div className="relative z-[1] mt-3 flex justify-end">
                 {activo ? (
                   <span className="rounded-full bg-pano px-4 py-2 text-sm font-black text-crema">✓ En uso</span>
-                ) : !disponible ? (
-                  <button onClick={() => comprarMazo(id)} className="flex min-h-11 items-center gap-1.5 rounded-full bg-black/45 px-4 text-sm font-black text-crema active:scale-95">
-                    🔒 Comprar · <FosforoIcono /> {precio}
-                  </button>
                 ) : (
                   <button onClick={() => usar(id)} className="min-h-11 rounded-full bg-naranja px-5 text-sm font-black text-tinta active:scale-95">
                     Usar este mazo
