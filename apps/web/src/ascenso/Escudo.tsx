@@ -1,18 +1,23 @@
 import { club, YO_CLUB, type Club } from "@juegos-argentinos/career";
-import { useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { Cara } from "../carrera/Cara.tsx";
 import { useSave } from "../save/SaveContext.tsx";
+
+/** El club que elegiste en el Ascenso que se está mostrando (`YO_CLUB` se dibuja con su escudo y su nombre). */
+export const MiClub = createContext<string | null>(null);
 
 /** Ruta del escudo que sube el usuario (ver docs/escudos.md). */
 export const escudoUrl = (id: string) => `${import.meta.env.BASE_URL}arte/escudos/${id}.webp`;
 
 /**
  * Escudo de un club del Ascenso: la imagen si está, o uno dibujado con sus colores y su sigla.
- * `YO_CLUB` es tu club: tu avatar en un escudo celeste y blanco.
+ * `YO_CLUB` es tu club: el que elegiste (`MiClub`) o, sin elección, tu avatar en un escudo celeste y blanco.
  */
-export function Escudo({ id, className = "size-10" }: { id: string; className?: string }) {
+export function Escudo({ id: crudo, className = "size-10" }: { id: string; className?: string }) {
   const [falla, setFalla] = useState(false);
   const { save } = useSave();
+  const mio = useContext(MiClub);
+  const id = crudo === YO_CLUB && mio ? mio : crudo;
   if (id === YO_CLUB)
     return (
       <span className={`relative grid shrink-0 place-items-center ${className}`}>
@@ -62,5 +67,9 @@ function EscudoDibujado({ colores: [c1, c2], sigla }: { colores: Club["colores"]
 /** Nombre para mostrar: el del club o, si sos vos, tu apodo. */
 export function useNombreClub() {
   const { save } = useSave();
-  return (id: string) => (id === YO_CLUB ? save.perfil.apodo || "Tu club" : (club(id)?.nombre ?? id));
+  const mio = useContext(MiClub);
+  return (id: string) => {
+    const real = id === YO_CLUB && mio ? mio : id;
+    return real === YO_CLUB ? save.perfil.apodo || "Tu club" : (club(real)?.nombre ?? real);
+  };
 }

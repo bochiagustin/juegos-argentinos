@@ -143,15 +143,17 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
   `src/partidas/` (partida contra bots genérica `match.ts` + `useBotMatch.ts`, `FinPartida.tsx` común).
   Guardado v3 con `carrera`. Los Mazo Argento están bloqueados hasta comprarlos o ganarlos.
 
-- **Ascenso** (`career/src/ascenso.ts` + `clubes.ts`): 79 clubes reales + tu club (`YO_CLUB`), 4 categorías de 20, una
-  rueda (`fixture`, método del círculo), `CALENDARIO` = 19 fechas + 5 rondas de Copa Argentina (32). `proximoPartido`,
+- **Ascenso** (`career/src/ascenso.ts` + `clubes.ts`): 116 clubes reales de FootyLogos 2026 (id = slug de FootyLogos),
+  4 categorías con su tamaño real (`TAMANO`: C 28, B 22, Nacional 36, Primera 30). Elegís cualquier club (`miClub`; en las
+  listas es `YO_CLUB`, `idReal`) y arranca en la C, con ascensos en cascada para tapar su hueco. Una rueda (`fixture`,
+  método del círculo), `calendario(n)` = n − 1 fechas + 5 rondas de Copa Argentina (32) repartidas. `proximoPartido`,
   `registrarAscenso` (simula el resto de la fecha, las rondas de copa sin vos, el Reducido 2º–8º y el cierre con
   ascensos/descensos; una revancha no cuenta), `nuevaTemporada`, `normalizarAscenso`. Puro: azar por hash de la semilla.
   `CareerState.ascensos[game]`; el rival va como `rivalId = "ascenso:<club>"` (`PREFIJO_ASCENSO`; `rasgosRival`/`bajadaRival`
   sirven para los dos modos). Web: `src/ascenso/` (`Ascenso.tsx`: próximo partido, tabla con zonas, Copa, Reducido,
-  historial; `Escudo.tsx`: `arte/escudos/<id>.webp` o uno dibujado), `partidas/lanzar.ts` (arma la partida 1v1 de la
+  historial, y antes de arrancar `ElegirClub`; `Escudo.tsx`: `arte/escudos/<id>.webp` o uno dibujado, `MiClub` = contexto con el club elegido), `partidas/lanzar.ts` (arma la partida 1v1 de la
   carrera, lo usa también la Gira). Fin de partido del Ascenso: "Volver al torneo" (sin revancha). Escudos:
-  `tools/escudos.py <carpeta>`, checklist en `docs/escudos.md`. 4 logros (ascenso, a Primera, campeón, Copa).
+  `tools/bajar-escudos.py` (los baja de FootyLogos), `docs/escudos.md`. 4 logros (ascenso, a Primera, campeón, Copa).
 
 ### Carrera y logros (diseño original)
 
@@ -384,4 +386,4 @@ reglamento rioplatense estándar, dudas en `MEMORY.md`.)*
   sola), arrastrar al pozo o a la tijera para cortar, juegos bajados en la mesa al cortar, reparto carta por carta.
   Tutti-Frutti: diccionario con una falta perdonada y botón de reportar palabra.
 - [x] **Ascenso** — modo nuevo en los cinco juegos: de la Primera C a Primera con clubes reales, Reducido, descensos y
-  Copa Argentina. Faltan los escudos (los sube el usuario; mientras, escudos dibujados).
+  Copa Argentina. 116 clubes reales con escudos (FootyLogos), elegís tu club y arranca en la C.

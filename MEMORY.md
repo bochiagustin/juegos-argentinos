@@ -89,7 +89,11 @@ Memoria de trabajo del proyecto: lo que el usuario pidió, prefirió o decidió 
   **descienden los 2 últimos** (en la C no). Primera: el 1º es campeón (sin Reducido). **Copa Argentina de 32**
   (8 por categoría) intercalada después de las fechas 3, 7, 11, 15 y 18. Nivel fijo por club (C 1–4 … Primera 7–10).
   Las reglas de cada partido son las de la región de la Gira equivalente (C = Buenos Aires … Primera = Norte).
-  *Supuestos a confirmar:* el 2º con bye en el Reducido; Primera sin Reducido; planteles aproximados a 2025.
+  *Supuestos a confirmar:* el 2º con bye en el Reducido; Primera sin Reducido.
+  **Actualización (mismo día):** clubes y categorías reales de FootyLogos 2026 con su cantidad real (Primera 30,
+  Nacional 36, B Metro 22, C 28: 116 clubes, escudos bajados de ahí). **Elegís cualquier club** y arranca en la C; el
+  hueco que deja lo llena el mejor de cada categoría de abajo (en cascada). Ya no hay "club propio" con tu apodo.
+  Próximo pedido: más copas, internacionales (Libertadores, Sudamericana) y nacionales.
 
 ## Dudas abiertas (preguntar antes de implementar la fase correspondiente)
 

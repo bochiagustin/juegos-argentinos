@@ -1,7 +1,8 @@
 import {
-  CALENDARIO,
+  calendarioDe,
+  CATEGORIAS,
   club,
-  EQUIPOS,
+  CLUBES,
   iniciarAscenso,
   miCategoria,
   NOMBRE_CATEGORIA,
@@ -20,7 +21,7 @@ import {
 } from "@juegos-argentinos/career";
 import { randomSeed } from "@juegos-argentinos/engine";
 import { motion } from "motion/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { playSfx } from "../audio/sfx.ts";
 import { gameInfo } from "../games.ts";
 import { nivelNombre } from "../ia/nivel.ts";
@@ -29,7 +30,7 @@ import { lanzarPartida } from "../partidas/lanzar.ts";
 import { useSave } from "../save/SaveContext.tsx";
 import { Fosforos } from "../ui/Modal.tsx";
 import { Screen } from "../ui/ui.tsx";
-import { Escudo, useNombreClub } from "./Escudo.tsx";
+import { Escudo, MiClub, useNombreClub } from "./Escudo.tsx";
 
 type Pestana = "tabla" | "copa" | "reducido" | "historial";
 
@@ -43,35 +44,95 @@ export function Ascenso({ game }: { game: CareerGame }) {
   return (
     <Screen title={`Ascenso · ${gameInfo(game).nombre}`} onBack={back} right={<Fosforos n={save.carrera.fosforos} />}>
       {p ? (
-        <Torneo game={game} p={p} guardar={guardar} />
+        <MiClub.Provider value={p.miClub}>
+          <Torneo game={game} p={p} guardar={guardar} />
+        </MiClub.Provider>
       ) : (
-        <section className="cuero cuero-oscuro rounded-3xl p-5">
-          <div className="relative z-[1] flex flex-col gap-3">
-            <h2 className="titulo-criollo text-center text-4xl">¡A la cancha!</h2>
-            <p>
-              Tu club arranca en la <b>Primera C</b>. Cada fecha es una partida de {gameInfo(game).nombre.toLowerCase()} contra otro club: ganar suma 3 puntos y perder,
-              ninguno (no hay empates).
-            </p>
-            <ul className="flex flex-col gap-1.5 text-sm">
-              <li>🥇 El 1º asciende directo.</li>
-              <li>🔥 Del 2º al 8º juegan el Reducido (cuartos, semis y final): el campeón también sube.</li>
-              <li>⬇️ Los dos últimos descienden.</li>
-              <li>🏆 En el calendario se mete la Copa Argentina: cruces con clubes de todas las categorías.</li>
-              <li>📈 C → B Metropolitana → Primera Nacional → Primera. Cuanto más arriba, mejores los rivales.</li>
-            </ul>
-            <button
-              className="btn-criollo mt-2 min-h-14 rounded-2xl font-criolla text-2xl"
-              onClick={() => {
-                playSfx("click");
-                guardar(iniciarAscenso(randomSeed()));
-              }}
-            >
-              <span className="relative z-[1]">¡Arrancar!</span>
-            </button>
-          </div>
-        </section>
+        <ElegirClub game={game} onElegir={(id) => guardar(iniciarAscenso(randomSeed(), id))} />
       )}
     </Screen>
+  );
+}
+
+/** Antes de arrancar: cómo es el torneo y qué club querés llevar de la C a Primera. */
+function ElegirClub({ game, onElegir }: { game: CareerGame; onElegir: (id: string) => void }) {
+  const [busca, setBusca] = useState("");
+  const [elegido, setElegido] = useState<string | null>(null);
+  const norma = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const lista = useMemo(() => CLUBES.filter((c) => norma(c.nombre).includes(norma(busca.trim()))), [busca]);
+  const c = elegido ? club(elegido) : undefined;
+  return (
+    <>
+      <section className="cuero cuero-oscuro rounded-3xl p-5">
+        <div className="relative z-[1] flex flex-col gap-3">
+          <h2 className="titulo-criollo text-center text-4xl">¡A la cancha!</h2>
+          <p>
+            Elegí tu club: el que sea, <b>arranca en la Primera C</b>. Cada fecha es una partida de {gameInfo(game).nombre.toLowerCase()} contra otro club: ganar suma
+            3 puntos y perder, ninguno (no hay empates).
+          </p>
+          <ul className="flex flex-col gap-1.5 text-sm">
+            <li>🥇 El 1º asciende directo.</li>
+            <li>🔥 Del 2º al 8º juegan el Reducido (cuartos, semis y final): el campeón también sube.</li>
+            <li>⬇️ Los dos últimos descienden.</li>
+            <li>🏆 En el calendario se mete la Copa Argentina: cruces con clubes de todas las categorías.</li>
+            <li>📈 C (28) → B Metro (22) → Primera Nacional (36) → Primera (30). Cuanto más arriba, mejores los rivales.</li>
+          </ul>
+        </div>
+      </section>
+
+      <input
+        value={busca}
+        onChange={(e) => setBusca(e.target.value)}
+        placeholder="Buscá tu club…"
+        aria-label="Buscar club"
+        className="mt-4 min-h-12 w-full rounded-2xl border border-borde bg-superficie px-4 font-bold text-texto outline-none placeholder:font-normal placeholder:text-texto-suave/70 focus:border-naranja"
+      />
+      <div className="mt-3 flex flex-col gap-4 pb-28">
+        {[...CATEGORIAS].reverse().map((cat) => {
+          const deCat = lista.filter((x) => x.categoria === cat);
+          if (!deCat.length) return null;
+          return (
+            <section key={cat}>
+              <h3 className="mb-1.5 px-1 text-xs font-black uppercase tracking-wider text-naranja">{NOMBRE_CATEGORIA[cat]}</h3>
+              <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {deCat.map((x) => (
+                  <li key={x.id}>
+                    <button
+                      onClick={() => {
+                        playSfx("click");
+                        setElegido(x.id);
+                      }}
+                      aria-pressed={elegido === x.id}
+                      className={`flex min-h-28 w-full flex-col items-center justify-center gap-1 rounded-2xl border-2 px-1 py-2 text-center text-xs font-bold leading-tight ${elegido === x.id ? "border-naranja bg-naranja/20" : "border-crema/10 bg-black/25"}`}
+                    >
+                      <Escudo id={x.id} className="size-14" />
+                      <span className="line-clamp-2">{x.nombre}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
+      </div>
+      {c && (
+        <motion.div initial={{ y: 80 }} animate={{ y: 0 }} className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-xl px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+          <button
+            className="btn-criollo flex min-h-16 w-full items-center gap-3 rounded-2xl px-4 text-left shadow-xl shadow-black/50"
+            onClick={() => {
+              playSfx("barajar");
+              onElegir(c.id);
+            }}
+          >
+            <Escudo id={c.id} className="relative z-[1] size-12" />
+            <span className="relative z-[1] min-w-0 flex-1">
+              <span className="block truncate font-criolla text-xl">¡Vamos {c.nombre}!</span>
+              <span className="block text-xs font-bold opacity-80">Arranca en la Primera C</span>
+            </span>
+          </button>
+        </motion.div>
+      )}
+    </>
   );
 }
 
@@ -84,7 +145,8 @@ function Torneo({ game, p, guardar }: { game: CareerGame; p: AscensoProgress; gu
   const mia = tabla.find((x) => x.id === YO_CLUB)!;
   const prox = proximoPartido(p);
   const [pestana, setPestana] = useState<Pestana>(p.fase === "reducido" ? "reducido" : "tabla");
-  const fechasJugadas = CALENDARIO.slice(0, p.paso).filter((f) => f.tipo === "liga").length;
+  const fechas = p.categorias[cat].length - 1;
+  const fechasJugadas = calendarioDe(p).slice(0, p.paso).filter((f) => f.tipo === "liga").length;
   const reglas = reglasAscenso(game, cat);
 
   const jugar = () => {
@@ -109,7 +171,7 @@ function Torneo({ game, p, guardar }: { game: CareerGame; p: AscensoProgress; gu
           {NOMBRE_CATEGORIA[cat]} · Temporada {p.temporada}
         </span>
         <span className="rounded-full bg-black/35 px-3 py-1">
-          {mia.puesto}º · {mia.fila.pts} pts · Fecha {Math.min(fechasJugadas + 1, EQUIPOS - 1)}/{EQUIPOS - 1}
+          {mia.puesto}º · {mia.fila.pts} pts · Fecha {Math.min(fechasJugadas + 1, fechas)}/{fechas}
         </span>
       </div>
 
@@ -174,7 +236,7 @@ function EquipoGrande({ id, nombre, detalle }: { id: string; nombre: string; det
 function Tabla({ p, cat }: { p: AscensoProgress; cat: Categoria }) {
   const nombre = useNombreClub();
   const zona = (puesto: number) =>
-    puesto === 1 ? "border-l-[#4caf50]" : cat !== "primera" && puesto <= 8 ? "border-l-naranja" : cat !== "c" && puesto > EQUIPOS - 2 ? "border-l-[#e53935]" : "border-l-transparent";
+    puesto === 1 ? "border-l-[#4caf50]" : cat !== "primera" && puesto <= 8 ? "border-l-naranja" : cat !== "c" && puesto > p.categorias[cat].length - 2 ? "border-l-[#e53935]" : "border-l-transparent";
   return (
     <>
       <table className="w-full table-fixed text-sm">
