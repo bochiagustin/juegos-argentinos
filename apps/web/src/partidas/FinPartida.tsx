@@ -54,6 +54,7 @@ export function FinPartida({
             {p.puesto.despues === 1 ? " · ¡Sos el número uno de la región!" : ""}
           </Aviso>
         )}
+        {p.ascenso?.lineas.map((l) => <Aviso key={l}>{l}</Aviso>)}
         {p.giraCompleta && <Aviso>🇦🇷 ¡Completaste la Gira Nacional!</Aviso>}
         {region && <Aviso>🗺️ Se abrió {region}</Aviso>}
         {regalo && <Aviso>🎁 Ganaste el {regalo}</Aviso>}
@@ -78,12 +79,20 @@ export function FinPartida({
       </div>
 
       <div className="flex flex-col gap-2">
-        <button disabled={!armado} className="btn-criollo min-h-14 rounded-2xl font-criolla text-2xl" onClick={onRevancha}>
-          <span className="relative z-[1]">Revancha</span>
-        </button>
-        <button disabled={!armado} className="boton boton-cuero min-h-12 rounded-xl" onClick={onSalir}>
-          {salirTexto}
-        </button>
+        {r.enAscenso ? (
+          <button disabled={!armado} className="btn-criollo min-h-14 rounded-2xl font-criolla text-2xl" onClick={onSalir}>
+            <span className="relative z-[1]">Volver al torneo</span>
+          </button>
+        ) : (
+          <>
+            <button disabled={!armado} className="btn-criollo min-h-14 rounded-2xl font-criolla text-2xl" onClick={onRevancha}>
+              <span className="relative z-[1]">Revancha</span>
+            </button>
+            <button disabled={!armado} className="boton boton-cuero min-h-12 rounded-xl" onClick={onSalir}>
+              {salirTexto}
+            </button>
+          </>
+        )}
       </div>
     </Modal>
   );

@@ -1,4 +1,4 @@
-import { personaje, type Hecho } from "@juegos-argentinos/career";
+import { bajadaRival, type Hecho } from "@juegos-argentinos/career";
 import { Cara, rivalEn } from "../carrera/Cara.tsx";
 import type { SuitedCard } from "@juegos-argentinos/engine";
 import { casita, casitaProfile, chooseCasitaAction, sonCompaneros, type CasitaAction, type CasitaConfig, type CasitaEvent, type CasitaState, type CasitaView } from "@juegos-argentinos/engine/casita";
@@ -215,7 +215,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: KMatch | null; onRevan
         <div className="relative z-[1] flex-1 text-center">
           <p className="titulo-criollo text-2xl leading-none">Casita Robada</p>
           <p className="text-xs font-bold text-crema/80">
-            Quedan {view.mazoCount} en el mazo{match.carrera ? ` · ${personaje(match.carrera.rivalId).bajada}` : ""}
+            Quedan {view.mazoCount} en el mazo{match.carrera ? ` · ${bajadaRival(match.carrera.rivalId)}` : ""}
           </p>
         </div>
         <IconButton label="Cómo se juega" onClick={() => setReglas(true)}>

@@ -1,4 +1,4 @@
-import { personaje } from "@juegos-argentinos/career";
+import { rasgosRival } from "@juegos-argentinos/career";
 import type { GameDefinition, Rasgos, RngState } from "@juegos-argentinos/engine";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { playSfx, vibrate } from "../audio/sfx.ts";
@@ -133,7 +133,7 @@ function useLocalMatch<Config, State, Action, View, Event>(o: BotMatchOptions<Co
     const id = seatId(m as BotMatch<unknown, unknown>, actor);
     const delay = pensar ? pensar(m.state, actor) : 800;
     const t = window.setTimeout(() => {
-      const rasgos = m.carrera && actor === 1 ? personaje(m.carrera.rivalId).rasgos : undefined;
+      const rasgos = m.carrera && actor === 1 ? rasgosRival(m.carrera.rivalId) : undefined;
       const [action, rng] = choose(def.getPlayerView(m.state, id), def.getValidActions(m.state, id), m.rng, m.skills[actor]!, actor, rasgos);
       apply(actor, action, rng);
     }, delay);

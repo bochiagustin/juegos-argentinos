@@ -1,4 +1,4 @@
-import { personaje, type Hecho } from "@juegos-argentinos/career";
+import { bajadaRival, rasgosRival, type Hecho } from "@juegos-argentinos/career";
 import { aplicarPropias, cargarLexico, reintentarReportes, reportarPalabra } from "./palabras.ts";
 import { Cara } from "../carrera/Cara.tsx";
 import {
@@ -41,7 +41,7 @@ const RULETA_MS = 2200;
 
 /** La personalidad del rival de la gira (solo el asiento 1 en una partida de la carrera). */
 function rasgosDe(m: { carrera?: { rivalId: string } }, seat: number) {
-  return m.carrera && seat === 1 ? personaje(m.carrera.rivalId).rasgos : undefined;
+  return m.carrera && seat === 1 ? rasgosRival(m.carrera.rivalId) : undefined;
 }
 
 export function TuttiMesa() {
@@ -347,7 +347,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TMatch | null; onRevan
           <p className="text-xs font-bold text-crema/80">
             Ronda {view.ronda}
             {totalRondas ? ` de ${totalRondas}` : ` · a ${view.config.fin.tipo === "puntos" ? view.config.fin.puntos : ""} puntos`}
-            {carrera ? ` · ${personaje(carrera.rivalId).bajada}` : ""}
+            {carrera ? ` · ${bajadaRival(carrera.rivalId)}` : ""}
           </p>
         </div>
         <IconButton label="Cómo se juega" onClick={() => setReglas(true)}>

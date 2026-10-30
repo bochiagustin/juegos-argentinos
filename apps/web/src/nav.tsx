@@ -22,6 +22,7 @@ export type Route =
   | { name: "amigos"; game?: GameId }
   | { name: "sala"; codigo: string; game?: GameId }
   | { name: "gira"; game: CareerGame }
+  | { name: "ascenso"; game: CareerGame }
   | { name: "logros" };
 
 interface Nav {

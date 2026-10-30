@@ -127,6 +127,10 @@ export const LOGROS: LogroDef[] = [
   { id: "tutti-pleno", nombre: "Pleno", descripcion: "Completá todas las categorías bien en una ronda.", icono: "📝", fosforos: 30, juego: "tutti-frutti" },
   { id: "tutti-rayo", nombre: "Rayo", descripcion: "Cantá ¡BASTA! en menos de 60 segundos.", icono: "⚡", fosforos: 40, juego: "tutti-frutti" },
   { id: "tutti-solo", nombre: "El único", descripcion: "Sé el único con respuesta en 3 categorías de una misma ronda.", icono: "🦄", fosforos: 30, juego: "tutti-frutti" },
+  { id: "ascenso", nombre: "¡Ascenso!", descripcion: "Subí de categoría en el Ascenso.", icono: "⚽", fosforos: 50 },
+  { id: "a-primera", nombre: "En Primera", descripcion: "Llegá a Primera División en el Ascenso.", icono: "🏟️", fosforos: 200 },
+  { id: "campeon-primera", nombre: "Campeón de Primera", descripcion: "Salí campeón de Primera División.", icono: "👑", fosforos: 500 },
+  { id: "copa-argentina", nombre: "Copa Argentina", descripcion: "Ganá la Copa Argentina en el Ascenso.", icono: "🏆", fosforos: 250 },
   { id: "casa-grande", nombre: "Casa grande", descripcion: "Terminá con 25 cartas o más en tu casita.", icono: "🏠", fosforos: 40, juego: "casita-robada" },
 ];
 

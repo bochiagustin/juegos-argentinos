@@ -1,10 +1,13 @@
+import { normalizarAscenso, registrarAscenso } from "./ascenso.ts";
+import { club } from "./clubes.ts";
+import type { Rasgos } from "@juegos-argentinos/engine";
 import { GIRAS, LOGROS, PERSONAJES, personaje, puntosPorVictoria, REGALO_BUENOS_AIRES, TIENDA } from "./data.ts";
 import { CAREER_GAMES, REGION_IDS, SLOTS, YO, type CareerGame, type CareerState, type GiraDef, type GiraProgress, type Hecho, type Personaje, type Premio, type RegionId, type Reporte } from "./types.ts";
 
 export const FOSFOROS_INICIALES = 100;
 
 export function defaultCareer(): CareerState {
-  return { version: 1, fosforos: FOSFOROS_INICIALES, giras: {}, logros: {}, contadores: {}, desbloqueados: [] };
+  return { version: 1, fosforos: FOSFOROS_INICIALES, giras: {}, ascensos: {}, logros: {}, contadores: {}, desbloqueados: [] };
 }
 
 type Rec = Record<string, unknown>;
@@ -35,13 +38,34 @@ export function normalizeCareer(raw: unknown): CareerState {
       giras[g] = { puntos: nonNeg(p.puntos), vencidos, jugadas: nonNeg(p.jugadas), puestos };
     }
   }
+  const ascensos: CareerState["ascensos"] = {};
+  if (isRec(raw.ascensos))
+    for (const g of CAREER_GAMES) {
+      const a = normalizarAscenso(raw.ascensos[g]);
+      if (a) ascensos[g] = a;
+    }
   const logros: Record<string, number> = {};
   if (isRec(raw.logros)) for (const l of LOGROS) if (typeof raw.logros[l.id] === "number") logros[l.id] = raw.logros[l.id] as number;
   const contadores: Record<string, number> = {};
   if (isRec(raw.contadores)) for (const [k, v] of Object.entries(raw.contadores)) contadores[k] = nonNeg(v);
   const validos = new Set(TIENDA.map((t) => t.id));
   const desbloqueados = Array.isArray(raw.desbloqueados) ? [...new Set(raw.desbloqueados.filter((x): x is string => typeof x === "string" && validos.has(x)))] : [];
-  return { version: 1, fosforos: nonNeg(raw.fosforos, d.fosforos), giras, logros, contadores, desbloqueados };
+  return { version: 1, fosforos: nonNeg(raw.fosforos, d.fosforos), giras, ascensos, logros, contadores, desbloqueados };
+}
+
+export const PREFIJO_ASCENSO = "ascenso:";
+
+/** Rasgos del rival de la carrera (los clubes del Ascenso no tienen: juegan "normal"). */
+export function rasgosRival(rivalId: string): Rasgos | undefined {
+  return PERSONAJES.find((x) => x.id === rivalId)?.rasgos;
+}
+
+/** Quién es el rival, en una línea: la bajada del personaje o la categoría del club. */
+export function bajadaRival(rivalId: string): string {
+  const pj = PERSONAJES.find((x) => x.id === rivalId);
+  if (pj) return pj.bajada;
+  const c = club(rivalId.slice(PREFIJO_ASCENSO.length));
+  return c ? `Ascenso · Nivel ${c.nivel}` : "";
 }
 
 export function progresoDe(s: CareerState, game: CareerGame): GiraProgress {
@@ -206,6 +230,14 @@ function cumple(id: string, s: CareerState, r: Reporte): boolean {
       return hecho(r, "tutti-basta").some((h) => h.segundos < 60);
     case "tutti-solo":
       return hecho(r, "tutti-solo").some((h) => h.cantidad >= 3);
+    case "ascenso":
+      return (c.ascensos ?? 0) >= 1;
+    case "a-primera":
+      return (c["llegadas-primera"] ?? 0) >= 1;
+    case "campeon-primera":
+      return (c.titulos ?? 0) >= 1;
+    case "copa-argentina":
+      return (c.copas ?? 0) >= 1;
     case "casa-grande":
       return hecho(r, "casita-cartas").some((h) => h.cantidad >= 25);
     default:
@@ -226,7 +258,21 @@ export function registrarPartida(state: CareerState, r: Reporte): { state: Caree
     inc("ganadas");
     inc(`ganadas:${r.game}`);
   }
-  const premio: Premio = { puntos: 0, fosforos: r.ganada ? 15 : 3, logros: [], regionDesbloqueada: null, giraCompleta: false, regalo: null, puesto: null };
+  const premio: Premio = { puntos: 0, fosforos: r.ganada ? 15 : 3, logros: [], regionDesbloqueada: null, giraCompleta: false, regalo: null, puesto: null, ascenso: null };
+
+  const ascenso = r.rivalId?.startsWith(PREFIJO_ASCENSO) && (CAREER_GAMES as readonly string[]).includes(r.game) ? s.ascensos[r.game as CareerGame] : undefined;
+  if (ascenso) {
+    const res = registrarAscenso(ascenso, r.rivalId!.slice(PREFIJO_ASCENSO.length), r.ganada);
+    if (res) {
+      s.ascensos[r.game as CareerGame] = res.progreso;
+      premio.fosforos += res.fosforos;
+      premio.ascenso = { lineas: res.lineas };
+      if (res.ascendi) inc("ascensos");
+      if (res.llegueAPrimera) inc("llegadas-primera");
+      if (res.campeon) inc("titulos");
+      if (res.copa) inc("copas");
+    }
+  }
 
   if (r.rivalId && (CAREER_GAMES as readonly string[]).includes(r.game) && PERSONAJES.some((x) => x.id === r.rivalId)) {
     const game = r.game as CareerGame;

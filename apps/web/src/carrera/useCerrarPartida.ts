@@ -1,4 +1,4 @@
-import { registrarPartida, type Hecho, type Premio, type Reporte } from "@juegos-argentinos/career";
+import { PREFIJO_ASCENSO, registrarPartida, type Hecho, type Premio, type Reporte } from "@juegos-argentinos/career";
 import type { GameId } from "@juegos-argentinos/engine";
 import { useCallback } from "react";
 import { skillForRating, updateRating } from "../ia/nivel.ts";
@@ -24,6 +24,8 @@ export interface ResultadoCierre {
   nivelDespues: number;
   adaptativo: boolean;
   enGira: boolean;
+  /** Fue un partido del Ascenso (no hay revancha: se vuelve al torneo). */
+  enAscenso: boolean;
 }
 
 /** Al terminar una partida: estadísticas del juego, rating adaptativo y carrera (gira, fósforos, logros). */
@@ -54,7 +56,8 @@ export function useCerrarPartida() {
         nivelAntes: c.botSkill,
         nivelDespues: c.adaptativo ? skillForRating(rating) : c.botSkill,
         adaptativo: c.adaptativo,
-        enGira: !!c.rivalId,
+        enGira: !!c.rivalId && !c.rivalId.startsWith(PREFIJO_ASCENSO),
+        enAscenso: !!c.rivalId?.startsWith(PREFIJO_ASCENSO),
       };
     },
     [save, update],

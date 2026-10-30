@@ -36,6 +36,7 @@ export function Juego({ id }: { id: GameId }) {
                 if (!disponible) setAviso(`${modo.nombre} de ${game.nombre} está en camino. ¡Aguantá que ya llega!`);
                 else if (m === "ia") push({ name: id === "truco" ? "truco-setup" : id === "chinchon" ? "chinchon-setup" : id === "escoba" ? "escoba-setup" : id === "tutti-frutti" ? "tutti-setup" : "casita-setup" });
                 else if (m === "carrera") push({ name: "gira", game: id });
+                else if (m === "ascenso") push({ name: "ascenso", game: id });
                 else if (m === "amigos") push({ name: "amigos", game: id });
               }}
               aria-disabled={!disponible}

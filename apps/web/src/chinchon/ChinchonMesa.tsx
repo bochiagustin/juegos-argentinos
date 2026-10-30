@@ -1,4 +1,4 @@
-import { personaje, type Hecho } from "@juegos-argentinos/career";
+import { bajadaRival, type Hecho } from "@juegos-argentinos/career";
 import { FondoMesa } from "../fondos/fondos.tsx";
 import { BarraAcciones, EtiquetaJugada, laCarta, useUltimasJugadas } from "../ui/barra.tsx";
 import { Cara, rivalEn } from "../carrera/Cara.tsx";
@@ -315,7 +315,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: CMatch | null; onRevan
           <p className="titulo-criollo text-2xl leading-none">Chinchón</p>
           <p className="text-xs font-bold text-crema/80">
             Mano {view.round} · a {view.config.limite}
-            {match.carrera ? ` · ${personaje(match.carrera.rivalId).bajada}` : ""}
+            {match.carrera ? ` · ${bajadaRival(match.carrera.rivalId)}` : ""}
           </p>
         </div>
         <IconButton label="Cómo se juega" onClick={() => setReglas(true)}>

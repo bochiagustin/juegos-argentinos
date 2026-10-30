@@ -82,6 +82,15 @@ Memoria de trabajo del proyecto: lo que el usuario pidió, prefirió o decidió 
   verdad cómo juega el bot (sobre todo en el truco: el pescador se calla con cartas buenas y después retruca).
   Inspiración de la mecánica, no de los personajes: nombres, historias y retratos son propios.
 
+- **Modo Ascenso** (2026-10-30, a pedido): con **clubes reales y sus escudos** (el usuario los sube y declaró tener
+  permiso; se le avisó del riesgo por marcas registradas, ver `docs/licencias/escudos.md`). **Un Ascenso por juego**.
+  Categorías C → B Metro → Primera Nacional → Primera, **20 equipos a una rueda** (19 fechas), 3 puntos por victoria,
+  sin empates. 1º asciende directo; 2º–8º Reducido (cuartos/semis/final, el 2º pasa directo a semis porque son 7);
+  **descienden los 2 últimos** (en la C no). Primera: el 1º es campeón (sin Reducido). **Copa Argentina de 32**
+  (8 por categoría) intercalada después de las fechas 3, 7, 11, 15 y 18. Nivel fijo por club (C 1–4 … Primera 7–10).
+  Las reglas de cada partido son las de la región de la Gira equivalente (C = Buenos Aires … Primera = Norte).
+  *Supuestos a confirmar:* el 2º con bye en el Reducido; Primera sin Reducido; planteles aproximados a 2025.
+
 ## Dudas abiertas (preguntar antes de implementar la fase correspondiente)
 
 ### Truco (implementado con la propuesta; confirmar)

@@ -1,5 +1,6 @@
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { DeckContext } from "./cards/SpanishCard.tsx";
+import { Ascenso } from "./ascenso/Ascenso.tsx";
 import { Gira } from "./carrera/Gira.tsx";
 import { Logros } from "./carrera/Logros.tsx";
 import { CasitaMesa } from "./casita/CasitaMesa.tsx";
@@ -24,7 +25,7 @@ import { TrucoMesa } from "./truco/TrucoMesa.tsx";
 import { TrucoSetup } from "./truco/TrucoSetup.tsx";
 
 function routeKey(r: Route): string {
-  return r.name === "juego" ? `juego-${r.id}` : r.name === "gira" ? `gira-${r.game}` : r.name === "sala" ? `sala-${r.codigo}` : r.name;
+  return r.name === "juego" ? `juego-${r.id}` : r.name === "gira" ? `gira-${r.game}` : r.name === "ascenso" ? `ascenso-${r.game}` : r.name === "sala" ? `sala-${r.codigo}` : r.name;
 }
 
 function CurrentScreen({ route }: { route: Route }) {
@@ -63,6 +64,8 @@ function CurrentScreen({ route }: { route: Route }) {
       return <TuttiMesa />;
     case "gira":
       return <Gira game={route.game} />;
+    case "ascenso":
+      return <Ascenso game={route.game} />;
     case "amigos":
       return <Amigos game={route.game} />;
     case "sala":

@@ -1,6 +1,7 @@
 export const REGION_IDS = ["buenos-aires", "cuyo", "mesopotamia", "norte", "patagonia", "malvinas"] as const;
 export type RegionId = (typeof REGION_IDS)[number];
 import type { Rasgos } from "@juegos-argentinos/engine";
+import type { AscensoProgress } from "./ascenso.ts";
 
 /** Lugar del personaje en su región: del "1" (el más flojo) al "9", y el jefe. */
 export const SLOTS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "jefe"] as const;
@@ -65,6 +66,8 @@ export interface CareerState {
   version: 1;
   fosforos: number;
   giras: Partial<Record<CareerGame, GiraProgress>>;
+  /** El Ascenso de cada juego (si ya arrancó). */
+  ascensos: Partial<Record<CareerGame, AscensoProgress>>;
   /** Logro → cuándo se consiguió (ms). */
   logros: Record<string, number>;
   /** Contadores para logros y estadísticas. */
@@ -97,7 +100,7 @@ export type Hecho =
 export interface Reporte {
   game: CareerGame;
   ganada: boolean;
-  /** Si fue una partida de la gira: contra quién. */
+  /** Si fue una partida de la gira: contra quién (`ascenso:<club>` si fue del Ascenso). */
   rivalId?: string;
   /** Ganó yendo muy abajo. */
   remontada?: boolean;
@@ -126,4 +129,6 @@ export interface Premio {
   regalo: string | null;
   /** Cómo cambió mi puesto en el ranking de la región (si cambió). */
   puesto: { region: RegionId; antes: number; despues: number } | null;
+  /** Si fue un partido del Ascenso: qué pasó en el torneo. */
+  ascenso: { lineas: string[] } | null;
 }

@@ -1,4 +1,4 @@
-import { personaje, type Hecho } from "@juegos-argentinos/career";
+import { bajadaRival, type Hecho } from "@juegos-argentinos/career";
 import { Cara, rivalEn } from "../carrera/Cara.tsx";
 import type { SuitedCard } from "@juegos-argentinos/engine";
 import { bandoDe, chooseEscobaAction, escoba, valorEscoba, type EscobaAction, type EscobaConfig, type EscobaEvent, type EscobaRoundSummary, type EscobaState } from "@juegos-argentinos/engine/escoba";
@@ -215,7 +215,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: EMatch | null; onRevan
           <p className="titulo-criollo text-2xl leading-none">Escoba de 15</p>
           <p className="text-xs font-bold text-crema/80">
             Ronda {view.ronda} · a {view.config.target}
-            {match.carrera ? ` · ${personaje(match.carrera.rivalId).bajada}` : ""}
+            {match.carrera ? ` · ${bajadaRival(match.carrera.rivalId)}` : ""}
           </p>
         </div>
         <IconButton label="Cómo se juega" onClick={() => setReglas(true)}>
