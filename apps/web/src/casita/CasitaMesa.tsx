@@ -253,7 +253,7 @@ function Mesa({ initial, onRevancha, remoto }: { initial: KMatch | null; onRevan
 
       <div className="cuero cuero-oscuro z-10 rounded-t-3xl px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
         <div className="relative z-[1] flex items-end gap-3">
-          <Casita top={mio.top} cartas={mio.casita} nombre="Tu casita" avatar={match.jugadores[yo]!.avatar} activo={miTurno} grande />
+          <Casita top={mio.top} cartas={mio.casita} nombre="Tu casita" avatar={<Cara avatar={match.jugadores[yo]!.avatar} />} activo={miTurno} grande />
           <div className="flex-1">
             <p className="mb-2 min-h-5 text-center text-sm font-bold text-crema/90" aria-live="polite">
               {view.result ? "Partida terminada" : view.turn === yo ? "Te toca: tocá una carta." : `Juega ${nombre(view.turn, match)}…`}

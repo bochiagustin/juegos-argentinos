@@ -73,7 +73,8 @@ export function statsDe(save: Save, game: GameId): StatsJuego {
   return save.juegos[game] ?? { rating: DEFAULT_RATING, jugadas: 0, ganadas: 0 };
 }
 
-export const AVATARES = ["🧉", "🤠", "🐴", "🧔", "👵", "👴", "🧑‍🌾", "🐂", "🦙", "🐧", "⚽", "🎸", "🥩", "🌵", "🦜", "💃"] as const;
+/** Avatares: los ilustrados (`@n`, ver arte/avatares/) y los emojis de siempre. */
+export const AVATARES = ["@1", "@2", "@3", "@4", "@5", "@6", "@7", "@8", "@9", "@10", "@11", "@12", "🧉", "🤠", "🐴", "🧔", "👵", "👴", "🧑‍🌾", "🐂", "🦙", "🐧", "⚽", "🎸", "🥩", "🌵", "🦜", "💃"] as const;
 export const APODO_MAX = 16;
 
 export function defaultSave(): Save {

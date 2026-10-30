@@ -1,4 +1,5 @@
 import { cardFromId } from "@juegos-argentinos/engine";
+import { Cara } from "../carrera/Cara.tsx";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { Art } from "../art/Art.tsx";
@@ -167,7 +168,12 @@ export function Inicio() {
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)]">
       <div className="absolute inset-0">
-        <Art id="portada-fondo-vertical" className="absolute inset-0 size-full object-cover" fallback={<PampaFallback />} />
+        <span className="landscape:hidden">
+          <Art id="portada-fondo-vertical" className="absolute inset-0 size-full object-cover" fallback={<PampaFallback />} />
+        </span>
+        <span className="portrait:hidden">
+          <Art id="portada-fondo-horizontal" className="absolute inset-0 size-full object-cover" fallback={<PampaFallback />} />
+        </span>
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/60" />
       </div>
 
@@ -195,7 +201,9 @@ export function Inicio() {
               }}
               className="cuero cuero-oscuro flex min-h-14 items-center justify-center gap-2 rounded-2xl px-3 font-bold"
             >
-              <span className="relative z-[1] text-2xl">{save.perfil.avatar}</span>
+              <span className="relative z-[1] grid size-9 place-items-center overflow-hidden rounded-full text-2xl">
+                <Cara avatar={save.perfil.avatar} />
+              </span>
               <span className="relative z-[1] truncate">{save.perfil.apodo || "Perfil"}</span>
             </button>
             <button

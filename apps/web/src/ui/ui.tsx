@@ -159,11 +159,20 @@ export function Section({ title, children }: { title: string; children: ReactNod
 
 /** Esquinas de filete para decorar paneles (se ubican absolutas). */
 export function FileteEsquinas({ color = "#e8c27a" }: { color?: string }) {
+  // El filete ilustrado (si está) o el trazo dibujado; la misma esquina girada para las cuatro.
   const corner = (rot: number, pos: string) => (
-    <svg viewBox="0 0 40 40" className={`pointer-events-none absolute size-9 ${pos}`} style={{ rotate: `${rot}deg` }} aria-hidden>
-      <path d="M4,36 C4,18 12,6 30,4 C22,10 20,16 24,20 C18,18 14,22 16,28 C12,24 8,28 4,36 Z" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" />
-      <circle cx={30} cy={4} r={2.2} fill={color} />
-    </svg>
+    <span className={`pointer-events-none absolute size-9 ${pos}`} style={{ rotate: `${rot}deg` }} aria-hidden>
+      <Art
+        id="ui-filete"
+        className="size-full object-contain opacity-90"
+        fallback={
+          <svg viewBox="0 0 40 40" className="size-full">
+            <path d="M4,36 C4,18 12,6 30,4 C22,10 20,16 24,20 C18,18 14,22 16,28 C12,24 8,28 4,36 Z" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" />
+            <circle cx={30} cy={4} r={2.2} fill={color} />
+          </svg>
+        }
+      />
+    </span>
   );
   return (
     <>

@@ -1,4 +1,5 @@
 import { REGIONES, TIENDA } from "@juegos-argentinos/career";
+import { Art } from "../art/Art.tsx";
 import { motion } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
 import type { ResultadoCierre } from "../carrera/useCerrarPartida.ts";
@@ -29,6 +30,11 @@ export function FinPartida({
   const regalo = p.regalo ? TIENDA.find((t) => t.id === p.regalo)?.nombre : null;
   return (
     <Modal onClose={() => {}}>
+      {titulo === undefined && (
+        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="mx-auto -mt-2 mb-2 w-40 overflow-hidden rounded-2xl border-[3px] border-[#d9a066] shadow-lg shadow-black/40">
+          <Art id={r.ganada ? "fin-victoria" : "fin-derrota"} className="aspect-square w-full object-cover" fallback={<></>} />
+        </motion.div>
+      )}
       <motion.h2 initial={{ scale: 0.5, rotate: -6 }} animate={{ scale: 1, rotate: -3 }} className="titulo-criollo mb-2 text-center text-5xl">
         {titulo ?? (r.ganada ? "¡Ganaste!" : "Perdiste…")}
       </motion.h2>

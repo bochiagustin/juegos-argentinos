@@ -1,4 +1,5 @@
 import type { GameId } from "@juegos-argentinos/engine";
+import { Cara } from "../carrera/Cara.tsx";
 import { REACCIONES, SENAS, type ClienteMsg, type SalaInfo } from "@juegos-argentinos/server/protocolo";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
@@ -53,8 +54,8 @@ function Presentarse({ codigo }: { codigo: string }) {
       <input value={apodo} onChange={(e) => setApodo(e.target.value.slice(0, 16))} aria-label="Apodo" placeholder="Tu apodo" className="mb-3 min-h-12 w-full rounded-xl bg-crema px-3 text-lg font-bold text-tinta placeholder:text-tinta/40" />
       <div className="mb-4 grid grid-cols-8 gap-1.5">
         {AVATARES.map((a) => (
-          <button key={a} aria-pressed={a === avatar} onClick={() => setAvatar(a)} className={`grid aspect-square place-items-center rounded-xl text-2xl ${a === avatar ? "bg-naranja" : "bg-black/30"}`}>
-            {a}
+          <button key={a} aria-pressed={a === avatar} onClick={() => setAvatar(a)} className={`relative grid aspect-square place-items-center overflow-hidden rounded-xl text-2xl ${a === avatar ? "bg-naranja ring-2 ring-naranja" : "bg-black/30"}`}>
+            <Cara avatar={a} className="absolute inset-0 size-full object-cover" />
           </button>
         ))}
       </div>
@@ -236,7 +237,10 @@ function FinOnline({ r, sala, enviar, onSalir }: { r: { gane: boolean; empate: b
           <ul className="mb-3 flex flex-wrap justify-center gap-1.5 text-xs font-bold">
             {humanos.map((j) => (
               <li key={j.seat} className={`rounded-full px-2 py-1 ${j.revancha ? "bg-pano" : "bg-black/35"}`}>
-                {j.avatar} {j.apodo} {j.revancha ? "✔" : j.conectado ? "⏳" : "(se fue)"}
+                <span className="relative mr-1 inline-grid size-5 place-items-center overflow-hidden rounded-full align-middle">
+                  <Cara avatar={j.avatar} />
+                </span>
+                {j.apodo} {j.revancha ? "✔" : j.conectado ? "⏳" : "(se fue)"}
               </li>
             ))}
           </ul>
@@ -308,8 +312,8 @@ function Lobby({ sala, enviar }: { sala: SalaInfo; enviar: (m: ClienteMsg) => vo
         <ul className="flex flex-col gap-2">
           {sala.jugadores.map((j) => (
             <li key={`${j.seat}-${j.apodo}`} className="cuero flex min-h-14 items-center gap-3 rounded-2xl px-3 py-2">
-              <span className="relative z-[1] grid size-10 place-items-center rounded-full bg-black/35 text-2xl" aria-hidden>
-                {j.avatar}
+              <span className="relative z-[1] grid size-10 place-items-center overflow-hidden rounded-full bg-black/35 text-2xl" aria-hidden>
+                <Cara avatar={j.avatar} />
               </span>
               <span className="relative z-[1] min-w-0 flex-1">
                 <span className="block truncate font-black">

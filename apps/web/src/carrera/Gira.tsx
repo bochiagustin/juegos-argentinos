@@ -1,4 +1,5 @@
 import { estadoGira, GIRAS, progresoDe, type CareerGame, type EstadoRegion, type EstadoRival, type RegionId } from "@juegos-argentinos/career";
+import { Cara } from "../carrera/Cara.tsx";
 import { casita } from "@juegos-argentinos/engine/casita";
 import { DEFAULT_CASITA_CONFIG, type CasitaConfig } from "@juegos-argentinos/engine/casita";
 import { chinchon, DEFAULT_CHINCHON_CONFIG, type ChinchonConfig } from "@juegos-argentinos/engine/chinchon";
@@ -117,7 +118,9 @@ export function Gira({ game }: { game: CareerGame }) {
                 return (
                   <li key="yo" className="flex min-h-14 items-center gap-3 rounded-2xl border-2 border-[#4caf50] bg-[#2e7d32]/25 px-3 py-1.5">
                     <span className="w-7 text-center font-criolla text-xl text-crema">{puesto}</span>
-                    <span className="grid size-11 shrink-0 place-items-center rounded-full border-[3px] border-[#d9a066] bg-black/40 text-2xl">{yo.avatar}</span>
+                    <span className="relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-full border-[3px] border-[#d9a066] bg-black/40 text-2xl">
+                      <Cara avatar={yo.avatar} />
+                    </span>
                     <span className="min-w-0 flex-1 truncate font-black">{yo.nombre}</span>
                     <span className="text-xs font-black uppercase text-crema/80">Vos</span>
                   </li>

@@ -26,17 +26,23 @@ export type RegionId = (typeof REGIONES)[number]["id"];
 const base = {
   "logo-marco": { path: "arte/logo-marco.webp", width: 1200, height: 561, transparente: true, descripcion: "Marco del logo, sin texto (el texto va en código)" },
   icono: { path: "arte/icono.png", width: 1024, height: 1024, transparente: false, descripcion: "Ícono de la app (con ~20% de margen)" },
-  "portada-fondo-vertical": { path: "arte/portada/fondo-vertical.png", width: 1080, height: 1920, transparente: false, descripcion: "Pampa, sin personajes ni texto (celular)" },
-  "portada-fondo-horizontal": { path: "arte/portada/fondo-horizontal.png", width: 1920, height: 1080, transparente: false, descripcion: "Pampa, sin personajes ni texto (compu)" },
+  "portada-fondo-vertical": { path: "arte/portada/fondo-vertical.webp", width: 941, height: 1672, transparente: false, descripcion: "Pampa, sin personajes ni texto (celular)" },
+  "portada-fondo-horizontal": { path: "arte/portada/fondo-horizontal.webp", width: 1672, height: 941, transparente: false, descripcion: "Pampa, sin personajes ni texto (compu)" },
   "portada-gaucho": { path: "arte/portada/gaucho.webp", width: 899, height: 1200, transparente: true, descripcion: "Gaucho con mate y cartas, recortado" },
   "juego-truco": { path: "arte/juegos/truco.webp", width: 800, height: 500, transparente: false, descripcion: "Tarjeta del Truco, sin texto" },
-  "juego-chinchon": { path: "arte/juegos/chinchon.png", width: 800, height: 500, transparente: false, descripcion: "Tarjeta del Chinchón, sin texto" },
-  "juego-casita-robada": { path: "arte/juegos/casita-robada.png", width: 800, height: 500, transparente: false, descripcion: "Tarjeta de la Casita Robada, sin texto" },
-  "juego-escoba": { path: "arte/juegos/escoba.png", width: 800, height: 500, transparente: false, descripcion: "Tarjeta de la Escoba de 15, sin texto" },
-  "juego-tutti-frutti": { path: "arte/juegos/tutti-frutti.png", width: 800, height: 500, transparente: false, descripcion: "Tarjeta del Tutti-Frutti, sin texto" },
-  "mesa-mate": { path: "arte/mesa/mate.png", width: 600, height: 600, transparente: true, descripcion: "Mate con bombilla", opcional: true },
-  "mesa-poncho": { path: "arte/mesa/poncho.png", width: 800, height: 600, transparente: true, descripcion: "Poncho o manta doblada", opcional: true },
-  "mesa-cartel": { path: "arte/mesa/cartel.png", width: 600, height: 800, transparente: true, descripcion: "Cartel de madera sin texto", opcional: true },
+  "juego-chinchon": { path: "arte/juegos/chinchon.webp", width: 800, height: 500, transparente: false, descripcion: "Tarjeta del Chinchón, sin texto" },
+  "juego-casita-robada": { path: "arte/juegos/casita-robada.webp", width: 800, height: 500, transparente: false, descripcion: "Tarjeta de la Casita Robada, sin texto" },
+  "juego-escoba": { path: "arte/juegos/escoba.webp", width: 800, height: 500, transparente: false, descripcion: "Tarjeta de la Escoba de 15, sin texto" },
+  "juego-tutti-frutti": { path: "arte/juegos/tutti-frutti.webp", width: 800, height: 500, transparente: false, descripcion: "Tarjeta del Tutti-Frutti, sin texto" },
+  "mesa-mate": { path: "arte/mesa/mate.webp", width: 600, height: 600, transparente: true, descripcion: "Mate con bombilla", opcional: true },
+  "mesa-poncho": { path: "arte/mesa/poncho.webp", width: 800, height: 600, transparente: true, descripcion: "Poncho o manta doblada", opcional: true },
+  "mesa-cartel": { path: "arte/mesa/cartel.webp", width: 800, height: 597, transparente: true, descripcion: "Cartel de madera sin texto", opcional: true },
+  "fin-victoria": { path: "arte/fin/victoria.webp", width: 640, height: 640, transparente: false, descripcion: "Gauchos festejando (ganaste)", opcional: true },
+  "fin-derrota": { path: "arte/fin/derrota.webp", width: 640, height: 640, transparente: false, descripcion: "Gaucho resignado (perdiste)", opcional: true },
+  "ui-sol": { path: "arte/ui/sol-de-mayo.webp", width: 256, height: 256, transparente: true, descripcion: "Sol de Mayo del marcador", opcional: true },
+  "ui-banderita": { path: "arte/ui/banderita.webp", width: 154, height: 192, transparente: true, descripcion: "Banderita del marcador", opcional: true },
+  "ui-filete": { path: "arte/ui/filete-esquina.webp", width: 192, height: 192, transparente: true, descripcion: "Filete para las esquinas (arriba a la izquierda)", opcional: true },
+  "ui-fosforos": { path: "arte/ui/caja-fosforos.webp", width: 192, height: 155, transparente: true, descripcion: "Caja de fósforos (la moneda del juego)", opcional: true },
   "mapa-base": { path: "arte/mapa/base.webp", width: 841, height: 1870, transparente: false, descripcion: "Mapa de Argentina con Malvinas, sin textos" },
 } satisfies Record<string, ArtSpec>;
 
@@ -65,7 +71,12 @@ const fondos = Object.fromEntries(
   ]),
 ) as Record<`fondo-${string}-${"vertical" | "horizontal"}`, ArtSpec>;
 
-export const ART = { ...base, ...rivales, ...iconos, ...fondos };
+/** Avatares ilustrados del jugador (`@n` en el perfil). */
+const avatares = Object.fromEntries(
+  Array.from({ length: 12 }, (_, i) => [`avatar-${i + 1}`, { path: `arte/avatares/${i + 1}.webp`, width: 384, height: 384, transparente: true, descripcion: `Avatar ${i + 1}`, opcional: true }]),
+) as Record<`avatar-${number}`, ArtSpec>;
+
+export const ART = { ...base, ...rivales, ...iconos, ...fondos, ...avatares };
 export type ArtId = keyof typeof ART;
 
 export function artUrl(id: ArtId): string {

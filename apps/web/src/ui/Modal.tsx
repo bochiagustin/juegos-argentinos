@@ -1,3 +1,4 @@
+import { Art } from "../art/Art.tsx";
 import { motion } from "motion/react";
 import { useEffect, useRef, type ReactNode } from "react";
 
@@ -41,6 +42,10 @@ export function Modal({ children, onClose, grande = false }: { children: ReactNo
 
 /** Un fósforo dibujado (la moneda del juego). */
 export function FosforoIcono({ className = "size-5" }: { className?: string }) {
+  return <Art id="ui-fosforos" className={`${className} object-contain`} fallback={<FosforoDibujo className={className} />} />;
+}
+
+function FosforoDibujo({ className }: { className: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden>
       <line x1={6} y1={20} x2={17} y2={6} stroke="#5b3a1e" strokeWidth={4} strokeLinecap="round" />

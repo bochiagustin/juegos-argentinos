@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Cara } from "../carrera/Cara.tsx";
 import { playSfx, vibrate } from "../audio/sfx.ts";
 import { useNav } from "../nav.tsx";
 import { APODO_MAX, AVATARES, sanitizeApodo } from "../save/save.ts";
@@ -23,7 +24,9 @@ export function Perfil({ bienvenida = false }: { bienvenida?: boolean }) {
   return (
     <Screen title={bienvenida ? "¡Hola!" : "Tu perfil"} onBack={back}>
       <div className="flex flex-col items-center gap-2">
-        <span className="grid size-28 place-items-center rounded-full border-4 border-naranja bg-superficie text-6xl shadow-xl shadow-black/30">{avatar}</span>
+        <span className="relative grid size-28 place-items-center overflow-hidden rounded-full border-4 border-naranja bg-superficie text-6xl shadow-xl shadow-black/30">
+          <Cara avatar={avatar} />
+        </span>
         {bienvenida && <p className="text-center text-lg font-bold">Antes de sentarte a la mesa: ¿cómo te dicen?</p>}
       </div>
 
@@ -52,11 +55,11 @@ export function Perfil({ bienvenida = false }: { bienvenida?: boolean }) {
                 setAvatar(a);
                 playSfx("click");
               }}
-              aria-label={`Avatar ${a}`}
+              aria-label={`Avatar ${a.startsWith("@") ? a.slice(1) : a}`}
               aria-pressed={avatar === a}
-              className={`grid aspect-square place-items-center rounded-2xl border-2 text-4xl transition ${avatar === a ? "border-naranja bg-naranja/15" : "border-borde bg-superficie"}`}
+              className={`relative grid aspect-square place-items-center overflow-hidden rounded-2xl border-2 text-4xl transition ${avatar === a ? "border-naranja bg-naranja/15" : "border-borde bg-superficie"}`}
             >
-              {a}
+              <Cara avatar={a} className="absolute inset-0 size-full object-cover" />
             </button>
           ))}
         </div>

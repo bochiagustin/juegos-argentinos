@@ -2,10 +2,12 @@ import { Art } from "../art/Art.tsx";
 import type { ArtId } from "../art/manifest.ts";
 
 /**
- * La cara de un jugador en la mesa: el retrato si es el rival de la gira (y ya está dibujado); si no, su emoji.
+ * La cara de un jugador: su avatar ilustrado (`@1`…`@12`), el retrato si es el rival de la gira, o su emoji.
  * Con retrato llena al contenedor, que tiene que ser `relative` y redondo.
  */
 export function Cara({ avatar, rivalId, className = "absolute inset-0 size-full rounded-full object-cover" }: { avatar: string; rivalId?: string | undefined; className?: string }) {
+  const retrato = /^@(\d{1,2})$/.exec(avatar)?.[1];
+  if (retrato) return <Art id={`avatar-${retrato}` as ArtId} className={className} fallback={<>🧉</>} />;
   if (!rivalId) return <>{avatar}</>;
   return <Art id={`rival-${rivalId}` as ArtId} className={className} fallback={<>{avatar}</>} />;
 }

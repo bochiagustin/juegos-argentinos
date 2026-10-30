@@ -119,6 +119,7 @@ def main(origen: Path) -> None:
         "inico.png": ("iconos/tab-inicio.webp", "damero"),
         "tab-jugar.png": ("iconos/tab-jugar.webp", "damero"),
         "tab-mazos.png": ("iconos/tab-mazos.webp", "damero"),
+        "tab-logros.png": ("iconos/tab-logros.webp", "damero"),
         "tab-ajustes.png": ("iconos/tab-ajustes.webp", "damero"),
     }
     for nombre, (dest, modo) in iconos.items():
@@ -128,6 +129,77 @@ def main(origen: Path) -> None:
         a = rgb(im)
         fondo = {"damero": mascara_damero, "similar": lambda x: mascara_similar(x, 70), "grabcut": lambda x: mascara_grabcut(x, (6, 150, x.shape[1] - 20, x.shape[0] - 320))}[modo](a)
         guardar(cuadrado(recortar(im, fondo, erosion=3, rellenar=modo != "damero"), 192), dest)
+
+    # Objetos sueltos (fondo blanco o damero pintado): mesa, marcador, adornos.
+    objetos: dict[str, tuple] = {
+        "mate.png": ("mesa/mate.webp", 600),
+        "cartel.png": ("mesa/cartel.webp", 800),
+        "poncho.png": ("mesa/poncho.webp", 800),
+        "banderita.png": ("ui/banderita.webp", 192, "grabcut"),
+        "filete-esquina.png": ("ui/filete-esquina.webp", 192),
+        "caja-fosforos.png": ("ui/caja-fosforos.webp", 192),
+        "sol-de-mayo.png": ("ui/sol-de-mayo.webp", 256),
+    }
+    for nombre, (dest, lado, *modo) in objetos.items():
+        if not (origen / nombre).exists():
+            continue
+        im = abrir(nombre)
+        if im.mode == "RGBA" and im.getchannel("A").getextrema()[0] == 0:
+            obj = im.crop(im.getbbox())
+        elif modo == ["grabcut"]:
+            # Tienen blanco propio (la franja de la bandera) pegado al fondo: el damero se lo comería.
+            a = rgb(im)
+            obj = recortar(im, mascara_grabcut(a, (4, 4, a.shape[1] - 8, a.shape[0] - 8)), erosion=1, rellenar=True)
+        else:
+            obj = recortar(im, mascara_damero(rgb(im)), erosion=2)
+        obj.thumbnail((lado, lado), Image.LANCZOS)
+        guardar(obj, dest)
+
+    # Avatares del jugador: los que tienen escena quedan con su fondo; los demás, recortados.
+    CON_ESCENA = {1, 2, 3}
+    for n in range(1, 13):
+        nombre = f"avatar-{n}.png"
+        if not (origen / nombre).exists():
+            continue
+        im = abrir(nombre)
+        a = rgb(im)
+        if im.mode == "RGBA" and im.getchannel("A").getextrema()[0] == 0:
+            out = im.convert("RGBA")
+        elif n not in CON_ESCENA:
+            out = recortar(im, mascara_damero(a), erosion=2)
+            out = cuadrado(out, max(out.size), 0)
+        else:
+            out = im.convert("RGB")
+        guardar(out.resize((384, 384), Image.LANCZOS), f"avatares/{n}.webp")
+
+    # Fondos de mesa nuevos y la portada.
+    for id in ["costa", "refugio"]:
+        for orient in ["horizontal", "vertical"]:
+            nombre = f"{id}-{orient}.png"
+            if (origen / nombre).exists():
+                guardar(abrir(nombre).convert("RGB"), f"fondos/{id}-{orient}.webp", 84)
+    sueltos = {"FONDOS/7046cf4c-6bf8-4981-b8e9-77710a6e69a2.jfif": "cataratas", "FONDOS/watermarked_img_9705750634434519517.jpg": "vereda"}
+    for nombre, id in sueltos.items():
+        if (origen / nombre).exists():
+            guardar(abrir(nombre).convert("RGB"), f"fondos/{id}-horizontal.webp", 86)
+    cafe = origen / "FONDOS/watermarked_img_18290427296366421934.jpg"
+    if cafe.exists():
+        # El diario de la mesa tenía el logo de un diario real: se borronea.
+        im = Image.open(cafe).convert("RGB")
+        caja = (628, 452, 845, 545)
+        im.paste(im.crop(caja).filter(ImageFilter.GaussianBlur(7)), caja[:2])
+        guardar(im, "fondos/cafe-horizontal.webp", 86)
+    for orient in ["vertical", "horizontal"]:
+        if (origen / f"portada-{orient}.png").exists():
+            guardar(abrir(f"portada-{orient}.png").convert("RGB"), f"portada/fondo-{orient}.webp", 84)
+
+    # Tarjetas de cada juego y los gauchos del final.
+    for juego in ["chinchon", "casita-robada", "escoba", "tutti-frutti"]:
+        if (origen / f"{juego}.png").exists():
+            guardar(cubrir(abrir(f"{juego}.png").convert("RGB"), 800, 500, 0.3), f"juegos/{juego}.webp", 86)
+    for nombre, dest in [("gaucho-victoria.png", "fin/victoria.webp"), ("gaucho-derota.png", "fin/derrota.webp")]:
+        if (origen / nombre).exists():
+            guardar(abrir(nombre).convert("RGB").resize((640, 640), Image.LANCZOS), dest, 84)
 
     if (origen / "Logo.png").exists():
         im = abrir("Logo.png")
@@ -142,7 +214,7 @@ def main(origen: Path) -> None:
         guardar(im, "portada/gaucho.webp")
 
     for region in ["buenos-aires", "cuyo", "mesopotamia", "norte", "patagonia", "malvinas"]:
-        for slot in ["1", "2", "jefe"]:
+        for slot in ["1", "2", "3", "4", "5", "6", "7", "8", "9", "jefe"]:
             nombre = f"{region}-{slot}.png"
             if (origen / nombre).exists():
                 guardar(abrir(nombre).convert("RGB").resize((512, 512), Image.LANCZOS), f"rivales/{region}-{slot}.webp", 86)

@@ -5,7 +5,7 @@ import type { Save } from "../save/save.ts";
 import { useSave } from "../save/SaveContext.tsx";
 
 /** Fondos que ya tienen imagen en `public/arte/fondos/` (los demás aparecen como "Próximamente"). */
-export const FONDOS_CON_IMAGEN = new Set(["boliche", "patio", "bodegon", "bodega", "litoral", "pena", "puerto", "fogon", "quincho", "estancia"]);
+export const FONDOS_CON_IMAGEN = new Set(["boliche", "patio", "bodegon", "bodega", "litoral", "pena", "puerto", "fogon", "quincho", "estancia", "costa", "refugio", "cataratas", "vereda", "cafe"]);
 
 export const fondoListo = (f: FondoDef) => FONDOS_CON_IMAGEN.has(f.id);
 

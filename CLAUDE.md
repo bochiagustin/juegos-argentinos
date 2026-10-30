@@ -160,9 +160,11 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
 - **Arte del usuario**: `src/art/manifest.ts` (ids → `public/arte/...`), `<Art id fallback>` muestra un placeholder o un dibujo
   propio mientras falte el archivo. Checklist en `docs/arte.md`. Los originales que sube el usuario se procesan con
   `python3 tools/recortar-arte.py <carpeta>` (saca el damero pintado / fondo liso, GrabCut para el sombrero, recorta, WebP,
-  íconos de la PWA) y **no** se dejan en el repo. Ya están: logo (marco + texto en código), gaucho de portada, 10 rivales,
-  íconos de canto y de pestañas, tarjeta del truco, mapa de la gira (medallones por región en `MapaGira.tsx`) e ícono de la app.
-  De los 60 rivales faltan 50 retratos (prompts generados desde `aspecto` en `docs/prompts-arte.md` §5); sin retrato, emoji.
+  íconos de la PWA) y **no** se dejan en el repo. Ya están: logo (marco + texto en código), portada (pampa + gaucho), los 60
+  rivales, 12 avatares del jugador (`@1`…`@12` en `perfil.avatar`; `carrera/Cara.tsx` dibuja cualquier avatar), íconos de canto y
+  de pestañas, tarjetas de los 5 juegos, mapa de la gira, mate y cartel de la mesa (el texto del cartel va en código), Sol de Mayo
+  y banderitas del marcador, filete de las esquinas (`FileteEsquinas`), caja de fósforos (`FosforoIcono`), gauchos de la pantalla
+  final (`fin-victoria/derrota`), fondos (faltan solo las versiones verticales de la mayoría) e ícono de la app.
 - **Mazos** (`src/cards/decks.ts`): todos gratis; de entrada el **Nuevo Mazo Argento** (`MAZO_INICIAL`, precacheado; guardado v4
   pasa a quien tenía la Criolla de fábrica). `criolla` (SVG propio) y los tres **Mazo Argento** (`argento-nuevo`, `argento-memes`,
   `argento-campeon`, imágenes en `public/mazos/<id>/<cardId>.webp` + `dorso.webp`, usados con licencia: `docs/licencias/mazo-argento.md`).
@@ -202,7 +204,7 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
   y el mate (`mesa-cartel`, `mesa-mate`; con respaldo dibujado).
 - **Fondos de mesa** (`career/src/fondos.ts`: 15 fondos, se desbloquean por gira/victorias/logros o se compran; `web/src/fondos/fondos.tsx`:
   `FondoMesa`, `FONDOS_CON_IMAGEN`): imágenes en `public/arte/fondos/<id>-{vertical,horizontal}.webp`, se eligen en "Mazos y fondos"
-  (`ajustes.fondo`). Por ahora solo el truco los usa. Faltan del usuario: fondo, mate, poncho, cartel (docs/arte.md).
+  (`ajustes.fondo`). Por ahora solo el truco los usa. El café tiene borroneado el diario (traía un logo real).
 - **Truco, fin de mano**: `useTrucoMatch` guarda `congelada` (las bazas de la mano que terminó) y la mesa las muestra, con la
   última carta, hasta cerrar el resumen (que aparece a los 1,6 s); mientras tanto no juegan los bots.
 - **Materiales** (`src/index.css`, en `@layer components` para que las utilidades de Tailwind les ganen): `.pano`, `.cuero`

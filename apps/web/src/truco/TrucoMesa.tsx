@@ -183,7 +183,13 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
       <FondoMesa />
       {/* En pantallas anchas la mesa queda centrada y a los costados se ve el boliche: el cartel y el mate. */}
       <div className="pointer-events-none absolute right-[max(1.5rem,calc((100vw-42rem)/2-15rem))] top-1/3 hidden w-48 rotate-3 lg:block">
-        <Art id="mesa-cartel" className="w-full" fallback={<CartelBoliche />} />
+        <div className="relative">
+          <Art id="mesa-cartel" className="w-full drop-shadow-[0_10px_14px_rgb(0_0_0/0.55)]" fallback={<CartelBoliche />} />
+          {/* Sobre la tabla dibujada va el texto (la ilustración viene sin letras). */}
+          <p className="titulo-criollo pointer-events-none absolute inset-x-[16%] top-[30%] bottom-[14%] grid place-items-center text-center text-[1.05rem] leading-tight [text-shadow:0_2px_0_rgb(40_20_5/0.9)]">
+            Truco, amigos, asado y mate
+          </p>
+        </div>
       </div>
       <div className="pointer-events-none absolute bottom-24 left-[max(1.5rem,calc((100vw-42rem)/2-13rem))] hidden size-40 lg:block">
         <Art id="mesa-mate" className="size-full object-contain" fallback={<MateDibujo className="size-full" />} />
@@ -199,7 +205,9 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
         <div className="relative z-[1] flex min-w-0 flex-1 items-center">
           {equipos.map((team, i) => (
             <div key={team} className={`marcador relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1.5 pb-1 pt-0.5 ${i === 0 ? "marcador-mio pr-4" : "pl-4"}`}>
-              <Banderita className={`absolute -top-2.5 h-6 w-5 ${i === 0 ? "-left-1.5" : "-right-1.5"}`} espejo={i === 1} />
+              <span className={`absolute -top-3 h-7 w-6 ${i === 0 ? "-left-2" : "-right-2"}`} style={i === 1 ? { transform: "scaleX(-1)" } : undefined}>
+                <Art id="ui-banderita" className="size-full object-contain drop-shadow" fallback={<Banderita className="size-full" />} />
+              </span>
               <p className="flex max-w-full items-baseline gap-1.5 truncate text-[11px] font-black uppercase tracking-wider text-crema/90">
                 <span className="truncate">{equipo(team)}</span>
                 <span className="font-criolla text-lg leading-none text-naranja">{view.score[team]}</span>
@@ -207,7 +215,9 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
               <Fosforos puntos={view.score[team]} target={view.config.target} />
             </div>
           ))}
-          <SolDeMayo className="absolute left-1/2 top-1/2 z-10 size-11 -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_2px_3px_rgb(0_0_0/0.6)]" />
+          <span className="absolute left-1/2 top-1/2 z-10 size-12 -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_2px_3px_rgb(0_0_0/0.6)]">
+            <Art id="ui-sol" className="size-full object-contain" fallback={<SolDeMayo className="size-full" />} />
+          </span>
         </div>
         <IconButton label="Cómo se juega" onClick={() => setReglas(true)}>
           ?
@@ -376,16 +386,8 @@ function iconoDe(a: TrucoAction): IconoCanto {
 /** Cartel de madera del boliche (hasta que llegue la ilustración). */
 function CartelBoliche() {
   return (
-    <div className="madera rounded-lg px-4 py-5 text-center shadow-2xl">
+    <div className="madera aspect-[4/3] rounded-lg shadow-2xl">
       <span className="absolute -top-6 left-1/2 h-6 w-px -translate-x-1/2 bg-[#2a1608]" aria-hidden />
-      <p className="titulo-criollo text-2xl leading-tight">
-        Truco
-        <br />
-        amigos
-        <br />
-        asado
-        <br />y mate
-      </p>
     </div>
   );
 }
