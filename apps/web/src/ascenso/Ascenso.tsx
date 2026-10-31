@@ -256,7 +256,7 @@ function Torneo({
 
   return (
     <>
-      <div className="mx-auto max-w-2xl">
+      <div>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm font-bold">
           <span className="flex items-center gap-2 rounded-full bg-black/35 py-1 pl-1 pr-3">
             <LogoTorneo id={ligaDe(cat)} className="size-8 rounded-full" />
@@ -338,7 +338,7 @@ function Torneo({
         </div>
       </div>
       <section
-        className={`cuero cuero-oscuro mx-auto mt-3 rounded-3xl p-3 ${pestana === "calendario" ? "" : "max-w-2xl"}`}
+        className="cuero cuero-oscuro mt-3 rounded-3xl p-3"
       >
         <div className="relative z-[1]">
           {pestana === "calendario" && (

@@ -150,7 +150,7 @@ export function Calendario({
     (sel && porFecha.get(sel)) || dias.find((d) => d.proximo) || null;
 
   return (
-    <div className="grid gap-3 lg:grid-cols-[1fr_17rem]">
+    <div className="grid gap-3 lg:grid-cols-[1fr_20rem]">
       <section className="rounded-3xl bg-gradient-to-br from-[#211a52] via-[#2a1f63] to-[#1a1440] p-3 shadow-xl ring-1 ring-white/10">
         <div className="mb-2 flex items-center justify-between gap-2">
           <button
@@ -295,7 +295,7 @@ function Celda({
       )}
     </>
   );
-  const clases = `relative h-16 sm:h-20 lg:h-24 ${fondo} ${elegido ? "outline outline-2 -outline-offset-2 outline-[#5eead4]" : ""}`;
+  const clases = `relative h-16 sm:h-20 lg:h-[5.5rem] ${fondo} ${elegido ? "outline outline-2 -outline-offset-2 outline-[#5eead4]" : ""}`;
   return partido && delMes ? (
     <button
       className={clases}
