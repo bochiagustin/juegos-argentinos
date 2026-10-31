@@ -12,7 +12,13 @@ export function Cara({ avatar, rivalId, className = "absolute inset-0 size-full 
   const retrato = /^@(\d{1,2})$/.exec(avatar)?.[1];
   if (retrato) return <Art id={`avatar-${retrato}` as ArtId} className={className} fallback={<>🧉</>} />;
   if (!rivalId) return <>{avatar}</>;
-  if (rivalId.startsWith(PREFIJO_ASCENSO)) return <Escudo id={rivalId.slice(PREFIJO_ASCENSO.length)} className="absolute inset-[8%] size-[84%]" />;
+  // El escudo entero adentro del círculo, con aire alrededor (no recortado por el borde redondo).
+  if (rivalId.startsWith(PREFIJO_ASCENSO))
+    return (
+      <span className="absolute inset-[16%] flex items-center justify-center">
+        <Escudo id={rivalId.slice(PREFIJO_ASCENSO.length)} className="size-full" />
+      </span>
+    );
   return <Art id={`rival-${rivalId}` as ArtId} className={className} fallback={<>{avatar}</>} />;
 }
 
