@@ -104,7 +104,12 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
 - Con flor habilitada, el que tiene flor no puede ir al envido (canta flor). Flor sola: 3 por cada flor del equipo.
   Achicarse: 4. Contraflor querida: 6 a la mejor. Contraflor al resto querida: lo que vale la falta. Contraflor no querida: 4.
   *(provisorio, ver MEMORY.md)*
-- Señas, chat de equipo y pica-pica quedan para el online (Fase 8): contra bots no aportan.
+- **Señas** (`truco/senas.ts`): las clásicas (`SENAS`, `SENA_INFO`: gesto y significado; `senasDeMano`, `pistaDeSena`). Contra la
+  máquina en 2v2/3v3 (`useTrucoMatch`): al repartir cada bot le hace sus señas a su equipo (globos fugaces `tono: "sena"`),
+  vos se las hacés con el botón 🤫 (`PanelSenas`), y cada rival las pesca con 6% + 2% por nivel (vos le pescás 1 de cada 4 a
+  los rivales). Lo que sabe cada bot (`Pista`: cartas posibles de un asiento, o 30+ de envido) entra en `chooseTrucoAction`:
+  el Monte Carlo pone esas cartas en la mano de quien las marcó, y con un compañero de 30+ se juega el envido. Online siguen
+  las señas de la sala (protocolo). Pica-pica, para más adelante.
 
 ### IA (bots, desde la Fase 2)
 

@@ -1,6 +1,6 @@
 import type { SuitedCard } from "@juegos-argentinos/engine";
 import { Cara, rivalEn } from "../carrera/Cara.tsx";
-import { teamOf, type RoundSummary, type Seat, type Trick, type TrucoAction, type TrucoView } from "@juegos-argentinos/engine/truco";
+import { SENA_INFO, SENAS, teamOf, type RoundSummary, type Sena, type Seat, type Trick, type TrucoAction, type TrucoView } from "@juegos-argentinos/engine/truco";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { playSfx } from "../audio/sfx.ts";
@@ -120,7 +120,9 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
     playSfx(gane ? "turno" : "error");
   };
 
-  const { match, view, valid, jugar, globos, resumen, pendiente, congelada, cerrarResumen, yo } = useTrucoMatch(initial, onFin, remoto);
+  const ctl = useTrucoMatch(initial, onFin, remoto);
+  const { match, view, valid, jugar, globos, resumen, pendiente, congelada, cerrarResumen, yo } = ctl;
+  const [senas, setSenas] = useState(false);
   // Mientras se muestra cómo terminó la mano, la mesa es la de esa mano (no la nueva que ya se repartió).
   const tricks = congelada ?? view.tricks;
   const jugadasEn = (seat: Seat) => tricks.filter((t) => t.plays.some((x) => x.seat === seat)).length;
@@ -262,12 +264,33 @@ function Mesa({ initial, onRevancha, remoto }: { initial: TrucoMatch | null; onR
           </AnimatePresence>
         </div>
 
-        <div className="madera z-10 rounded-t-3xl px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
+        <div className="madera relative z-10 rounded-t-3xl px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
           <p className="relative z-[1] mb-2 flex min-h-5 items-center justify-center gap-2 text-center text-sm font-bold text-crema" aria-live="polite">
             <VolutaTexto className="h-4 w-8 shrink-0" />
             <span>{congelada ? "Fin de la mano" : estado(view, nombre, miTurno, yo)}</span>
             <VolutaTexto className="h-4 w-8 shrink-0" espejo />
+            {ctl.hacerSena && (
+              <button
+                onClick={() => setSenas((x) => !x)}
+                aria-expanded={senas}
+                aria-label="Hacerle una seña a tu compañero"
+                className="absolute right-0 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full border-2 border-[#d9a066] bg-[#4c1d95] text-xl shadow"
+              >
+                🤫
+              </button>
+            )}
           </p>
+          <AnimatePresence>
+            {senas && ctl.hacerSena && (
+              <PanelSenas
+                onSena={(x) => {
+                  ctl.hacerSena!(x);
+                  setSenas(false);
+                }}
+                onCerrar={() => setSenas(false)}
+              />
+            )}
+          </AnimatePresence>
           <div className="relative z-[1] flex min-h-[8.5rem] items-end justify-center gap-2 pb-1">
             <AnimatePresence>
               {(congelada ? [] : view.hand).map((c, i) => (
@@ -587,7 +610,14 @@ function Burbuja({ globo, pos }: { globo: Globo; pos: Punto }) {
   const left = derecha ? Math.min(pos.x + 17, 88) : Math.max(pos.x - 17, 12);
   // Un poco arriba del centro del avatar, para no tapar el nombre ni lo que cantó.
   const top = pos.y > 90 ? 80 : Math.max(4, pos.y - 7);
-  const color = globo.tono === "canto" ? "bg-crema text-tinta" : globo.tono === "tanto" ? "bg-celeste text-tinta" : "bg-[#d9cfc0] text-tinta/80";
+  const color =
+    globo.tono === "sena"
+      ? "max-w-[11rem] whitespace-normal bg-[#4c1d95] font-sans text-sm font-black leading-tight text-white"
+      : globo.tono === "canto"
+        ? "bg-crema text-tinta"
+        : globo.tono === "tanto"
+          ? "bg-celeste text-tinta"
+          : "bg-[#d9cfc0] text-tinta/80";
   return (
     <motion.div
       initial={{ scale: 0.3, opacity: 0 }}
@@ -597,7 +627,7 @@ function Burbuja({ globo, pos }: { globo: Globo; pos: Punto }) {
       className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-1/2"
       style={{ left: `${left}%`, top: `${top}%` }}
     >
-      <div className={`relative whitespace-nowrap rounded-2xl border-2 border-tinta/60 px-3 py-1 font-criolla text-lg shadow-xl shadow-black/40 ${color}`}>
+      <div className={`relative whitespace-nowrap rounded-2xl border-2 border-tinta/60 px-3 py-1 text-lg shadow-xl shadow-black/40 ${globo.tono === "sena" ? "" : "font-criolla"} ${color}`}>
         {globo.texto}
       </div>
     </motion.div>
@@ -652,5 +682,38 @@ function Resumen({ r, nombre, equipo, view, yo, onSeguir, terminado }: { r: Roun
         <span className="relative z-[1]">{terminado ? "Ver resultado" : "Siguiente mano"}</span>
       </button>
     </Modal>
+  );
+}
+
+/** Las señas para el compañero: el gesto y lo que quiere decir (en el 2v2/3v3 contra la máquina). */
+function PanelSenas({ onSena, onCerrar }: { onSena: (s: Sena) => void; onCerrar: () => void }) {
+  return (
+    <motion.div
+      initial={{ y: 30, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 30, opacity: 0 }}
+      className="absolute inset-x-2 bottom-full z-40 mb-2 rounded-2xl border-2 border-[#d9a066] bg-[#2e1065]/95 p-2 shadow-2xl"
+      role="dialog"
+      aria-label="Señas"
+    >
+      <div className="mb-1 flex items-center justify-between px-1">
+        <p className="text-xs font-black uppercase tracking-wider text-[#c4b5fd]">Hacele una seña a tu compañero</p>
+        <button className="grid size-9 place-items-center rounded-full bg-white/10" onClick={onCerrar} aria-label="Cerrar">
+          ✕
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-1.5">
+        {SENAS.map((x) => (
+          <button key={x} onClick={() => onSena(x)} className="flex min-h-11 items-center gap-2 rounded-xl bg-white/10 px-2 py-1 text-left active:bg-white/20">
+            <span className="text-2xl">{SENA_INFO[x].emoji}</span>
+            <span className="min-w-0 leading-tight">
+              <span className="block truncate text-[11px] font-bold text-white/70">{SENA_INFO[x].gesto}</span>
+              <span className="block truncate text-sm font-black text-white">{SENA_INFO[x].significa}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      <p className="mt-1 px-1 text-[10px] text-white/60">Ojo: los rivales a veces pescan las señas.</p>
+    </motion.div>
   );
 }

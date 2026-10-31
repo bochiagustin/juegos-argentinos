@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { cardFromId, createRng, type Rasgos, type SuitedCard } from "../core/index.ts";
 import { chooseTrucoAction, manoAsegurada } from "./bot.ts";
+import { pistaDeSena, senasDeMano, type Pista } from "./senas.ts";
 import { truco } from "./game.ts";
 import { DEFAULT_TRUCO_CONFIG, type TrucoAction, type TrucoState } from "./types.ts";
 
@@ -82,5 +83,50 @@ describe("bot del truco: contesta con lógica", () => {
   it("manoAsegurada no se engaña: el ancho solo, de entrada, no alcanza", () => {
     const s = setup([["4-copa", "3-oro", "2-copa"], ["4-oro", "1-espada", "5-copa"]]);
     expect(manoAsegurada(truco.getPlayerView(s, "b"))).toBe(false);
+  });
+});
+
+describe("señas", () => {
+  const cs = (ids: string[]) => ids.map((id) => cardFromId(id) as SuitedCard);
+
+  it("cada mano marca sus cartas buenas, la flor o el envido, o que no tiene nada", () => {
+    expect(senasDeMano(cs(["1-espada", "3-oro", "4-copa"]), false)).toEqual(["cejas", "labio"]);
+    expect(senasDeMano(cs(["7-oro", "6-oro", "4-copa"]), false)).toEqual(["boca-izquierda", "cabeza"]);
+    expect(senasDeMano(cs(["5-copa", "6-copa", "4-copa"]), true)).toEqual(["cachetes"]);
+    expect(senasDeMano(cs(["4-oro", "5-copa", "6-basto"]), false)).toEqual(["ojos"]);
+    expect(pistaDeSena(2, "cejas")).toEqual({ seat: 2, opciones: ["1-espada"] });
+    expect(pistaDeSena(2, "ojos")).toBeNull();
+  });
+
+  it("si el compañero le marcó los dos anchos, el bot quiere el truco mucho más seguido", () => {
+    const s0 = truco.initialState({ ...DEFAULT_TRUCO_CONFIG, players: 4 }, ["a", "b", "c", "d"], "senas");
+    s0.round.mano = 0;
+    s0.round.turn = 0;
+    s0.round.tricks = [{ leader: 0, plays: [] }];
+    const hands = [["1-espada", "1-basto", "4-copa"], ["3-oro", "3-basto", "2-copa"], ["4-oro", "5-copa", "6-basto"], ["2-oro", "3-copa", "7-oro"]];
+    s0.round.hands = hands.map(cs);
+    s0.round.dealt = hands.map(cs);
+    // El 0 tira, el 1 (rival) canta truco: contesta el 2 (compañero del 0, con cartas flojas).
+    const paso = (st: TrucoState, id: string, a: TrucoAction) => {
+      const r = truco.applyAction(st, id, a);
+      if (!r.ok) throw new Error(r.error);
+      return r.state;
+    };
+    const s = paso(paso(s0, "a", { type: "jugar", card: "4-copa" }), "b", { type: "truco" });
+    expect(s.round.pending?.responder).toBe(2);
+    const view = truco.getPlayerView(s, "c");
+    const valid = truco.getValidActions(s, "c");
+    const quiere = (pistas: Pista[]) => {
+      let n = 0;
+      for (let i = 0; i < 60; i++) {
+        const t = chooseTrucoAction(view, valid, createRng(`p-${i}`), 6, undefined, pistas)[0].type;
+        if (t === "quiero" || t === "truco") n++;
+      }
+      return n;
+    };
+    const sin = quiere([]);
+    const con = quiere([pistaDeSena(0, "cejas")!, pistaDeSena(0, "guino")!]);
+    expect(con).toBeGreaterThan(sin);
+    expect(con).toBeGreaterThanOrEqual(55);
   });
 });

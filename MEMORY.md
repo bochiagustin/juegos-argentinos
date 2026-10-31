@@ -100,6 +100,14 @@ Memoria de trabajo del proyecto: lo que el usuario pidió, prefirió o decidió 
   *Supuestos a confirmar:* Copa de la Liga con 2 zonas de 15 a una rueda y pasan 4 (cuartos, no octavos); todas las
   copas se reparten a lo largo de la liga (no hay semestres); cruces a partido único (no ida y vuelta).
 
+- **Pedido (2026-10-31): señas contra la máquina + Generala + Chancho va.** Respuestas: Generala clásica de Buenos Aires
+  (1–6 suma; Escalera 20/servida 25, Full 30/35, Póker 40/45, Generala 50, servida gana en el acto, doble 100;
+  escaleras 1-5, 2-6 y 3-4-5-6-1). Chancho va: 3 a 6 jugadores, 4 cartas, pase simultáneo con reloj (3 s), el que
+  junta 4 iguales toca la nariz y el último en tocarla suma letra; CHANCHO = afuera, gana el último. Señas clásicas
+  (cejas = ancho de espada, guiño = ancho de basto, boca a la derecha = 7 de espada, a la izquierda = 7 de oro, morder
+  el labio = 3, trompita = 2, punta de la lengua = as falso, inflar cachetes = flor, ojos cerrados = nada, ladear la
+  cabeza = 30 o más de envido). Modos de entrada para los juegos nuevos: contra la IA + con amigos (Gira/Ascenso después).
+
 ## Dudas abiertas (preguntar antes de implementar la fase correspondiente)
 
 ### Truco (implementado con la propuesta; confirmar)

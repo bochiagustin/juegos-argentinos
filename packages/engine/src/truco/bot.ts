@@ -1,6 +1,7 @@
 import { desvio, nextFloat, pick, shuffle, type Rasgos, type RngState, type SuitedCard } from "../core/index.ts";
 import { florValue, hasFlor, tanto, trucoDeck, trucoRank } from "./cards.ts";
 import { envidoQueridoPoints, nextEnvidoCalls, roundWinner, teamOf, truco } from "./game.ts";
+import type { Pista } from "./senas.ts";
 import type { Seat, Team, Trick, TrucoAction, TrucoConfig, TrucoState, TrucoView } from "./types.ts";
 
 /**
@@ -115,7 +116,7 @@ function unseenCards(view: TrucoView): SuitedCard[] {
  * Probabilidad de que mi equipo gane la mano (por bazas), estimada simulando repartos posibles
  * de las cartas que no veo. Con `first` fija mi próxima carta.
  */
-function winProbability(view: TrucoView, rng: RngState, samples: number, first?: SuitedCard): [number, RngState] {
+function winProbability(view: TrucoView, rng: RngState, samples: number, first?: SuitedCard, pistas: readonly Pista[] = []): [number, RngState] {
   const n = view.config.players;
   const unseen = unseenCards(view);
   let wins = 0;
@@ -123,8 +124,26 @@ function winProbability(view: TrucoView, rng: RngState, samples: number, first?:
   for (let i = 0; i < samples; i++) {
     const [deck, next] = shuffle(unseen, s);
     s = next;
+    // Las señas que vi: esas cartas van a la mano de quien las marcó (si todavía puede tenerlas).
+    const usadas = new Set<string>();
+    const forzadas = new Map<Seat, SuitedCard[]>();
+    for (const pi of pistas) {
+      if (!("opciones" in pi) || pi.seat === view.seat) continue;
+      const lugar = view.players.find((x) => x.seat === pi.seat)?.cardsLeft ?? 0;
+      const ya = forzadas.get(pi.seat) ?? [];
+      if (ya.length >= lugar) continue;
+      const c = deck.find((x) => pi.opciones.includes(x.id) && !usadas.has(x.id));
+      if (!c) continue;
+      usadas.add(c.id);
+      forzadas.set(pi.seat, [...ya, c]);
+    }
+    const resto = usadas.size ? deck.filter((c) => !usadas.has(c.id)) : deck;
     let k = 0;
-    const hands = view.players.map((p) => (p.seat === view.seat ? view.hand.slice() : deck.slice(k, (k += p.cardsLeft))));
+    const hands = view.players.map((p) => {
+      if (p.seat === view.seat) return view.hand.slice();
+      const f = forzadas.get(p.seat) ?? [];
+      return [...f, ...resto.slice(k, (k += p.cardsLeft - f.length))];
+    });
     if (simulateRest(view.tricks, hands, view.turn, n, view.mano, first) === view.team) wins++;
   }
   return [samples > 0 ? wins / samples : heuristicStrength(view), s];
@@ -170,7 +189,11 @@ function envidoAction(valid: readonly TrucoAction[], call: "envido" | "real-envi
   return valid.find((a) => a.type === "envido" && a.call === call);
 }
 
-export function chooseTrucoAction(view: TrucoView, valid: readonly TrucoAction[], rngIn: RngState, skill: number, rasgos?: Rasgos): [TrucoAction, RngState] {
+/**
+ * `pistas`: lo que este bot sabe por las señas (de su compañero, o las que le pescó a un rival). Con ellas reparte mejor
+ * las cartas que no ve, y si su compañero marcó 30 o más de envido, se juega el envido.
+ */
+export function chooseTrucoAction(view: TrucoView, valid: readonly TrucoAction[], rngIn: RngState, skill: number, rasgos?: Rasgos, pistas: readonly Pista[] = []): [TrucoAction, RngState] {
   if (valid.length === 0) throw new Error("El bot no tiene nada para hacer");
   const prof = botProfile(skill, rasgos);
   let rng = rngIn;
@@ -191,11 +214,13 @@ export function chooseTrucoAction(view: TrucoView, valid: readonly TrucoAction[]
   const flor = has(valid, "flor");
   if (flor) return [flor, rng];
 
-  const myTanto = tanto(view.dealt);
+  // Si el compañero marcó 30 o más, el equipo tiene ese tanto (aunque el mío sea menos).
+  const companeroTreinta = pistas.some((pi) => "tanto30" in pi && pi.seat !== view.seat && teamOf(pi.seat) === view.team);
+  const myTanto = Math.max(tanto(view.dealt), companeroTreinta ? 30 : 0);
   const manoTeam = teamOf(view.mano) === view.team;
   const p = view.pending;
   const prob = (samples = prof.samples) => {
-    const [v, next] = winProbability(view, rng, samples);
+    const [v, next] = winProbability(view, rng, samples, undefined, pistas);
     rng = next;
     return v;
   };
@@ -289,7 +314,7 @@ export function chooseTrucoAction(view: TrucoView, valid: readonly TrucoAction[]
   const per = Math.max(6, Math.round(prof.samples / plays.length));
   for (const a of plays) {
     const card = view.hand.find((c) => c.id === a.card)!;
-    const [pr, next] = winProbability(view, rng, per, card);
+    const [pr, next] = winProbability(view, rng, per, card, pistas);
     rng = next;
     // A igual probabilidad, guardar las cartas altas.
     const score = pr - rankOf(card) / 1000;

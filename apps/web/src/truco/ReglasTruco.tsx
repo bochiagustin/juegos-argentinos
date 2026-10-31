@@ -1,3 +1,4 @@
+import { SENA_INFO, SENAS } from "@juegos-argentinos/engine/truco";
 import { cardFromId } from "@juegos-argentinos/engine";
 import type { TrucoConfig } from "@juegos-argentinos/engine/truco";
 import { SpanishCard } from "../cards/SpanishCard.tsx";
@@ -75,6 +76,23 @@ export function ReglasTruco({ config }: { config: TrucoConfig }) {
         <h3 className="mb-1 font-criolla text-lg text-naranja">Irse al mazo</h3>
         <p>Abandonás la mano y los otros cobran lo que valía.{config.mazoSumaEnvido ? " Si te vas en la primera baza sin que se haya cantado envido, cobran 1 más." : ""}</p>
       </section>
+
+      {config.players >= 4 && (
+        <section>
+          <h3 className="mb-1 font-criolla text-lg text-naranja">Las señas</h3>
+          <p className="mb-1">Al repartir, tu compañero te hace señas rapidito (¡prestá atención!). Vos le hacés con el botón 🤫. Ojo, que los rivales a veces las pescan.</p>
+          <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+            {SENAS.map((x) => (
+              <li key={x} className="flex items-center gap-2">
+                <span className="text-xl">{SENA_INFO[x].emoji}</span>
+                <span>
+                  {SENA_INFO[x].gesto}: <b>{SENA_INFO[x].significa}</b>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
