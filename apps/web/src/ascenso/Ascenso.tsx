@@ -36,6 +36,7 @@ import { Fosforos } from "../ui/Modal.tsx";
 import { Screen } from "../ui/ui.tsx";
 import { Bolillero, CopasPanel, Cuadro, Trofeo, Vitrina } from "./Copas.tsx";
 import { Escudo, MiClub, useNombreClub } from "./Escudo.tsx";
+import { ligaDe, LogoTorneo, type TorneoId } from "./LogoTorneo.tsx";
 
 type Pestana = "tabla" | "copas" | "reducido" | "vitrina" | "historial";
 
@@ -139,7 +140,8 @@ function ElegirClub({
           if (!deCat.length) return null;
           return (
             <section key={cat}>
-              <h3 className="mb-1.5 px-1 text-xs font-black uppercase tracking-wider text-naranja">
+              <h3 className="mb-1.5 flex items-center gap-2 px-1 text-xs font-black uppercase tracking-wider text-naranja">
+                <LogoTorneo id={ligaDe(cat)} className="size-9" />
                 {NOMBRE_CATEGORIA[cat]}
               </h3>
               <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -250,7 +252,8 @@ function Torneo({
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm font-bold">
-        <span className="rounded-full bg-black/35 px-3 py-1">
+        <span className="flex items-center gap-2 rounded-full bg-black/35 py-1 pl-1 pr-3">
+          <LogoTorneo id={ligaDe(cat)} className="size-8 rounded-full" />
           {NOMBRE_CATEGORIA[cat]} · Temporada {p.temporada}
         </span>
         <span className="rounded-full bg-black/35 px-3 py-1">
@@ -269,10 +272,13 @@ function Torneo({
           className={`cuero ${prox.final ? "cuero-mostaza" : info?.internacional ? "cuero-azul" : "cuero-verde"} rounded-3xl p-4`}
         >
           <div className="relative z-[1]">
-            <p className="text-center text-xs font-black uppercase tracking-wider text-naranja">
-              {prox.final ? "🔥 " : info ? `${info.icono} ` : ""}
-              {prox.titulo}
-            </p>
+            <div className="flex flex-col items-center gap-1.5">
+              <LogoTorneo id={prox.copa ?? ligaDe(cat)} className="size-14" />
+              <p className="text-center text-xs font-black uppercase tracking-wider text-naranja">
+                {prox.final ? "🔥 " : ""}
+                {prox.titulo}
+              </p>
+            </div>
             <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
               <EquipoGrande
                 id={YO_CLUB}
@@ -486,6 +492,9 @@ function FinTemporada({
                 className="flex w-24 flex-col items-center gap-1 text-[11px] font-black leading-tight"
               >
                 <Trofeo id={t} className="size-12" />
+                {!t.startsWith("reducido-") && (
+                  <LogoTorneo id={t as TorneoId} className="size-8" />
+                )}
                 {nombreTitulo(t)}
               </span>
             ))}

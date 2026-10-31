@@ -4,6 +4,7 @@ club: ver docs/licencias/escudos.md) y los guarda como apps/web/public/arte/escu
 El id de cada club en packages/career/src/clubes.ts es el mismo "slug" que usa FootyLogos.
 
 Uso: python3 tools/bajar-escudos.py [id …]   (sin ids: todos los que falten)
+     python3 tools/bajar-escudos.py --torneos  (logos de las ligas y copas → apps/web/public/arte/torneos/<id>.webp)
 Requiere cairosvg, Pillow y acceso a assets.footylogos.com.
 """
 import io
@@ -55,7 +56,26 @@ def guardar(id_: str, img: Image.Image) -> None:
     lienzo.save(DESTINO / f"{id_}.webp", "WEBP", quality=90, method=6)
 
 
+# Logos de torneos en FootyLogos (id en la app → slug). La Copa Argentina, la Supercopa, la Copa de la Liga y la Recopa
+# no están: la app las dibuja (apps/web/src/ascenso/Copas.tsx).
+TORNEOS = {
+    "liga-primera": "liga-profesional-argentina",
+    "liga-nacional": "primera-nacional-argentina",
+    "liga-b": "primera-b-metropolitana-argentina",
+    "liga-c": "primera-c-metropolitana-argentina",
+    "libertadores": "copa-libertadores",
+    "sudamericana": "conmebol-sudamericana",
+}
+
+
 def main() -> None:
+    global DESTINO
+    if sys.argv[1:] == ["--torneos"]:
+        DESTINO = RAIZ / "apps/web/public/arte/torneos"
+        for id_, slug in TORNEOS.items():
+            guardar(id_, bajar(slug))
+            print("ok", id_)
+        return
     pedidos = sys.argv[1:] or [i for i in ids() if not (DESTINO / f"{i}.webp").exists()]
     fallas = []
     for id_ in pedidos:

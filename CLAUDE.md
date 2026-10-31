@@ -164,6 +164,9 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
   `tools/bajar-escudos.py` (los baja de FootyLogos), `docs/escudos.md`. 6 logros (ascenso, a Primera, campeón, Copa
   Argentina, Sudamericana, Libertadores). Web de las copas: `ascenso/Copas.tsx` (`CopasPanel` con grupos y cruces,
   `Vitrina` con `Trofeo` dibujado, `Bolillero` del sorteo, `Festejo` de campeón con papelitos y sonido `festejo`).
+  Logos de torneos (`ascenso/LogoTorneo.tsx`, sobre una chapa clara): las 4 ligas, Libertadores y Sudamericana bajados de
+  FootyLogos (`tools/bajar-escudos.py --torneos` → `public/arte/torneos/`); Copa Argentina, Copa de la Liga, Supercopa y
+  Recopa no están en FootyLogos y llevan un emblema dibujado propio.
 
 ### Carrera y logros (diseño original)
 

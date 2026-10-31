@@ -18,6 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 import { playSfx, vibrate } from "../audio/sfx.ts";
 import { Modal } from "../ui/Modal.tsx";
 import { Escudo, useNombreClub } from "./Escudo.tsx";
+import { LogoTorneo, type TorneoId } from "./LogoTorneo.tsx";
 
 /** Las copas de la temporada: elegís una y ves sus grupos y sus cruces. */
 export function CopasPanel({ p }: { p: AscensoProgress }) {
@@ -48,7 +49,7 @@ export function CopasPanel({ p }: { p: AscensoProgress }) {
               aria-pressed={sel === id}
               className={`flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border-2 px-3 text-xs font-black ${sel === id ? "border-naranja bg-naranja text-tinta" : "border-crema/15 bg-black/25"}`}
             >
-              <span>{info.icono}</span>
+              <LogoTorneo id={id} className="size-7 rounded-full" />
               {info.corto}
               {juego(id) && (
                 <span
@@ -70,6 +71,12 @@ function CopaDetalle({ c }: { c: Copa }) {
   const nombres = c.rondas.map((r) => nombreRonda(r.length * 2));
   return (
     <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-3 px-1">
+        <LogoTorneo id={c.id} className="size-16" />
+        <span className="font-criolla text-xl leading-tight">
+          {info.nombre}
+        </span>
+      </div>
       {c.campeon && (
         <Campeon id={c.campeon} texto={`Campeón de la ${info.nombre}`} />
       )}
@@ -358,6 +365,12 @@ export function Vitrina({ p }: { p: AscensoProgress }) {
             >
               <span className="relative">
                 <Trofeo id={id} />
+                {!id.startsWith("reducido-") && (
+                  <LogoTorneo
+                    id={id as TorneoId}
+                    className="absolute -bottom-1 -left-3 size-7 rounded-full"
+                  />
+                )}
                 {temporadas.length > 1 && (
                   <span className="absolute -right-2 -top-1 grid size-6 place-items-center rounded-full bg-naranja text-xs font-black text-tinta">
                     ×{temporadas.length}
@@ -412,8 +425,9 @@ export function Bolillero({
   return (
     <Modal onClose={() => listo && onListo()}>
       <div className="flex flex-col items-center gap-3 text-center">
+        {partido.copa && <LogoTorneo id={partido.copa} className="size-16" />}
         <p className="text-xs font-black uppercase tracking-wider text-naranja">
-          {info ? `${info.icono} ${info.nombre}` : "🔥 Reducido"} · Sorteo
+          {info ? info.nombre : "🔥 Reducido"} · Sorteo
         </p>
         <motion.div
           animate={listo ? { rotate: 0 } : { rotate: 360 }}
@@ -550,6 +564,9 @@ export function Festejo({
             className="size-40 drop-shadow-[0_0_30px_rgba(253,230,138,0.7)]"
           />
         </motion.div>
+        {titulos[0] && !titulos[0].id.startsWith("reducido-") && (
+          <LogoTorneo id={titulos[0].id as TorneoId} className="size-20" />
+        )}
         <h2 className="titulo-criollo text-6xl">¡Campeón!</h2>
         {titulos.map((t) => (
           <p key={t.id} className="font-criolla text-2xl text-naranja">
