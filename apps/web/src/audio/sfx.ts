@@ -3,7 +3,7 @@
  * El AudioContext se crea recién con el primer gesto del usuario (requisito de los navegadores).
  */
 
-export type SfxName = "click" | "carta" | "repartir" | "barajar" | "turno" | "error" | "tic" | "basta" | "ruleta" | "ganar" | "bolillero" | "festejo" | "hinchada";
+export type SfxName = "click" | "carta" | "repartir" | "barajar" | "turno" | "error" | "tic" | "basta" | "ruleta" | "ganar" | "bolillero" | "festejo" | "hinchada" | "dados";
 
 let enabled = true;
 let vibrationEnabled = true;
@@ -109,6 +109,11 @@ export function playSfx(name: SfxName) {
     case "bolillero":
       // Bolillas que chocan adentro del bolillero.
       for (let i = 0; i < 24; i++) snap(ac, t + i * 0.055 + (i % 4) * 0.01, { freq: 1400 + (i % 6) * 260, duration: 0.04, gain: 0.3 });
+      break;
+    case "dados":
+      // Los dados sacudiéndose en el cubilete y cayendo sobre la mesa.
+      for (let i = 0; i < 10; i++) snap(ac, t + i * 0.045, { freq: 900 + (i % 3) * 300, duration: 0.04, gain: 0.35 });
+      for (let i = 0; i < 5; i++) snap(ac, t + 0.55 + i * 0.07 + (i % 2) * 0.03, { freq: 2200 - i * 150, duration: 0.05, gain: 0.5 });
       break;
     case "hinchada":
       // La hinchada que canta y el bombo: para entrar a un clásico.

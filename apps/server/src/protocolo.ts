@@ -5,7 +5,8 @@
  */
 import type { GameId } from "@juegos-argentinos/engine";
 
-export const JUEGOS_ONLINE: readonly GameId[] = ["truco", "chinchon", "casita-robada", "escoba", "tutti-frutti"];
+/** Los juegos con sala online (el que manda el cliente se valida contra esta lista). */
+export const JUEGOS_ONLINE: readonly GameId[] = ["truco", "chinchon", "casita-robada", "escoba", "tutti-frutti", "generala"];
 
 export interface JugadorSala {
   seat: number;

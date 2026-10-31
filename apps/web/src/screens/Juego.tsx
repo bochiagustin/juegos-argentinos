@@ -1,3 +1,4 @@
+import type { CareerGame } from "@juegos-argentinos/career";
 import type { GameId } from "@juegos-argentinos/engine";
 import { useState } from "react";
 import { Art } from "../art/Art.tsx";
@@ -6,6 +7,17 @@ import { gameInfo, MODOS, type ModoId } from "../games.ts";
 import { useNav } from "../nav.tsx";
 import { FileteEsquinas, Screen, Section } from "../ui/ui.tsx";
 import { GameArtFallback } from "./Juegos.tsx";
+
+/** La pantalla para armar una partida contra la máquina de cada juego. */
+const SETUP = {
+  truco: "truco-setup",
+  chinchon: "chinchon-setup",
+  "casita-robada": "casita-setup",
+  escoba: "escoba-setup",
+  "tutti-frutti": "tutti-setup",
+  generala: "generala-setup",
+  chancho: "juegos",
+} as const satisfies Record<GameId, string>;
 
 export function Juego({ id }: { id: GameId }) {
   const { back, push } = useNav();
@@ -34,9 +46,9 @@ export function Juego({ id }: { id: GameId }) {
               onClick={() => {
                 playSfx(disponible ? "click" : "error");
                 if (!disponible) setAviso(`${modo.nombre} de ${game.nombre} está en camino. ¡Aguantá que ya llega!`);
-                else if (m === "ia") push({ name: id === "truco" ? "truco-setup" : id === "chinchon" ? "chinchon-setup" : id === "escoba" ? "escoba-setup" : id === "tutti-frutti" ? "tutti-setup" : "casita-setup" });
-                else if (m === "carrera") push({ name: "gira", game: id });
-                else if (m === "ascenso") push({ name: "ascenso", game: id });
+                else if (m === "ia") push({ name: SETUP[id] });
+                else if (m === "carrera") push({ name: "gira", game: id as CareerGame });
+                else if (m === "ascenso") push({ name: "ascenso", game: id as CareerGame });
                 else if (m === "amigos") push({ name: "amigos", game: id });
               }}
               aria-disabled={!disponible}

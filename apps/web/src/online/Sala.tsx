@@ -7,6 +7,7 @@ import { playSfx, vibrate } from "../audio/sfx.ts";
 import { CasitaMesaOnline } from "../casita/CasitaMesa.tsx";
 import { ChinchonMesaOnline } from "../chinchon/ChinchonMesa.tsx";
 import { EscobaMesaOnline } from "../escoba/EscobaMesa.tsx";
+import { GeneralaMesaOnline } from "../generala/GeneralaMesa.tsx";
 import { GAMES, gameInfo } from "../games.ts";
 import { useNav } from "../nav.tsx";
 import { Momentos, useArmado } from "../partidas/FinPartida.tsx";
@@ -196,6 +197,10 @@ function MesaOnline({ remoto }: { remoto: Remoto }) {
       return <EscobaMesaOnline remoto={remoto} />;
     case "tutti-frutti":
       return <TuttiMesaOnline remoto={remoto} />;
+    case "generala":
+      return <GeneralaMesaOnline remoto={remoto} />;
+    case "chancho":
+      return null;
   }
 }
 
@@ -432,6 +437,9 @@ function ConfigJuego({ game, config, n, set }: { game: GameId; config: Record<st
           <Toggle label="Levantar es obligatorio" checked={config.levantarObligatorio === true} onChange={(v) => set("levantarObligatorio", v)} />
         </>
       );
+    case "generala":
+    case "chancho":
+      return null;
     case "tutti-frutti": {
       const fin = (config.fin ?? {}) as { tipo?: string; rondas?: number };
       return (

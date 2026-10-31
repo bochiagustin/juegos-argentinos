@@ -1,5 +1,6 @@
 import type { GameId } from "@juegos-argentinos/engine";
 import type { ArtId } from "./art/manifest.ts";
+import { REGLAS_GENERALA } from "./generala/reglas.ts";
 
 export type ModoId = "ia" | "carrera" | "ascenso" | "amigos";
 export type ModoEstado = "disponible" | "proximamente";
@@ -116,6 +117,18 @@ export const GAMES: readonly GameInfo[] = [
       "10 puntos por respuesta única, 5 si alguien puso lo mismo, 20 si sos el único en la categoría.",
       "Las respuestas dudosas se votan entre todos.",
     ],
+  },
+  {
+    id: "generala",
+    nombre: "Generala",
+    bajada: "Cubilete, cinco dados y a cantar ¡generala!",
+    jugadores: "2 a 6 jugadores",
+    colores: ["#7c3aed", "#2e1065"],
+    cuero: "cuero-violeta",
+    arte: "juego-generala",
+    muestra: [],
+    modos: { ia: "disponible", carrera: "proximamente", ascenso: "proximamente", amigos: "disponible" },
+    reglas: REGLAS_GENERALA,
   },
 ];
 

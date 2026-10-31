@@ -67,7 +67,7 @@ export interface PalabraReportada {
 
 export const MAX_REPORTADAS = 300;
 
-const GAME_IDS: readonly GameId[] = ["truco", "chinchon", "casita-robada", "escoba", "tutti-frutti"];
+const GAME_IDS: readonly GameId[] = ["truco", "chinchon", "casita-robada", "escoba", "tutti-frutti", "generala", "chancho"];
 
 export function statsDe(save: Save, game: GameId): StatsJuego {
   return save.juegos[game] ?? { rating: DEFAULT_RATING, jugadas: 0, ganadas: 0 };

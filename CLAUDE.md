@@ -93,6 +93,12 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
   Categorías propias: sin diccionario. La votación (por mayoría, empate se acepta) sigue para las válidas.
   Bot: `planTutti` (qué escribe y a qué ms), `votosTutti`; nivel = cuánto sabe y qué tan rápido escribe (20 s → 7 s por respuesta).
 
+- Generala (`src/generala/`): `puntaje` (clásica de Buenos Aires: escaleras 1-5, 2-6 y 3-4-5-6-1; servidos +5; doble solo con la
+  generala en 50), la servida gana en el acto, empate = varios ganadores. Todo es público (la vista es el estado sin el
+  azar). Bot (`chooseGeneralaAction`): valor esperado exacto de cada forma de guardar (conteos de dados, memoria por
+  multiconjunto), anotar = puntaje − "par" de la casilla; nivel = cuánto se equivoca. Web: `src/generala/` (`Dado`,
+  `Cubilete`, `GeneralaSetup`, `GeneralaMesa` con planilla tocable; también online). Sin Gira ni Ascenso todavía.
+
 ### Truco: decisiones de implementación
 
 - Contesta un canto el **siguiente rival en el orden de juego** (en 2v2/3v3 no contesta "cualquiera del equipo").

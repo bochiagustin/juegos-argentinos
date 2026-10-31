@@ -5,7 +5,7 @@
  */
 import { createRng, nextInt, randomSeed, type GameId, type RngState } from "@juegos-argentinos/engine";
 import { MESA, planTutti, puedeBasta, votosTutti, type TuttiState } from "@juegos-argentinos/engine/tutti-frutti";
-import { JUEGOS, type JuegoOnline } from "./juegos.ts";
+import { JUEGOS, type JuegoOnline, type JuegoConSala } from "./juegos.ts";
 import { JUEGOS_ONLINE, REACCIONES, SENAS, type ClienteMsg, type JugadorSala, type RelojTurno, type RelojTutti, type SalaInfo, type ServidorMsg } from "./protocolo.ts";
 
 export interface Reloj {
@@ -81,7 +81,7 @@ export class Sala {
   }
 
   get juego(): JuegoOnline {
-    return JUEGOS[this.game];
+    return JUEGOS[this.game as JuegoConSala];
   }
 
   // ───────────────────────────── conexiones ─────────────────────────────
@@ -402,7 +402,7 @@ export class Sala {
     const pa = this.partida;
     if (!pa) return null;
     const id = pa.ids[seat]!;
-    const def = JUEGOS[pa.game].def;
+    const def = JUEGOS[pa.game as JuegoConSala].def;
     return {
       t: "juego",
       game: pa.game,
@@ -466,7 +466,7 @@ export class Sala {
   private tieneEquipos(): boolean {
     const pa = this.partida;
     if (!pa) return false;
-    const eq = this.participantes.map((_, i) => JUEGOS[pa.game].equipo(pa.config, i));
+    const eq = this.participantes.map((_, i) => JUEGOS[pa.game as JuegoConSala].equipo(pa.config, i));
     return new Set(eq).size < eq.length;
   }
 
@@ -474,7 +474,7 @@ export class Sala {
     const pa = this.partida;
     this.participantes.forEach((p, i) => {
       if (!p.conn) return;
-      if (soloEquipo && pa && JUEGOS[pa.game].equipo(pa.config, i) !== JUEGOS[pa.game].equipo(pa.config, seat)) return;
+      if (soloEquipo && pa && JUEGOS[pa.game as JuegoConSala].equipo(pa.config, i) !== JUEGOS[pa.game as JuegoConSala].equipo(pa.config, seat)) return;
       this.enviar(p.conn, msg);
     });
   }

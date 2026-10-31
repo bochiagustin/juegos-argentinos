@@ -7,6 +7,7 @@ import { casita, chooseCasitaAction, DEFAULT_CASITA_CONFIG, type CasitaConfig, t
 import { chinchon, chooseChinchonAction, DEFAULT_CHINCHON_CONFIG, type ChinchonConfig, type ChinchonState } from "@juegos-argentinos/engine/chinchon";
 import { chooseEscobaAction, DEFAULT_ESCOBA_CONFIG, escoba, type EscobaConfig, type EscobaState } from "@juegos-argentinos/engine/escoba";
 import { actorSeat, chooseTrucoAction, DEFAULT_TRUCO_CONFIG, truco, type TrucoConfig } from "@juegos-argentinos/engine/truco";
+import { chooseGeneralaAction, DEFAULT_GENERALA_CONFIG, generala, type GeneralaConfig, type GeneralaState } from "@juegos-argentinos/engine/generala";
 import { ALFABETO, CATEGORIAS_DE_FABRICA, DEFAULT_TUTTI_CONFIG, tuttiFrutti, type TuttiConfig } from "@juegos-argentinos/engine/tutti-frutti";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -35,7 +36,22 @@ const rango = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i)
 const individual = (_c: unknown, seat: number) => seat;
 const parejas = (c: { parejas: boolean; players: number }, seat: number) => (c.parejas && c.players === 4 ? seat % 2 : seat);
 
-export const JUEGOS: Record<GameId, JuegoOnline> = {
+/** Los que ya tienen mesa online (el chancho va todavía no). */
+export type JuegoConSala = Exclude<GameId, "chancho">;
+
+export const JUEGOS: Record<JuegoConSala, JuegoOnline> = {
+  generala: {
+    def: generala,
+    cantidades: [2, 3, 4, 5, 6],
+    defaultConfig: DEFAULT_GENERALA_CONFIG,
+    sanear(_raw, n): GeneralaConfig {
+      return { players: n as GeneralaConfig["players"] };
+    },
+    actor: (s: GeneralaState) => (s.ganadores === null ? s.turno : null),
+    choose: (v, va, rng, skill) => chooseGeneralaAction(v, va, rng, skill),
+    pausas: { "generala-servida": 2500 },
+    equipo: individual,
+  },
   truco: {
     def: truco,
     cantidades: [2, 4, 6],

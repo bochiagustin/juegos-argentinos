@@ -30,4 +30,4 @@ export interface GameDefinition<Config, State, Action, View, Event = never> {
   isGameOver(state: State): boolean;
 }
 
-export type GameId = "truco" | "chinchon" | "casita-robada" | "escoba" | "tutti-frutti";
+export type GameId = "truco" | "chinchon" | "casita-robada" | "escoba" | "tutti-frutti" | "generala" | "chancho";

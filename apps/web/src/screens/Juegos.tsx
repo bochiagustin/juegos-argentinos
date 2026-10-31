@@ -1,3 +1,4 @@
+import { Dado } from "../generala/Dado.tsx";
 import { cardFromId } from "@juegos-argentinos/engine";
 import { motion } from "motion/react";
 import { Art } from "../art/Art.tsx";
@@ -9,6 +10,17 @@ import { Screen } from "../ui/ui.tsx";
 
 /** Lo que se ve en la tarjeta mientras no esté la ilustración del juego: cartas (o letras) en abanico. */
 export function GameArtFallback({ game, size = 64 }: { game: GameInfo; size?: number }) {
+  if (game.id === "generala") {
+    return (
+      <div className="flex -space-x-2" aria-hidden>
+        {[6, 6, 5].map((v, i) => (
+          <span key={i} style={{ rotate: `${(i - 1) * 14}deg` }}>
+            <Dado valor={v} size={size * 0.62} />
+          </span>
+        ))}
+      </div>
+    );
+  }
   if (game.muestra.length === 0) {
     return (
       <div className="flex gap-1.5" aria-hidden>

@@ -2,6 +2,8 @@ import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { DeckContext } from "./cards/SpanishCard.tsx";
 import { Ascenso } from "./ascenso/Ascenso.tsx";
 import { Gira } from "./carrera/Gira.tsx";
+import { GeneralaMesa } from "./generala/GeneralaMesa.tsx";
+import { GeneralaSetup } from "./generala/GeneralaSetup.tsx";
 import { Logros } from "./carrera/Logros.tsx";
 import { CasitaMesa } from "./casita/CasitaMesa.tsx";
 import { CasitaSetup } from "./casita/CasitaSetup.tsx";
@@ -58,6 +60,10 @@ function CurrentScreen({ route }: { route: Route }) {
       return <EscobaSetup />;
     case "escoba-mesa":
       return <EscobaMesa />;
+    case "generala-setup":
+      return <GeneralaSetup />;
+    case "generala-mesa":
+      return <GeneralaMesa />;
     case "tutti-setup":
       return <TuttiSetup />;
     case "tutti-mesa":

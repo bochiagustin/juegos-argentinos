@@ -36,7 +36,8 @@ export function useCerrarPartida() {
       const stats = statsDe(save, c.game);
       const rating = c.adaptativo ? updateRating(stats.rating, c.botSkill, c.ganada) : stats.rating;
       const reporte: Reporte = {
-        game: c.game,
+        // Los juegos sin gira (generala, chancho) igual cuentan para las estadísticas y los logros generales.
+        game: c.game as Reporte["game"],
         ganada: c.ganada,
         hechos: c.hechos,
         ahora: Date.now(),
