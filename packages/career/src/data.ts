@@ -131,6 +131,8 @@ export const LOGROS: LogroDef[] = [
   { id: "a-primera", nombre: "En Primera", descripcion: "Llegá a Primera División en el Ascenso.", icono: "🏟️", fosforos: 200 },
   { id: "campeon-primera", nombre: "Campeón de Primera", descripcion: "Salí campeón de Primera División.", icono: "👑", fosforos: 500 },
   { id: "copa-argentina", nombre: "Copa Argentina", descripcion: "Ganá la Copa Argentina en el Ascenso.", icono: "🏆", fosforos: 250 },
+  { id: "sudamericana", nombre: "Campeón continental", descripcion: "Ganá la Copa Sudamericana en el Ascenso.", icono: "🌎", fosforos: 400 },
+  { id: "libertadores", nombre: "Gloria eterna", descripcion: "Ganá la Copa Libertadores en el Ascenso.", icono: "🏆", fosforos: 800 },
   { id: "casa-grande", nombre: "Casa grande", descripcion: "Terminá con 25 cartas o más en tu casita.", icono: "🏠", fosforos: 40, juego: "casita-robada" },
 ];
 

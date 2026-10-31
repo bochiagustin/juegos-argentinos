@@ -19,7 +19,8 @@ from PIL import Image
 RAIZ = Path(__file__).resolve().parent.parent
 DESTINO = RAIZ / "apps/web/public/arte/escudos"
 LADO = 256
-URLS = ["https://assets.footylogos.com/logos/{id}-logo-footylogos.svg", "https://assets.footylogos.com/logos/{id}/{id}-logo-footylogos.svg"]
+URLS = ["https://assets.footylogos.com/logos/{id}-logo-footylogos.svg", "https://assets.footylogos.com/logos/{id}/{id}-logo-footylogos.svg",
+        "https://assets.footylogos.com/logos/{id}/{id}-logo-footylogos.png"]
 
 
 def ids() -> list[str]:
@@ -31,16 +32,16 @@ def bajar(id_: str) -> Image.Image:
     for url in URLS:
         try:
             req = urllib.request.Request(url.format(id=id_), headers={"User-Agent": "Mozilla/5.0"})
-            svg = urllib.request.urlopen(req, timeout=30).read()
-            break
+            datos = urllib.request.urlopen(req, timeout=30).read()
         except urllib.error.HTTPError:
             continue
-    else:
-        raise RuntimeError("no está en FootyLogos")
-    # cairosvg no entiende el rgb() moderno separado por espacios.
-    svg = re.sub(rb"rgb\((\d+) (\d+) (\d+)\)", rb"rgb(\1,\2,\3)", svg)
-    png = cairosvg.svg2png(bytestring=svg, output_width=LADO * 2)
-    return Image.open(io.BytesIO(png)).convert("RGBA")
+        if url.endswith(".png"):
+            return Image.open(io.BytesIO(datos)).convert("RGBA")
+        # cairosvg no entiende el rgb() moderno separado por espacios.
+        svg = re.sub(rb"rgb\((\d+) (\d+) (\d+)\)", rb"rgb(\1,\2,\3)", datos)
+        png = cairosvg.svg2png(bytestring=svg, output_width=LADO * 2)
+        return Image.open(io.BytesIO(png)).convert("RGBA")
+    raise RuntimeError("no está en FootyLogos")
 
 
 def guardar(id_: str, img: Image.Image) -> None:

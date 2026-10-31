@@ -146,14 +146,24 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
 - **Ascenso** (`career/src/ascenso.ts` + `clubes.ts`): 116 clubes reales de FootyLogos 2026 (id = slug de FootyLogos),
   4 categorías con su tamaño real (`TAMANO`: C 28, B 22, Nacional 36, Primera 30). Elegís cualquier club (`miClub`; en las
   listas es `YO_CLUB`, `idReal`) y arranca en la C, con ascensos en cascada para tapar su hueco. Una rueda (`fixture`,
-  método del círculo), `calendario(n)` = n − 1 fechas + 5 rondas de Copa Argentina (32) repartidas. `proximoPartido`,
-  `registrarAscenso` (simula el resto de la fecha, las rondas de copa sin vos, el Reducido 2º–8º y el cierre con
-  ascensos/descensos; una revancha no cuenta), `nuevaTemporada`, `normalizarAscenso`. Puro: azar por hash de la semilla.
+  método del círculo). `proximoPartido` (con `nivel`: las finales y la Libertadores, +1), `registrarAscenso` (simula el resto
+  de la fecha, los pasos de copa sin vos, el Reducido 2º–8º y el cierre con ascensos/descensos y clasificados; una revancha
+  no cuenta), `nuevaTemporada`, `sorteoPendiente`/`marcarSorteoVisto` (bolillero), `titulos` (vitrina), `normalizarAscenso`
+  (guardado v3). Puro: azar por hash de la semilla (`torneo.ts`: azar, fixture, tablas, `simular` por nivel).
+- **Copas** (`copas.ts`, un motor para todas: grupos por bombos sin compatriotas juntos, a 1 o 2 ruedas, con fecha libre si
+  son impares, y cruces a partido único): Supercopa (campeón de Primera vs Copa Argentina) y Recopa (Libertadores vs
+  Sudamericana) antes de la fecha 1; Copa Argentina (32, 8 por categoría); Copa de la Liga (Primera: 2 zonas de 15, pasan
+  4, cuartos 1A-4B…); Libertadores y Sudamericana (6 argentinos + 26 de `EXTERIOR`, 52 clubes de FootyLogos: 8 grupos de 4
+  a dos ruedas, pasan 2, octavos 1º vs 2º). Clasifican a la Libertadores los campeones de la Copa de la Liga y la Copa
+  Argentina + 1º–4º de Primera (hasta 6); a la Sudamericana, los 6 siguientes. `armarCalendario` reparte los pasos de cada
+  copa entre las fechas de la liga; todas se juegan (o simulan) todas las temporadas.
   `CareerState.ascensos[game]`; el rival va como `rivalId = "ascenso:<club>"` (`PREFIJO_ASCENSO`; `rasgosRival`/`bajadaRival`
   sirven para los dos modos). Web: `src/ascenso/` (`Ascenso.tsx`: próximo partido, tabla con zonas, Copa, Reducido,
   historial, y antes de arrancar `ElegirClub`; `Escudo.tsx`: `arte/escudos/<id>.webp` o uno dibujado, `MiClub` = contexto con el club elegido), `partidas/lanzar.ts` (arma la partida 1v1 de la
   carrera, lo usa también la Gira). Fin de partido del Ascenso: "Volver al torneo" (sin revancha). Escudos:
-  `tools/bajar-escudos.py` (los baja de FootyLogos), `docs/escudos.md`. 4 logros (ascenso, a Primera, campeón, Copa).
+  `tools/bajar-escudos.py` (los baja de FootyLogos), `docs/escudos.md`. 6 logros (ascenso, a Primera, campeón, Copa
+  Argentina, Sudamericana, Libertadores). Web de las copas: `ascenso/Copas.tsx` (`CopasPanel` con grupos y cruces,
+  `Vitrina` con `Trofeo` dibujado, `Bolillero` del sorteo, `Festejo` de campeón con papelitos y sonido `festejo`).
 
 ### Carrera y logros (diseño original)
 
@@ -386,4 +396,5 @@ reglamento rioplatense estándar, dudas en `MEMORY.md`.)*
   sola), arrastrar al pozo o a la tijera para cortar, juegos bajados en la mesa al cortar, reparto carta por carta.
   Tutti-Frutti: diccionario con una falta perdonada y botón de reportar palabra.
 - [x] **Ascenso** — modo nuevo en los cinco juegos: de la Primera C a Primera con clubes reales, Reducido, descensos y
-  Copa Argentina. 116 clubes reales con escudos (FootyLogos), elegís tu club y arranca en la C.
+  Copa Argentina. 116 clubes reales con escudos (FootyLogos), elegís tu club y arranca en la C. Copas: Supercopa,
+  Recopa, Copa de la Liga, Libertadores y Sudamericana (52 clubes de afuera), vitrina, bolillero y festejo.

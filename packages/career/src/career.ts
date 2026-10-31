@@ -1,4 +1,4 @@
-import { normalizarAscenso, registrarAscenso } from "./ascenso.ts";
+import { nombreTitulo, normalizarAscenso, registrarAscenso } from "./ascenso.ts";
 import { club } from "./clubes.ts";
 import type { Rasgos } from "@juegos-argentinos/engine";
 import { GIRAS, LOGROS, PERSONAJES, personaje, puntosPorVictoria, REGALO_BUENOS_AIRES, TIENDA } from "./data.ts";
@@ -235,9 +235,13 @@ function cumple(id: string, s: CareerState, r: Reporte): boolean {
     case "a-primera":
       return (c["llegadas-primera"] ?? 0) >= 1;
     case "campeon-primera":
-      return (c.titulos ?? 0) >= 1;
+      return (c["titulo:liga-primera"] ?? 0) >= 1;
     case "copa-argentina":
-      return (c.copas ?? 0) >= 1;
+      return (c["titulo:copa-argentina"] ?? 0) >= 1;
+    case "sudamericana":
+      return (c["titulo:sudamericana"] ?? 0) >= 1;
+    case "libertadores":
+      return (c["titulo:libertadores"] ?? 0) >= 1;
     case "casa-grande":
       return hecho(r, "casita-cartas").some((h) => h.cantidad >= 25);
     default:
@@ -266,11 +270,11 @@ export function registrarPartida(state: CareerState, r: Reporte): { state: Caree
     if (res) {
       s.ascensos[r.game as CareerGame] = res.progreso;
       premio.fosforos += res.fosforos;
-      premio.ascenso = { lineas: res.lineas };
+      premio.ascenso = { lineas: res.lineas, titulos: [] };
+      premio.ascenso.titulos = res.titulos.map((id) => ({ id, nombre: nombreTitulo(id) }));
       if (res.ascendi) inc("ascensos");
       if (res.llegueAPrimera) inc("llegadas-primera");
-      if (res.campeon) inc("titulos");
-      if (res.copa) inc("copas");
+      for (const t of res.titulos) inc(`titulo:${t}`);
     }
   }
 

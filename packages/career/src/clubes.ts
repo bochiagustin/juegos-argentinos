@@ -21,9 +21,14 @@ export interface Club {
   corto: string;
   /** Color principal y secundario de la camiseta. */
   colores: [string, string];
-  categoria: Categoria;
+  /** Categoría de arranque; `null` = club del exterior (solo juega las copas internacionales). */
+  categoria: Categoria | null;
   /** Nivel del bot, 1–10. */
   nivel: number;
+  /** País (solo los del exterior). */
+  pais?: string;
+  /** En qué copa internacional se lo suele ver (los del exterior). */
+  copa?: "libertadores" | "sudamericana";
 }
 
 type Fila = [id: string, nombre: string, corto: string, c1: string, c2: string, nivel: number];
@@ -156,6 +161,66 @@ const C: Fila[] = [
   ["puerto-nuevo", "Puerto Nuevo", "PUE", "#1010f0", "#f0d010", 1],
 ];
 
+const LIBERTADORES: FilaExterior[] = [
+  ["flamengo", "Flamengo", "FLA", "#101010", "#d03010", 10, "Brasil"],
+  ["palmeiras", "Palmeiras", "PAL", "#f0f0f0", "#107030", 10, "Brasil"],
+  ["corinthians", "Corinthians", "COR", "#f0f0f0", "#b0b0b0", 9, "Brasil"],
+  ["cruzeiro", "Cruzeiro", "CRU", "#305090", "#f0f0f0", 9, "Brasil"],
+  ["fluminense", "Fluminense", "FLU", "#f0f0f0", "#901030", 9, "Brasil"],
+  ["independiente-del-valle", "Independiente del Valle", "IND", "#101010", "#f0f0f0", 8, "Ecuador"],
+  ["ldu-quito", "Liga de Quito", "LIG", "#d01010", "#f0f0f0", 8, "Ecuador"],
+  ["mirassol-fc", "Mirassol", "MIR", "#f0f010", "#307030", 8, "Brasil"],
+  ["nacional", "Nacional", "NAC", "#103090", "#f0f0f0", 8, "Uruguay"],
+  ["penarol", "Peñarol", "PEN", "#101010", "#f0f010", 8, "Uruguay"],
+  ["barcelona-sc-guayaquil", "Barcelona de Guayaquil", "BAR", "#f03030", "#f0f010", 7, "Ecuador"],
+  ["bolivar", "Bolívar", "BOL", "#50b0d0", "#105070", 7, "Bolivia"],
+  ["cerro-porteno", "Cerro Porteño", "CER", "#105090", "#f01030", 7, "Paraguay"],
+  ["coquimbo-unido", "Coquimbo Unido", "COQ", "#101010", "#f0f010", 7, "Chile"],
+  ["deportes-tolima", "Deportes Tolima", "DEP", "#903030", "#f0b030", 7, "Colombia"],
+  ["independiente-medellin", "Independiente Medellín", "IND", "#303050", "#f01030", 7, "Colombia"],
+  ["independiente-santa-fe", "Independiente Santa Fe", "IND", "#f0f0f0", "#f01030", 7, "Colombia"],
+  ["atletico-junior", "Junior", "JUN", "#f0f0f0", "#103050", 7, "Colombia"],
+  ["club-libertad", "Libertad", "LIB", "#707070", "#f0f0f0", 7, "Paraguay"],
+  ["sporting-cristal", "Sporting Cristal", "SPO", "#f0f0f0", "#30d0f0", 7, "Perú"],
+  ["universidad-catolica", "Universidad Católica", "UNI", "#f0f0f0", "#70b0d0", 7, "Chile"],
+  ["universitario-peru", "Universitario", "UNI", "#f0f0f0", "#901010", 7, "Perú"],
+  ["always-ready", "Always Ready", "ALW", "#f0f0f0", "#f01010", 6, "Bolivia"],
+  ["cusco", "Cusco", "CUS", "#101010", "#d09050", 6, "Perú"],
+  ["deportivo-la-guaira", "Deportivo La Guaira", "DEP", "#303070", "#5070b0", 6, "Venezuela"],
+  ["universidad-central", "Universidad Central", "UNI", "#f0f0f0", "#f0d010", 6, "Venezuela"],
+];
+
+const SUDAMERICANA: FilaExterior[] = [
+  ["atletico-mineiro", "Atlético Mineiro", "ATL", "#101010", "#f0f0f0", 9, "Brasil"],
+  ["botafogo", "Botafogo", "BOT", "#101010", "#f0f0f0", 9, "Brasil"],
+  ["gremio", "Grêmio", "GRE", "#f0f0f0", "#101010", 9, "Brasil"],
+  ["sao-paulo", "São Paulo", "SAO", "#f0f0f0", "#101010", 9, "Brasil"],
+  ["rb-bragantino", "RB Bragantino", "RBB", "#f0f0f0", "#d01030", 8, "Brasil"],
+  ["santos-fc", "Santos", "SAN", "#101010", "#f0f0f0", 8, "Brasil"],
+  ["vasco-da-gama", "Vasco da Gama", "VAS", "#f0f0f0", "#301030", 8, "Brasil"],
+  ["america-de-cali", "América de Cali", "AME", "#f0f0f0", "#b01010", 7, "Colombia"],
+  ["millonarios", "Millonarios", "MIL", "#f0f0f0", "#303070", 7, "Colombia"],
+  ["olimpia", "Olimpia", "OLI", "#101010", "#f0f0f0", 7, "Paraguay"],
+  ["alianza-atletico", "Alianza Atlético", "ALI", "#303090", "#f0f0f0", 6, "Perú"],
+  ["audax-italiano", "Audax Italiano", "AUD", "#105090", "#f0f0f0", 6, "Chile"],
+  ["blooming", "Blooming", "BLO", "#1090f0", "#f0f0f0", 6, "Bolivia"],
+  ["boston-river", "Boston River", "BOS", "#f03030", "#107030", 6, "Uruguay"],
+  ["caracas", "Caracas", "CAR", "#f03030", "#101010", 6, "Venezuela"],
+  ["cienciano-del-cusco", "Cienciano del Cusco", "CIE", "#101050", "#f0f0f0", 6, "Perú"],
+  ["deportivo-cuenca", "Deportivo Cuenca", "DEP", "#109030", "#f0d010", 6, "Ecuador"],
+  ["juventud", "Juventud", "JUV", "#305090", "#f0f0f0", 6, "Uruguay"],
+  ["cd-macara", "Macará", "MAC", "#f0f0f0", "#3090d0", 6, "Ecuador"],
+  ["montevideo-city-torque", "Montevideo City Torque", "MON", "#f0f0f0", "#70b0f0", 6, "Uruguay"],
+  ["ohiggins", "O'Higgins", "OH", "#10b050", "#f0f0f0", 6, "Chile"],
+  ["palestino", "Palestino", "PAL", "#109050", "#f0f0f0", 6, "Chile"],
+  ["deportivo-recoleta", "Recoleta", "REC", "#101010", "#d0b050", 6, "Paraguay"],
+  ["academia-puerto-cabello", "Academia Puerto Cabello", "ACA", "#303090", "#f05010", 5, "Venezuela"],
+  ["carabobo", "Carabobo", "CAR", "#501010", "#f0f0f0", 5, "Venezuela"],
+  ["independiente-petrolero", "Independiente Petrolero", "IND", "#f0f0f0", "#f01010", 5, "Bolivia"],
+];
+
+type FilaExterior = [id: string, nombre: string, corto: string, c1: string, c2: string, nivel: number, pais: string];
+
 const armar = (filas: Fila[], categoria: Categoria): Club[] =>
   filas.map(([id, nombre, corto, c1, c2, nivel]) => ({ id, nombre, corto, colores: [c1, c2], categoria, nivel }));
 
@@ -165,6 +230,17 @@ export const TAMANO: Record<Categoria, number> = { primera: 30, nacional: 36, b:
 /** Los 116 clubes, de Primera a la C. */
 export const CLUBES: Club[] = [...armar(PRIMERA, "primera"), ...armar(NACIONAL, "nacional"), ...armar(B_METRO, "b"), ...armar(C, "c")];
 
+const exterior = (filas: FilaExterior[], copa: "libertadores" | "sudamericana"): Club[] =>
+  filas.map(([id, nombre, corto, c1, c2, nivel, pais]) => ({ id, nombre, corto, colores: [c1, c2], categoria: null, nivel, pais, copa }));
+
+/**
+ * Los 52 clubes del exterior de la Libertadores y la Sudamericana 2026 (FootyLogos), 26 de cada una: completan los
+ * cuadros de las copas internacionales junto con los 6 argentinos de cada una.
+ */
+export const EXTERIOR: Club[] = [...exterior(LIBERTADORES, "libertadores"), ...exterior(SUDAMERICANA, "sudamericana")];
+
+const TODOS = new Map([...CLUBES, ...EXTERIOR].map((c) => [c.id, c]));
+
 export function club(id: string): Club | undefined {
-  return CLUBES.find((c) => c.id === id);
+  return TODOS.get(id);
 }

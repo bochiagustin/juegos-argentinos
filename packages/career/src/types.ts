@@ -1,7 +1,7 @@
 export const REGION_IDS = ["buenos-aires", "cuyo", "mesopotamia", "norte", "patagonia", "malvinas"] as const;
 export type RegionId = (typeof REGION_IDS)[number];
 import type { Rasgos } from "@juegos-argentinos/engine";
-import type { AscensoProgress } from "./ascenso.ts";
+import type { AscensoProgress, TituloId } from "./ascenso.ts";
 
 /** Lugar del personaje en su región: del "1" (el más flojo) al "9", y el jefe. */
 export const SLOTS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "jefe"] as const;
@@ -130,5 +130,5 @@ export interface Premio {
   /** Cómo cambió mi puesto en el ranking de la región (si cambió). */
   puesto: { region: RegionId; antes: number; despues: number } | null;
   /** Si fue un partido del Ascenso: qué pasó en el torneo. */
-  ascenso: { lineas: string[] } | null;
+  ascenso: { lineas: string[]; titulos: { id: TituloId; nombre: string }[] } | null;
 }

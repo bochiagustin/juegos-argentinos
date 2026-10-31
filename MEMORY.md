@@ -93,7 +93,12 @@ Memoria de trabajo del proyecto: lo que el usuario pidió, prefirió o decidió 
   **Actualización (mismo día):** clubes y categorías reales de FootyLogos 2026 con su cantidad real (Primera 30,
   Nacional 36, B Metro 22, C 28: 116 clubes, escudos bajados de ahí). **Elegís cualquier club** y arranca en la C; el
   hueco que deja lo llena el mejor de cada categoría de abajo (en cascada). Ya no hay "club propio" con tu apodo.
-  Próximo pedido: más copas, internacionales (Libertadores, Sudamericana) y nacionales.
+  **Copas** (respuestas del usuario): clasificación como en la realidad (Libertadores: 1º–4º de Primera + campeón de
+  la Copa Argentina, y le sumé el de la Copa de la Liga; Sudamericana: los 6 siguientes); Libertadores y Sudamericana
+  con grupos (8 de 4, ida y vuelta) + cruces a partido único con final única; nacionales: Supercopa, Copa de la Liga y
+  Recopa; emoción: vitrina, festejo de campeón, bolillero animado y finales/Libertadores un nivel más difíciles.
+  *Supuestos a confirmar:* Copa de la Liga con 2 zonas de 15 a una rueda y pasan 4 (cuartos, no octavos); todas las
+  copas se reparten a lo largo de la liga (no hay semestres); cruces a partido único (no ida y vuelta).
 
 ## Dudas abiertas (preguntar antes de implementar la fase correspondiente)
 

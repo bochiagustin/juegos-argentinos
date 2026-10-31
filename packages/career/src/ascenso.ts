@@ -1,36 +1,60 @@
-import { CATEGORIAS, CLUBES, club, NOMBRE_CATEGORIA, TAMANO, type Categoria } from "./clubes.ts";
+import { CATEGORIAS, CLUBES, club, EXTERIOR, NOMBRE_CATEGORIA, TAMANO, type Categoria } from "./clubes.ts";
+import {
+  alcanceEnCopa,
+  COPAS,
+  copaEliminacion,
+  copaGrupos,
+  copaInfo,
+  esFinal,
+  jugarPasoCopa,
+  nombrePaso,
+  pasoActual,
+  pasosCopa,
+  rivalEnCopa,
+  sigoEnCopa,
+  type Copa,
+  type CopaId,
+} from "./copas.ts";
 import { GIRAS } from "./data.ts";
+import { fixture, filaVacia, mezclar, nivelClub, posiciones, simular, sumar, YO_CLUB, type Cruce, type FilaTabla } from "./torneo.ts";
 import type { CareerGame } from "./types.ts";
+
+export { YO_CLUB, fixture, nivelClub, type Cruce, type FilaTabla } from "./torneo.ts";
 
 /**
  * El Ascenso: elegís cualquier club y arranca en la Primera C (el lugar que deja lo ocupa el mejor de la categoría de
  * abajo, en cascada). Cada categoría tiene su cantidad real de equipos (`TAMANO`) y juega a una rueda (n − 1 fechas, 3 puntos
  * por victoria, sin empates). El 1º asciende directo; del 2º al 8º juegan el Reducido (cuartos, semis y final; el 2º pasa
  * directo a semis) y el campeón también sube. Los dos últimos descienden (en la C no hay a dónde). En Primera, el 1º
- * sale campeón. En el calendario se meten las 5 rondas de la Copa Argentina (32 clubes de todas las categorías).
- * Los partidos entre clubes de la máquina se simulan según el nivel. Todo es puro y determinístico (semilla).
+ * sale campeón.
+ * En la temporada también se juegan (y se simulan si no estás) la Supercopa y la Recopa (al arrancar), la Copa Argentina
+ * (32 de todas las categorías), la Copa de la Liga (los de Primera, 2 zonas y cruces), la Libertadores y la Sudamericana
+ * (32: 6 argentinos + 26 de afuera, 8 grupos y cruces). A la Libertadores van el campeón de la Copa de la Liga, el de la Copa
+ * Argentina y del 1º al 4º de Primera (y los siguientes de la tabla hasta completar 6); a la Sudamericana, los 6 que siguen.
+ * Las finales y la Libertadores son un nivel más difíciles. Todo es puro y determinístico (semilla).
  */
 
-/** Tu lugar en las listas de la temporada (el club que elegiste es `miClub`). */
-export const YO_CLUB = "yo";
+export type Jornada = { t: "liga"; fecha: number } | { t: "copa"; id: CopaId };
 
-export interface FilaTabla {
-  pj: number;
-  pg: number;
-  pp: number;
-  pts: number;
-}
+export type TituloId = CopaId | `liga-${Categoria}` | `reducido-${Categoria}`;
 
-export interface Cruce {
-  a: string;
-  b: string;
-  ganador?: string;
+export interface Titulo {
+  id: TituloId;
+  temporada: number;
 }
 
 export interface Reducido {
   /** Del 2º al 8º de la tabla, en ese orden. */
   sembrados: string[];
   rondas: Cruce[][];
+}
+
+/** Quiénes juegan las copas de la temporada que viene. */
+export interface Clasificados {
+  libertadores: string[];
+  sudamericana: string[];
+  supercopa: string[];
+  recopa: string[];
 }
 
 export type ResultadoTemporada = "campeon" | "ascenso" | "ascenso-reducido" | "reducido" | "queda" | "descenso";
@@ -40,14 +64,17 @@ export interface ResumenTemporada {
   categoria: Categoria;
   puesto: number;
   resultado: ResultadoTemporada;
-  /** Hasta qué ronda llegaste en la Copa (0 = 16avos … 4 = final, 5 = campeón). */
-  copa: number;
+  /** Hasta dónde llegué en cada copa que jugué. */
+  copas: { id: CopaId; alcance: string }[];
+  titulos: TituloId[];
+  /** Copas internacionales a las que clasifiqué para la temporada que viene. */
+  clasificado: CopaId[];
   /** Dónde jugás la temporada que viene. */
   nueva: Categoria;
 }
 
 export interface AscensoProgress {
-  version: 2;
+  version: 3;
   /** El club que elegiste (id de `CLUBES`); en las listas figura como `YO_CLUB`. */
   miClub: string;
   temporada: number;
@@ -56,105 +83,45 @@ export interface AscensoProgress {
   categorias: Record<Categoria, string[]>;
   /** Orden del fixture de mi categoría (método del círculo). */
   orden: string[];
-  /** Por dónde va el calendario (índice en `calendarioDe`). */
+  /** Las fechas de la liga y los pasos de cada copa, en orden. */
+  calendario: Jornada[];
+  /** Por dónde va el calendario. */
   paso: number;
   /** Tabla de mi categoría. */
   tabla: Record<string, FilaTabla>;
-  /** Cuadro de la Copa: copa[0] son los 32, copa[r + 1] los que ganaron la ronda r. */
-  copa: string[][];
+  copas: Partial<Record<CopaId, Copa>>;
+  /** Quiénes juegan las copas de la temporada que viene (se calcula al cerrar). */
+  siguiente: Clasificados;
   fase: "liga" | "reducido" | "fin";
   reducido: Reducido | null;
   /** Cómo terminó la temporada (en la fase "fin"). */
   resumen: ResumenTemporada | null;
   historial: ResumenTemporada[];
+  /** La vitrina. */
+  titulos: Titulo[];
+  /** Sorteos que ya se mostraron (para el bolillero). */
+  vistos: string[];
 }
 
-export type Fecha = { tipo: "liga"; fecha: number } | { tipo: "copa"; ronda: number };
-
-export const RONDAS_COPA = ["16avos de final", "Octavos de final", "Cuartos de final", "Semifinal", "Final"] as const;
 export const RONDAS_REDUCIDO = ["Cuartos de final", "Semifinal", "Final"] as const;
-/** Las n − 1 fechas de una categoría de n equipos, con las 5 rondas de la Copa repartidas a lo largo de la temporada. */
-export function calendario(n: number): Fecha[] {
-  const fechas = n - 1;
-  const copa = RONDAS_COPA.map((_, k) => Math.round((fechas * (k + 1)) / (RONDAS_COPA.length + 1)));
-  return Array.from({ length: fechas }, (_, i) => i + 1).flatMap((fecha): Fecha[] => {
-    const r = copa.indexOf(fecha);
-    return r === -1 ? [{ tipo: "liga", fecha }] : [{ tipo: "liga", fecha }, { tipo: "copa", ronda: r }];
-  });
-}
 
-/** El calendario de mi temporada. */
-export function calendarioDe(p: AscensoProgress): Fecha[] {
-  return calendario(p.categorias[miCategoria(p)].length);
-}
+/** Fósforos por salir campeón. */
+const PREMIO_TITULO: Record<CopaId, number> = { supercopa: 150, recopa: 300, "copa-argentina": 250, "copa-liga": 300, libertadores: 1000, sudamericana: 500 };
 
-/** El id real de un club de las listas (`YO_CLUB` → el que elegí). */
-export function idReal(p: AscensoProgress, id: string): string {
-  return id === YO_CLUB ? p.miClub : id;
-}
-
-// --- Azar determinístico ---
-
-function azar(clave: string): number {
-  let h1 = 0xdeadbeef;
-  let h2 = 0x41c6ce57;
-  for (let i = 0; i < clave.length; i++) {
-    const ch = clave.charCodeAt(i);
-    h1 = Math.imul(h1 ^ ch, 2654435761);
-    h2 = Math.imul(h2 ^ ch, 1597334677);
+export function nombreTitulo(id: TituloId): string {
+  if (id.startsWith("liga-")) {
+    const cat = id.slice(5) as Categoria;
+    return cat === "primera" ? "Campeón de Primera División" : `Campeón de la ${NOMBRE_CATEGORIA[cat]}`;
   }
-  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-  return (4294967296 * (2097151 & h2) + (h1 >>> 0)) / 2 ** 53;
-}
-
-function mezclar<T>(xs: readonly T[], clave: string): T[] {
-  const a = xs.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(azar(`${clave}:${i}`) * (i + 1));
-    [a[i], a[j]] = [a[j]!, a[i]!];
-  }
-  return a;
-}
-
-export function nivelClub(id: string): number {
-  return club(id)?.nivel ?? 5;
-}
-
-/** Partido entre dos clubes de la máquina: gana más seguido el de mejor nivel (3 niveles de diferencia ≈ 80%). */
-function simular(a: string, b: string, clave: string): string {
-  const p = 1 / (1 + Math.exp(-0.45 * (nivelClub(a) - nivelClub(b))));
-  return azar(clave) < p ? a : b;
+  if (id.startsWith("reducido-")) return `Reducido de la ${NOMBRE_CATEGORIA[id.slice(9) as Categoria]}`;
+  return copaInfo(id as CopaId).nombre;
 }
 
 const clave = (p: AscensoProgress, ...partes: (string | number)[]) => [p.semilla, p.temporada, ...partes].join(":");
 
-// --- Liga ---
-
-/** Los partidos de una fecha (1 a n − 1) con el método del círculo. */
-export function fixture(orden: readonly string[], fecha: number): [string, string][] {
-  const n = orden.length;
-  const resto = orden.slice(1);
-  const arr = [orden[0]!, ...resto.map((_, i) => resto[(i + fecha - 1) % (n - 1)]!)];
-  return Array.from({ length: n / 2 }, (_, i) => (fecha % 2 ? [arr[i]!, arr[n - 1 - i]!] : [arr[n - 1 - i]!, arr[i]!]) as [string, string]);
-}
-
-const filaVacia = (): FilaTabla => ({ pj: 0, pg: 0, pp: 0, pts: 0 });
-
-function sumar(tabla: Record<string, FilaTabla>, ganador: string, perdedor: string) {
-  const g = (tabla[ganador] ??= filaVacia());
-  const q = (tabla[perdedor] ??= filaVacia());
-  g.pj++;
-  g.pg++;
-  g.pts += 3;
-  q.pj++;
-  q.pp++;
-}
-
-/** La tabla ordenada: puntos y, a igualdad, un sorteo fijo de la temporada. */
-export function posiciones(tabla: Record<string, FilaTabla>, ids: readonly string[], sorteo: string): string[] {
-  const f = (id: string) => tabla[id] ?? filaVacia();
-  return ids.slice().sort((a, b) => f(b).pts - f(a).pts || f(b).pg - f(a).pg || azar(sorteo + a) - azar(sorteo + b));
+/** El id real de un club de las listas (`YO_CLUB` → el que elegí). */
+export function idReal(p: AscensoProgress, id: string): string {
+  return id === YO_CLUB ? p.miClub : id;
 }
 
 export function miCategoria(p: AscensoProgress): Categoria {
@@ -168,10 +135,11 @@ export function tablaOrdenada(p: AscensoProgress): { id: string; puesto: number;
 function simularTemporada(ids: readonly string[], k: string): string[] {
   const tabla: Record<string, FilaTabla> = {};
   const orden = mezclar(ids, `${k}:fixture`);
-  for (let f = 1; f < ids.length; f++) for (const [a, b] of fixture(orden, f)) {
-    const g = simular(a, b, `${k}:${f}:${a}`);
-    sumar(tabla, g, g === a ? b : a);
-  }
+  for (let f = 1; f < ids.length; f++)
+    for (const [a, b] of fixture(orden, f)) {
+      const g = simular(a, b, `${k}:${f}:${a}`);
+      sumar(tabla, g, g === a ? b : a);
+    }
   return posiciones(tabla, ids, `${k}:sorteo`);
 }
 
@@ -205,13 +173,12 @@ function avanzarReducido(red: Reducido, k: string): boolean {
 }
 
 export function campeonReducido(red: Reducido | null): string | null {
-  const final = red?.rondas[2]?.[0];
-  return final?.ganador ?? null;
+  return red?.rondas[2]?.[0]?.ganador ?? null;
 }
 
-// --- Copa Argentina ---
+// --- Copas y calendario ---
 
-function armarCopa(categorias: Record<Categoria, string[]>, k: string): string[][] {
+function armarCopaArgentina(categorias: Record<Categoria, string[]>, k: string): Copa {
   const part: string[] = [];
   for (const cat of CATEGORIAS) {
     const ids = categorias[cat];
@@ -219,25 +186,46 @@ function armarCopa(categorias: Record<Categoria, string[]>, k: string): string[]
     part.push(...mezclar(ids.filter((x) => x !== YO_CLUB), `${k}:copa:${cat}`).slice(0, yo ? 7 : 8));
     if (yo) part.push(YO_CLUB);
   }
-  return [mezclar(part, `${k}:cuadro`)];
+  return copaEliminacion("copa-argentina", mezclar(part, `${k}:cuadro`));
 }
 
-function jugarRondaCopa(p: AscensoProgress, ronda: number, mio?: string) {
-  const vivos = p.copa[ronda]!;
-  const pasan: string[] = [];
-  for (let i = 0; i < vivos.length; i += 2) {
-    const a = vivos[i]!;
-    const b = vivos[i + 1]!;
-    pasan.push(a === YO_CLUB || b === YO_CLUB ? mio! : simular(a, b, clave(p, "copa", ronda, a)));
+/** 6 argentinos + 26 del exterior (los de esa copa; si faltan, de la otra). */
+function participantesInternacional(id: "libertadores" | "sudamericana", argentinos: string[], k: string): string[] {
+  const propios = mezclar(EXTERIOR.filter((c) => c.copa === id).map((c) => c.id), `${k}:${id}:pool`);
+  const otros = mezclar(EXTERIOR.filter((c) => c.copa !== id).map((c) => c.id), `${k}:${id}:otros`);
+  const fuera = [...propios, ...otros].filter((x) => !argentinos.includes(x));
+  return [...argentinos, ...fuera.slice(0, 32 - argentinos.length)];
+}
+
+/**
+ * Reparte los pasos de cada copa a lo largo de la liga: la Supercopa y la Recopa antes de la fecha 1, y las demás
+ * parejas entre las fechas, terminando antes de la última.
+ */
+export function armarCalendario(fechas: number, copas: Partial<Record<CopaId, Copa>>): Jornada[] {
+  const despues: Jornada[][] = Array.from({ length: fechas + 1 }, () => []);
+  for (const { id } of COPAS) {
+    const c = copas[id];
+    if (!c) continue;
+    if (id === "supercopa" || id === "recopa") {
+      despues[0]!.push({ t: "copa", id });
+      continue;
+    }
+    const n = pasosCopa(c);
+    for (let j = 0; j < n; j++) despues[Math.max(1, Math.min(fechas - 1, Math.round((fechas * (j + 1)) / (n + 1))))]!.push({ t: "copa", id });
   }
-  p.copa[ronda + 1] = pasan;
+  const out: Jornada[] = [...despues[0]!];
+  for (let f = 1; f <= fechas; f++) out.push({ t: "liga", fecha: f }, ...despues[f]!);
+  return out;
 }
 
-/** Hasta dónde llegué en la Copa: 0 = 16avos … 5 = campeón. */
-export function rondaCopa(p: AscensoProgress): number {
-  let r = 0;
-  for (let i = 0; i < p.copa.length; i++) if (p.copa[i]!.includes(YO_CLUB)) r = i;
-  return r;
+/** Cuántas fechas de liga tiene mi temporada. */
+export function fechasLiga(p: AscensoProgress): number {
+  return p.categorias[miCategoria(p)].length - 1;
+}
+
+/** Fechas de liga ya jugadas. */
+export function fechasJugadas(p: AscensoProgress): number {
+  return p.calendario.slice(0, p.paso).filter((s) => s.t === "liga").length;
 }
 
 // --- Temporadas ---
@@ -246,11 +234,28 @@ function arrancarTemporada(p: AscensoProgress) {
   const k = clave(p);
   p.orden = mezclar(p.categorias[miCategoria(p)], `${k}:fixture`);
   p.tabla = Object.fromEntries(p.orden.map((id) => [id, filaVacia()]));
-  p.copa = armarCopa(p.categorias, k);
+  const s = p.siguiente;
+  p.copas = {
+    supercopa: copaEliminacion("supercopa", s.supercopa.slice(0, 2)),
+    recopa: copaEliminacion("recopa", s.recopa.slice(0, 2)),
+    "copa-argentina": armarCopaArgentina(p.categorias, k),
+    "copa-liga": copaGrupos("copa-liga", p.categorias.primera, 2, 1, 4, `${k}:copa-liga`),
+    libertadores: copaGrupos("libertadores", participantesInternacional("libertadores", s.libertadores, k), 8, 2, 2, `${k}:libertadores`),
+    sudamericana: copaGrupos("sudamericana", participantesInternacional("sudamericana", s.sudamericana, k), 8, 2, 2, `${k}:sudamericana`),
+  };
+  p.calendario = armarCalendario(fechasLiga(p), p.copas);
   p.paso = 0;
   p.fase = "liga";
   p.reducido = null;
   p.resumen = null;
+  saltarSinMi(p);
+}
+
+/** Los clasificados de la primera temporada: los de Primera por nivel, y los mejores de afuera para la Recopa. */
+function clasificadosIniciales(categorias: Record<Categoria, string[]>, k: string): Clasificados {
+  const primera = mezclar(categorias.primera, `${k}:inicial`).sort((a, b) => nivelClub(b) - nivelClub(a));
+  const mejor = (id: "libertadores" | "sudamericana") => mezclar(EXTERIOR.filter((c) => c.copa === id).map((c) => c.id), `${k}:recopa:${id}`).sort((a, b) => nivelClub(b) - nivelClub(a))[0]!;
+  return { libertadores: primera.slice(0, 6), sudamericana: primera.slice(6, 12), supercopa: primera.slice(0, 2), recopa: [mejor("libertadores"), mejor("sudamericana")] };
 }
 
 /**
@@ -259,19 +264,36 @@ function arrancarTemporada(p: AscensoProgress) {
  */
 export function iniciarAscenso(semilla: string, miClub: string): AscensoProgress {
   const elegido = club(miClub);
-  if (!elegido) throw new Error(`Club desconocido: ${miClub}`);
+  if (!elegido?.categoria) throw new Error(`Club desconocido: ${miClub}`);
   const categorias = Object.fromEntries(CATEGORIAS.map((c) => [c, CLUBES.filter((x) => x.categoria === c).map((x) => x.id)])) as Record<Categoria, string[]>;
   const mejor = (cat: Categoria) => categorias[cat].reduce((a, b) => (nivelClub(b) > nivelClub(a) ? b : a));
-  let hueco = CATEGORIAS.indexOf(elegido.categoria);
   categorias[elegido.categoria] = categorias[elegido.categoria].filter((id) => id !== miClub);
-  for (; hueco > 0; hueco--) {
+  for (let hueco = CATEGORIAS.indexOf(elegido.categoria); hueco > 0; hueco--) {
     const abajo = CATEGORIAS[hueco - 1]!;
     const sube = mejor(abajo);
     categorias[abajo] = categorias[abajo].filter((id) => id !== sube);
     categorias[CATEGORIAS[hueco]!].push(sube);
   }
   categorias.c.push(YO_CLUB);
-  const p: AscensoProgress = { version: 2, miClub, temporada: 1, semilla, categorias, orden: [], paso: 0, tabla: {}, copa: [], fase: "liga", reducido: null, resumen: null, historial: [] };
+  const p: AscensoProgress = {
+    version: 3,
+    miClub,
+    temporada: 1,
+    semilla,
+    categorias,
+    orden: [],
+    calendario: [],
+    paso: 0,
+    tabla: {},
+    copas: {},
+    siguiente: clasificadosIniciales(categorias, `${semilla}:1`),
+    fase: "liga",
+    reducido: null,
+    resumen: null,
+    historial: [],
+    titulos: [],
+    vistos: [],
+  };
   arrancarTemporada(p);
   return p;
 }
@@ -288,26 +310,62 @@ export function nuevaTemporada(p0: AscensoProgress): AscensoProgress {
 export interface Partido {
   rival: string;
   etapa: "liga" | "copa" | "reducido";
-  /** "Fecha 5", "Copa Argentina · Octavos de final", "Reducido · Final". */
+  copa?: CopaId;
+  /** "Fecha 5", "Copa Libertadores · Fecha 2 de grupos", "Reducido · Final". */
   titulo: string;
+  /** Nivel del rival en este partido (las finales y la Libertadores, uno más). */
+  nivel: number;
+  final: boolean;
 }
 
 export function proximoPartido(p: AscensoProgress): Partido | null {
   if (p.fase === "fin") return null;
+  const partido = (rival: string, etapa: Partido["etapa"], titulo: string, final: boolean, copa?: CopaId): Partido => ({
+    rival,
+    etapa,
+    titulo,
+    final,
+    nivel: Math.min(10, nivelClub(rival) + (final || copa === "libertadores" ? 1 : 0)),
+    ...(copa ? { copa } : {}),
+  });
   if (p.fase === "reducido") {
     const n = p.reducido?.rondas.length ?? 0;
     const c = p.reducido?.rondas[n - 1]?.find((x) => !x.ganador && (x.a === YO_CLUB || x.b === YO_CLUB));
-    return c ? { rival: c.a === YO_CLUB ? c.b : c.a, etapa: "reducido", titulo: `Reducido · ${RONDAS_REDUCIDO[n - 1]}` } : null;
+    return c ? partido(c.a === YO_CLUB ? c.b : c.a, "reducido", `Reducido · ${RONDAS_REDUCIDO[n - 1]}`, n === 3) : null;
   }
-  const f = calendarioDe(p)[p.paso];
-  if (!f) return null;
-  if (f.tipo === "liga") {
-    const par = fixture(p.orden, f.fecha).find((x) => x.includes(YO_CLUB))!;
-    return { rival: par[0] === YO_CLUB ? par[1] : par[0], etapa: "liga", titulo: `Fecha ${f.fecha}` };
+  const s = p.calendario[p.paso];
+  if (!s) return null;
+  if (s.t === "liga") {
+    const par = fixture(p.orden, s.fecha).find((x) => x.includes(YO_CLUB))!;
+    return partido(par[0] === YO_CLUB ? par[1] : par[0], "liga", `Fecha ${s.fecha}`, false);
   }
-  const vivos = p.copa[f.ronda]!;
-  const i = vivos.indexOf(YO_CLUB);
-  return { rival: vivos[i ^ 1]!, etapa: "copa", titulo: `Copa Argentina · ${RONDAS_COPA[f.ronda]}` };
+  const c = p.copas[s.id]!;
+  const rival = rivalEnCopa(c);
+  if (!rival) return null;
+  return partido(rival, "copa", `${copaInfo(s.id).nombre} · ${nombrePaso(pasoActual(c)!)}`, esFinal(c), s.id);
+}
+
+/** Un sorteo que todavía no se mostró: el grupo o el cruce del partido que viene. */
+export function sorteoPendiente(p: AscensoProgress): { clave: string; partido: Partido; grupo: string[] | null } | null {
+  const prox = proximoPartido(p);
+  if (!prox || prox.etapa === "liga") return null;
+  let k: string;
+  let grupo: string[] | null = null;
+  if (prox.etapa === "reducido") k = `${p.temporada}:reducido:${p.reducido!.rondas.length}`;
+  else {
+    const c = p.copas[prox.copa!]!;
+    const paso = pasoActual(c)!;
+    if (paso.tipo === "grupos") {
+      if (paso.fecha > 1) return null;
+      k = `${p.temporada}:${c.id}:grupos`;
+      grupo = c.grupos!.find((g) => g.includes(YO_CLUB)) ?? null;
+    } else k = `${p.temporada}:${c.id}:${paso.ronda}`;
+  }
+  return p.vistos.includes(k) ? null : { clave: k, partido: prox, grupo };
+}
+
+export function marcarSorteoVisto(p: AscensoProgress, k: string): AscensoProgress {
+  return p.vistos.includes(k) ? p : { ...p, vistos: [...p.vistos.slice(-40), k] };
 }
 
 export interface ResultadoAscenso {
@@ -317,45 +375,58 @@ export interface ResultadoAscenso {
   /** Para los logros. */
   ascendi: boolean;
   llegueAPrimera: boolean;
-  campeon: boolean;
-  copa: boolean;
+  /** Títulos que se ganaron con este partido (o al cerrar la temporada). */
+  titulos: TituloId[];
+}
+
+function ganarTitulo(p: AscensoProgress, r: ResultadoAscenso, id: TituloId) {
+  p.titulos.push({ id, temporada: p.temporada });
+  r.titulos.push(id);
 }
 
 /**
  * Registra mi partido contra `rival`. Si no es el partido que me toca (ej. una revancha), no cuenta: devuelve null.
- * Simula el resto de la fecha y, si hace falta, las rondas de copa sin mí, el Reducido y el cierre de la temporada.
+ * Simula el resto de la fecha, los pasos de las copas en los que no juego, el Reducido y el cierre de la temporada.
  */
 export function registrarAscenso(p0: AscensoProgress, rival: string, ganada: boolean): ResultadoAscenso | null {
   const prox = proximoPartido(p0);
   if (!prox || prox.rival !== rival) return null;
   const p = copia(p0);
-  const r: ResultadoAscenso = { progreso: p, lineas: [], fosforos: 0, ascendi: false, llegueAPrimera: false, campeon: false, copa: false };
+  const r: ResultadoAscenso = { progreso: p, lineas: [], fosforos: 0, ascendi: false, llegueAPrimera: false, titulos: [] };
   const cat = miCategoria(p);
   const nombre = club(rival)?.nombre ?? rival;
-  const cal = calendarioDe(p);
   if (prox.etapa === "liga") {
-    const f = cal[p.paso] as Extract<Fecha, { tipo: "liga" }>;
-    for (const [a, b] of fixture(p.orden, f.fecha)) {
-      const g = a === YO_CLUB || b === YO_CLUB ? (ganada ? YO_CLUB : rival) : simular(a, b, clave(p, "liga", f.fecha, a));
+    const s = p.calendario[p.paso] as Extract<Jornada, { t: "liga" }>;
+    for (const [a, b] of fixture(p.orden, s.fecha)) {
+      const g = a === YO_CLUB || b === YO_CLUB ? (ganada ? YO_CLUB : rival) : simular(a, b, clave(p, "liga", s.fecha, a));
       sumar(p.tabla, g, g === a ? b : a);
     }
     p.paso++;
     const puesto = tablaOrdenada(p).find((x) => x.id === YO_CLUB)!.puesto;
-    r.lineas.push(ganada ? `⚽ Fecha ${f.fecha}: le ganaste a ${nombre}, +3 puntos` : `Fecha ${f.fecha}: perdiste con ${nombre}, 0 puntos`);
+    r.lineas.push(ganada ? `⚽ Fecha ${s.fecha}: le ganaste a ${nombre}, +3 puntos` : `Fecha ${s.fecha}: perdiste con ${nombre}, 0 puntos`);
     r.lineas.push(`📊 Vas ${puesto}º en la ${NOMBRE_CATEGORIA[cat]}`);
     if (ganada) r.fosforos += 10;
   } else if (prox.etapa === "copa") {
-    const ronda = (cal[p.paso] as Extract<Fecha, { tipo: "copa" }>).ronda;
-    jugarRondaCopa(p, ronda, ganada ? YO_CLUB : rival);
+    const id = prox.copa!;
+    const info = copaInfo(id);
+    const antes = p.copas[id]!;
+    const paso = pasoActual(antes)!;
+    const c = jugarPasoCopa(antes, clave(p), ganada ? YO_CLUB : rival);
+    p.copas[id] = c;
     p.paso++;
-    if (!ganada) r.lineas.push(`Quedaste afuera de la Copa Argentina en ${RONDAS_COPA[ronda]!.toLowerCase()}`);
-    else if (ronda === RONDAS_COPA.length - 1) {
-      r.lineas.push("🏆 ¡Campeón de la Copa Argentina!");
-      r.fosforos += 250;
-      r.copa = true;
+    if (paso.tipo === "grupos") {
+      r.lineas.push(`${info.icono} ${info.corto}, ${nombrePaso(paso).toLowerCase()}: ${ganada ? `le ganaste a ${nombre}` : `perdiste con ${nombre}`}`);
+      if (ganada) r.fosforos += 15;
+      // Se terminó la fase de grupos.
+      if (antes.rondas.length === 0 && c.rondas.length === 1) r.lineas.push(sigoEnCopa(c) ? `🔥 ¡Pasaste a ${nombrePaso(pasoActual(c)!).toLowerCase()}!` : "Quedaste afuera en la fase de grupos");
+    } else if (!ganada) r.lineas.push(`Quedaste afuera de la ${info.nombre} en ${nombrePaso(paso).toLowerCase()}`);
+    else if (c.campeon === YO_CLUB) {
+      r.lineas.push(`🏆 ¡Campeón de la ${info.nombre}!`);
+      r.fosforos += PREMIO_TITULO[id];
+      ganarTitulo(p, r, id);
     } else {
-      r.lineas.push(`🏆 Copa Argentina: pasaste a ${RONDAS_COPA[ronda + 1]!.toLowerCase()}`);
-      r.fosforos += 10 + 10 * ronda;
+      r.lineas.push(`${info.icono} ${info.corto}: pasaste a ${nombrePaso(pasoActual(c)!).toLowerCase()}`);
+      r.fosforos += 10 + 10 * paso.ronda;
     }
   } else {
     const red = p.reducido!;
@@ -364,20 +435,26 @@ export function registrarAscenso(p0: AscensoProgress, rival: string, ganada: boo
     c.ganador = ganada ? YO_CLUB : rival;
     r.lineas.push(ganada ? `🔥 Reducido: ganaste la ${prox.titulo.split(" · ")[1]!.toLowerCase()}` : `Reducido: te eliminó ${nombre}`);
     if (ganada) r.fosforos += 25;
+    if (ganada && prox.final) ganarTitulo(p, r, `reducido-${cat}`);
   }
   avanzar(p, r);
   return r;
 }
 
+/** Juega solos los pasos de copa en los que no estoy (o tengo fecha libre). */
+function saltarSinMi(p: AscensoProgress) {
+  for (let s = p.calendario[p.paso]; s?.t === "copa"; s = p.calendario[p.paso]) {
+    const c = p.copas[s.id]!;
+    if (rivalEnCopa(c)) return;
+    p.copas[s.id] = jugarPasoCopa(c, clave(p));
+    p.paso++;
+  }
+}
+
 function avanzar(p: AscensoProgress, r: ResultadoAscenso) {
   if (p.fase === "liga") {
-    // Las rondas de copa en las que ya no estoy se juegan solas.
-    const cal = calendarioDe(p);
-    for (let f = cal[p.paso]; f?.tipo === "copa" && !p.copa[f.ronda]!.includes(YO_CLUB); f = cal[p.paso]) {
-      jugarRondaCopa(p, f.ronda);
-      p.paso++;
-    }
-    if (p.paso < cal.length) return;
+    saltarSinMi(p);
+    if (p.paso < p.calendario.length) return;
     if (miCategoria(p) === "primera") return cerrar(p, r);
     const orden = tablaOrdenada(p).map((x) => x.id);
     p.reducido = { sembrados: orden.slice(1, 8), rondas: [] };
@@ -386,6 +463,8 @@ function avanzar(p: AscensoProgress, r: ResultadoAscenso) {
   }
   if (p.fase === "reducido" && avanzarReducido(p.reducido!, clave(p))) cerrar(p, r);
 }
+
+const unicos = (xs: (string | null | undefined)[]) => [...new Set(xs.filter((x): x is string => !!x))];
 
 function cerrar(p: AscensoProgress, r: ResultadoAscenso) {
   const mia = miCategoria(p);
@@ -410,6 +489,20 @@ function cerrar(p: AscensoProgress, r: ResultadoAscenso) {
     }),
   ) as Record<Categoria, string[]>;
 
+  // Clasificados para las copas de la temporada que viene.
+  const primera = finales.primera.orden;
+  const campeon = (id: CopaId) => p.copas[id]?.campeon ?? null;
+  const libertadores = unicos([campeon("copa-liga"), campeon("copa-argentina"), ...primera.slice(0, 4)]);
+  for (const x of primera) if (libertadores.length < 6 && !libertadores.includes(x)) libertadores.push(x);
+  const sudamericana = primera.filter((x) => !libertadores.includes(x)).slice(0, 6);
+  const ca = campeon("copa-argentina");
+  p.siguiente = {
+    libertadores: libertadores.slice(0, 6),
+    sudamericana,
+    supercopa: [primera[0]!, ca && ca !== primera[0] ? ca : primera[1]!],
+    recopa: unicos([campeon("libertadores"), campeon("sudamericana")]).length === 2 ? [campeon("libertadores")!, campeon("sudamericana")!] : p.siguiente.recopa,
+  };
+
   const puesto = finales[mia].orden.indexOf(YO_CLUB) + 1;
   const i = CATEGORIAS.indexOf(mia);
   const resultado: ResultadoTemporada =
@@ -424,15 +517,21 @@ function cerrar(p: AscensoProgress, r: ResultadoAscenso) {
             : mia !== "primera" && puesto <= 8
               ? "reducido"
               : "queda";
+  if (puesto === 1) ganarTitulo(p, r, `liga-${mia}`);
   p.categorias = nuevas;
   const nueva = miCategoria(p);
-  p.resumen = { temporada: p.temporada, categoria: mia, puesto, resultado, copa: rondaCopa(p), nueva };
+  const clasificado = (["libertadores", "sudamericana"] as const).filter((id) => p.siguiente[id].includes(YO_CLUB));
+  const copas = COPAS.flatMap(({ id }) => {
+    const c = p.copas[id];
+    const alcance = c ? alcanceEnCopa(c) : null;
+    return alcance ? [{ id, alcance }] : [];
+  });
+  p.resumen = { temporada: p.temporada, categoria: mia, puesto, resultado, copas, titulos: p.titulos.filter((t) => t.temporada === p.temporada).map((t) => t.id), clasificado, nueva };
   p.historial.push(p.resumen);
   p.fase = "fin";
   if (resultado === "campeon") {
     r.lineas.push("👑 ¡Campeón de Primera División!");
     r.fosforos += 400;
-    r.campeon = true;
   } else if (resultado === "ascenso" || resultado === "ascenso-reducido") {
     r.lineas.push(`🎉 ¡Ascendiste a la ${NOMBRE_CATEGORIA[nueva]}!`);
     r.fosforos += 150 + 50 * i;
@@ -440,6 +539,7 @@ function cerrar(p: AscensoProgress, r: ResultadoAscenso) {
     r.llegueAPrimera = nueva === "primera";
   } else if (resultado === "descenso") r.lineas.push(`😞 Descendiste a la ${NOMBRE_CATEGORIA[nueva]}`);
   else r.lineas.push(`Terminó la temporada: ${puesto}º en la ${NOMBRE_CATEGORIA[mia]}`);
+  for (const id of clasificado) r.lineas.push(`🌎 ¡Clasificaste a la ${copaInfo(id).nombre}!`);
 }
 
 /** Cómo se juega cada partido: las reglas de la región de la Gira equivalente (la C = Buenos Aires … Primera = Norte). */
@@ -458,11 +558,18 @@ type Rec = Record<string, unknown>;
 const isRec = (v: unknown): v is Rec => typeof v === "object" && v !== null && !Array.isArray(v);
 const strs = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
 const entero = (v: unknown, min: number, max: number) => typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
+const IDS_COPA = new Set<string>(COPAS.map((c) => c.id));
+
+function copaValida(c: unknown): boolean {
+  if (!isRec(c) || !IDS_COPA.has(c.id as string) || !Array.isArray(c.rondas) || !isRec(c.tabla) || !entero(c.fecha, 0, 100)) return false;
+  if (c.grupos !== null && !(Array.isArray(c.grupos) && c.grupos.every(strs))) return false;
+  return c.rondas.every((r) => Array.isArray(r) && r.every((x) => isRec(x) && typeof x.a === "string" && typeof x.b === "string"));
+}
 
 /** Valida un Ascenso leído del guardado; si algo no cierra, devuelve null (se arranca de nuevo). */
 export function normalizarAscenso(raw: unknown): AscensoProgress | null {
-  if (!isRec(raw) || raw.version !== 2 || typeof raw.semilla !== "string" || !entero(raw.temporada, 1, 1e6) || !entero(raw.paso, 0, 200)) return null;
-  if (!isRec(raw.categorias) || typeof raw.miClub !== "string" || !club(raw.miClub)) return null;
+  if (!isRec(raw) || raw.version !== 3 || typeof raw.semilla !== "string" || !entero(raw.temporada, 1, 1e6)) return null;
+  if (!isRec(raw.categorias) || typeof raw.miClub !== "string" || !club(raw.miClub)?.categoria) return null;
   const todos = new Set([...CLUBES.map((c) => c.id).filter((id) => id !== raw.miClub), YO_CLUB]);
   const vistos = new Set<string>();
   for (const cat of CATEGORIAS) {
@@ -475,16 +582,15 @@ export function normalizarAscenso(raw: unknown): AscensoProgress | null {
   }
   if (vistos.size !== todos.size) return null;
   if (!["liga", "reducido", "fin"].includes(raw.fase as string)) return null;
-  if (!strs(raw.orden) || !isRec(raw.tabla) || !Array.isArray(raw.copa) || !raw.copa.every(strs) || !Array.isArray(raw.historial)) return null;
+  if (!strs(raw.orden) || !isRec(raw.tabla) || !Array.isArray(raw.historial) || !Array.isArray(raw.titulos) || !strs(raw.vistos)) return null;
+  if (!Array.isArray(raw.calendario) || !entero(raw.paso, 0, raw.calendario.length)) return null;
+  if (!isRec(raw.copas) || !Object.values(raw.copas).every(copaValida)) return null;
+  if (!isRec(raw.siguiente) || !["libertadores", "sudamericana", "supercopa", "recopa"].every((k) => strs((raw.siguiente as Rec)[k]))) return null;
   const p = raw as unknown as AscensoProgress;
   const mia = CATEGORIAS.find((c) => p.categorias[c].includes(YO_CLUB))!;
-  if (p.fase !== "fin" && p.paso > calendarioDe(p).length) return null;
-  if (p.orden.length !== p.categorias[mia].length || !p.orden.every((id) => p.categorias[mia].includes(id))) {
-    // La temporada ya cerró (los clubes cambiaron de categoría) o el orden está roto: solo vale en la fase "fin".
-    if (p.fase !== "fin") return null;
-  }
+  // Al cerrar la temporada los clubes cambian de categoría: el orden viejo solo vale en la fase "fin".
+  if (p.fase !== "fin" && (p.orden.length !== p.categorias[mia].length || !p.orden.every((id) => p.categorias[mia].includes(id)))) return null;
   for (const f of Object.values(p.tabla)) if (!isRec(f) || !["pj", "pg", "pp", "pts"].every((k) => entero(f[k], 0, 1000))) return null;
-  if (p.copa.length === 0 || p.copa[0]!.length !== 32) return null;
   if (p.fase === "reducido" && !(isRec(p.reducido) && strs(p.reducido.sembrados) && Array.isArray(p.reducido.rondas))) return null;
   return copia({ ...p, reducido: p.reducido ?? null, resumen: p.resumen ?? null });
 }

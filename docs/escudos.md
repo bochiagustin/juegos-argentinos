@@ -1,6 +1,6 @@
 # Escudos del Ascenso
 
-Los 116 clubes de las cuatro categorías (Primera 30, Primera Nacional 36, B Metropolitana 22, Primera C 28) salen de
+Los 116 clubes de las cuatro categorías y los 52 de afuera de la Libertadores y la Sudamericana (Primera 30, Primera Nacional 36, B Metropolitana 22, Primera C 28) salen de
 [FootyLogos](https://www.footylogos.com/es/country/argentina), temporada 2026. El id de cada club en
 `packages/career/src/clubes.ts` es el mismo que usa FootyLogos, así los escudos se bajan solos:
 
