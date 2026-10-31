@@ -21,17 +21,6 @@ export function GameArtFallback({ game, size = 64 }: { game: GameInfo; size?: nu
       </div>
     );
   }
-  if (game.id === "chancho") {
-    return (
-      <div className="flex -space-x-3" aria-hidden>
-        {["🐷", "🐷", "🐷", "👃"].map((e, i) => (
-          <span key={i} className="grid place-items-center rounded-lg border-2 border-[#d9cfc0] bg-[#fdf6e3] shadow-lg" style={{ width: size * 0.55, height: size * 0.77, fontSize: size * 0.36, rotate: `${(i - 1.5) * 10}deg` }}>
-            {e}
-          </span>
-        ))}
-      </div>
-    );
-  }
   if (game.muestra.length === 0) {
     return (
       <div className="flex gap-1.5" aria-hidden>

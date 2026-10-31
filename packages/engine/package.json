@@ -10,8 +10,7 @@
     "./casita": "./src/casita/index.ts",
     "./escoba": "./src/escoba/index.ts",
     "./tutti-frutti": "./src/tutti-frutti/index.ts",
-    "./generala": "./src/generala/index.ts",
-    "./chancho": "./src/chancho/index.ts"
+    "./generala": "./src/generala/index.ts"
   },
   "scripts": {
     "test": "vitest run",

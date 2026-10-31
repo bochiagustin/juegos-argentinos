@@ -7,7 +7,6 @@ import { playSfx, vibrate } from "../audio/sfx.ts";
 import { CasitaMesaOnline } from "../casita/CasitaMesa.tsx";
 import { ChinchonMesaOnline } from "../chinchon/ChinchonMesa.tsx";
 import { EscobaMesaOnline } from "../escoba/EscobaMesa.tsx";
-import { ChanchoMesaOnline } from "../chancho/ChanchoMesa.tsx";
 import { GeneralaMesaOnline } from "../generala/GeneralaMesa.tsx";
 import { GAMES, gameInfo } from "../games.ts";
 import { useNav } from "../nav.tsx";
@@ -200,8 +199,6 @@ function MesaOnline({ remoto }: { remoto: Remoto }) {
       return <TuttiMesaOnline remoto={remoto} />;
     case "generala":
       return <GeneralaMesaOnline remoto={remoto} />;
-    case "chancho":
-      return <ChanchoMesaOnline remoto={remoto} />;
   }
 }
 
@@ -439,7 +436,6 @@ function ConfigJuego({ game, config, n, set }: { game: GameId; config: Record<st
         </>
       );
     case "generala":
-    case "chancho":
       return null;
     case "tutti-frutti": {
       const fin = (config.fin ?? {}) as { tipo?: string; rondas?: number };

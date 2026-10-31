@@ -33,7 +33,6 @@ const base = {
   "juego-chinchon": { path: "arte/juegos/chinchon.webp", width: 800, height: 500, transparente: false, descripcion: "Tarjeta del Chinchón, sin texto" },
   "juego-casita-robada": { path: "arte/juegos/casita-robada.webp", width: 800, height: 500, transparente: false, descripcion: "Tarjeta de la Casita Robada, sin texto" },
   "juego-generala": { path: "arte/juegos/generala.webp", width: 800, height: 500, transparente: false, descripcion: "Tarjeta de la Generala, sin texto" },
-  "juego-chancho": { path: "arte/juegos/chancho.webp", width: 800, height: 500, transparente: false, descripcion: "Tarjeta del Chancho va, sin texto" },
   "juego-escoba": { path: "arte/juegos/escoba.webp", width: 800, height: 500, transparente: false, descripcion: "Tarjeta de la Escoba de 15, sin texto" },
   "juego-tutti-frutti": { path: "arte/juegos/tutti-frutti.webp", width: 800, height: 500, transparente: false, descripcion: "Tarjeta del Tutti-Frutti, sin texto" },
   "mesa-mate": { path: "arte/mesa/mate.webp", width: 600, height: 600, transparente: true, descripcion: "Mate con bombilla", opcional: true },

@@ -2,8 +2,6 @@ import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { DeckContext } from "./cards/SpanishCard.tsx";
 import { Ascenso } from "./ascenso/Ascenso.tsx";
 import { Gira } from "./carrera/Gira.tsx";
-import { ChanchoMesa } from "./chancho/ChanchoMesa.tsx";
-import { ChanchoSetup } from "./chancho/ChanchoSetup.tsx";
 import { GeneralaMesa } from "./generala/GeneralaMesa.tsx";
 import { GeneralaSetup } from "./generala/GeneralaSetup.tsx";
 import { Logros } from "./carrera/Logros.tsx";
@@ -66,10 +64,6 @@ function CurrentScreen({ route }: { route: Route }) {
       return <GeneralaSetup />;
     case "generala-mesa":
       return <GeneralaMesa />;
-    case "chancho-setup":
-      return <ChanchoSetup />;
-    case "chancho-mesa":
-      return <ChanchoMesa />;
     case "tutti-setup":
       return <TuttiSetup />;
     case "tutti-mesa":
