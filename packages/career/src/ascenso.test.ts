@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { armarCalendario, fixture, idReal, sorteoPendiente, marcarSorteoVisto, iniciarAscenso, normalizarAscenso, nuevaTemporada, proximoPartido, registrarAscenso, tablaOrdenada, YO_CLUB, type AscensoProgress } from "./ascenso.ts";
+import { agenda, anioTemporada, armarCalendario, hoy, fixture, idReal, sorteoPendiente, marcarSorteoVisto, iniciarAscenso, normalizarAscenso, nuevaTemporada, proximoPartido, registrarAscenso, tablaOrdenada, YO_CLUB, type AscensoProgress } from "./ascenso.ts";
 import { defaultCareer, normalizeCareer, registrarPartida } from "./career.ts";
 import { CATEGORIAS, CLUBES, club, EXTERIOR, TAMANO } from "./clubes.ts";
 import { pasosCopa } from "./copas.ts";
@@ -212,5 +212,29 @@ describe("Ascenso", () => {
     // La revancha contra el último rival ya no cuenta para el torneo.
     const r = registrarPartida(s, { game: "truco", ganada: true, rivalId: "ascenso:river-plate", hechos: [], ahora: 2 });
     expect(r.premio.ascenso).toBeNull();
+  });
+
+  it("calendario: de enero a diciembre, liga los domingos, nunca dos partidos el mismo día, con los resultados", () => {
+    let p = iniciarAscenso("calendario", "lugano");
+    for (let t = 0; t < 3; t++) {
+      const anio = String(anioTemporada(p));
+      let ag = agenda(p);
+      expect(ag.filter((d) => d.proximo).length).toBe(1);
+      expect(hoy(p)).toBe(ag.find((d) => d.proximo)!.fecha);
+      for (let n = 0; n < 200 && proximoPartido(p); n++) {
+        p = registrarAscenso(p, proximoPartido(p)!.rival, n % 4 !== 0)!.progreso;
+        ag = agenda(p);
+        const dias = ag.map((d) => d.fecha);
+        expect(new Set(dias).size).toBe(dias.length);
+        expect(dias.every((d) => d.startsWith(anio))).toBe(true);
+        expect(dias.slice().sort()).toEqual(dias);
+        for (const d of ag.filter((x) => x.etapa === "liga")) expect(new Date(d.fecha + "T12:00:00Z").getUTCDay()).toBe(0);
+      }
+      // Al final, todos los partidos que jugué tienen resultado y no queda ninguno "próximo".
+      expect(ag.every((d) => d.gane !== undefined)).toBe(true);
+      expect(ag.filter((d) => d.etapa === "liga").length).toBe(TAMANO[p.resumen!.categoria] - 1);
+      expect(hoy(p)).toBe(`${anio}-12-31`);
+      p = nuevaTemporada(p);
+    }
   });
 });

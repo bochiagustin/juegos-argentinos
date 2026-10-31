@@ -8,6 +8,9 @@ import {
   esFinal,
   jugarPasoCopa,
   nombrePaso,
+  partidosDelPaso,
+  fechasDeGrupos,
+  nombreRonda,
   pasoActual,
   pasosCopa,
   rivalEnCopa,
@@ -73,6 +76,15 @@ export interface ResumenTemporada {
   nueva: Categoria;
 }
 
+/** Un partido mío ya jugado esta temporada: en qué lugar del calendario (o ronda del Reducido) y cómo salió. */
+export interface Jugado {
+  slot?: number;
+  reducido?: number;
+  rival: string;
+  gane: boolean;
+  local: boolean;
+}
+
 export interface AscensoProgress {
   version: 3;
   /** El club que elegiste (id de `CLUBES`); en las listas figura como `YO_CLUB`. */
@@ -101,6 +113,8 @@ export interface AscensoProgress {
   titulos: Titulo[];
   /** Sorteos que ya se mostraron (para el bolillero). */
   vistos: string[];
+  /** Mis partidos de esta temporada (para el calendario). */
+  jugados?: Jugado[];
 }
 
 export const RONDAS_REDUCIDO = ["Cuartos de final", "Semifinal", "Final"] as const;
@@ -248,6 +262,7 @@ function arrancarTemporada(p: AscensoProgress) {
   p.fase = "liga";
   p.reducido = null;
   p.resumen = null;
+  p.jugados = [];
   saltarSinMi(p);
 }
 
@@ -395,6 +410,12 @@ export function registrarAscenso(p0: AscensoProgress, rival: string, ganada: boo
   const r: ResultadoAscenso = { progreso: p, lineas: [], fosforos: 0, ascendi: false, llegueAPrimera: false, titulos: [] };
   const cat = miCategoria(p);
   const nombre = club(rival)?.nombre ?? rival;
+  (p.jugados ??= []).push({
+    ...(prox.etapa === "reducido" ? { reducido: p.reducido!.rondas.length } : { slot: p.paso }),
+    rival,
+    gane: ganada,
+    local: soyLocal(p),
+  });
   if (prox.etapa === "liga") {
     const s = p.calendario[p.paso] as Extract<Jornada, { t: "liga" }>;
     for (const [a, b] of fixture(p.orden, s.fecha)) {
@@ -439,6 +460,18 @@ export function registrarAscenso(p0: AscensoProgress, rival: string, ganada: boo
   }
   avanzar(p, r);
   return r;
+}
+
+/** En el partido que viene, ¿juego de local? (el primero del par). */
+function soyLocal(p: AscensoProgress): boolean {
+  if (p.fase === "reducido") {
+    const ronda = p.reducido!.rondas[p.reducido!.rondas.length - 1]!;
+    return ronda.find((x) => !x.ganador && (x.a === YO_CLUB || x.b === YO_CLUB))?.a === YO_CLUB;
+  }
+  const s = p.calendario[p.paso];
+  if (!s) return true;
+  const pares = s.t === "liga" ? fixture(p.orden, s.fecha) : partidosDelPaso(p.copas[s.id]!);
+  return pares.find((x) => x.includes(YO_CLUB))?.[0] === YO_CLUB;
 }
 
 /** Juega solos los pasos de copa en los que no estoy (o tengo fecha libre). */
@@ -592,5 +625,132 @@ export function normalizarAscenso(raw: unknown): AscensoProgress | null {
   if (p.fase !== "fin" && (p.orden.length !== p.categorias[mia].length || !p.orden.every((id) => p.categorias[mia].includes(id)))) return null;
   for (const f of Object.values(p.tabla)) if (!isRec(f) || !["pj", "pg", "pp", "pts"].every((k) => entero(f[k], 0, 1000))) return null;
   if (p.fase === "reducido" && !(isRec(p.reducido) && strs(p.reducido.sembrados) && Array.isArray(p.reducido.rondas))) return null;
-  return copia({ ...p, reducido: p.reducido ?? null, resumen: p.resumen ?? null });
+  const jugados = Array.isArray(p.jugados) ? p.jugados.filter((j) => isRec(j) && typeof j.rival === "string" && typeof j.gane === "boolean") : [];
+  return copia({ ...p, reducido: p.reducido ?? null, resumen: p.resumen ?? null, jugados });
+}
+
+// --- Calendario con fechas (de enero a diciembre) ---
+
+export interface DiaDePartido {
+  /** "AAAA-MM-DD". */
+  fecha: string;
+  etapa: "liga" | "copa" | "reducido";
+  copa?: CopaId;
+  /** "Fecha 5", "Octavos de final"… */
+  titulo: string;
+  /** El rival, si ya se sabe. */
+  rival: string | null;
+  local: boolean | null;
+  /** Si ya se jugó: lo gané o lo perdí. */
+  gane?: boolean;
+  /** Es el partido que viene. */
+  proximo: boolean;
+}
+
+/** El año de la temporada (la primera es 2026). */
+export const anioTemporada = (p: AscensoProgress) => 2025 + p.temporada;
+
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+/** El primer domingo del año, más `semanas` semanas y `dias` días. */
+function diaDelAnio(anio: number, semanas: number, dias = 0): string {
+  const d = new Date(Date.UTC(anio, 0, 1));
+  d.setUTCDate(d.getUTCDate() + ((7 - d.getUTCDay()) % 7) + semanas * 7 + dias);
+  return iso(d);
+}
+
+/**
+ * Las fechas de cada lugar del calendario: la liga los domingos, de fines de enero a fines de noviembre; las copas
+ * entre semana (martes a viernes) después de su fecha de liga; la Supercopa y la Recopa en enero; el Reducido en diciembre.
+ */
+export function fechasDelCalendario(p: AscensoProgress): string[] {
+  const anio = anioTemporada(p);
+  // Las fechas de liga de este calendario (al cerrar la temporada, mi categoría ya puede ser otra).
+  const F = p.calendario.filter((s) => s.t === "liga").length;
+  const semana = (f: number) => 4 + Math.round(((f - 1) * 43) / Math.max(1, F - 1));
+  let ultimaLiga = 0;
+  let entreSemana = 0;
+  let previas = 0;
+  return p.calendario.map((s) => {
+    if (s.t === "liga") {
+      ultimaLiga = s.fecha;
+      entreSemana = 0;
+      return diaDelAnio(anio, semana(s.fecha));
+    }
+    if (ultimaLiga === 0) return diaDelAnio(anio, 1 + previas++, 3);
+    return diaDelAnio(anio, semana(ultimaLiga), 2 + Math.min(3, entreSemana++));
+  });
+}
+
+/** El domingo de cada ronda del Reducido (diciembre). */
+export function fechaReducido(p: AscensoProgress, ronda: number): string {
+  return diaDelAnio(anioTemporada(p), 48 + ronda);
+}
+
+/** En qué paso de su copa cae cada lugar del calendario (0, 1, 2…). */
+function pasoDeSlot(p: AscensoProgress, i: number): number {
+  const s = p.calendario[i]!;
+  return s.t === "copa" ? p.calendario.slice(0, i).filter((x) => x.t === "copa" && x.id === s.id).length : -1;
+}
+
+function nombreDePaso(c: Copa, k: number): string {
+  const g = fechasDeGrupos(c);
+  if (k < g) return `Fecha ${k + 1} de grupos`;
+  const cruces = c.grupos ? c.grupos.length * c.pasan : c.rondas[0]!.length * 2;
+  return nombreRonda(cruces / 2 ** (k - g));
+}
+
+/**
+ * Mis partidos de la temporada con su día: los jugados (con el resultado), el que viene y los que siguen (la liga
+ * entera; de las copas, los pasos que me tocan si sigo en carrera, con el rival "a definir" hasta el sorteo).
+ */
+export function agenda(p: AscensoProgress): DiaDePartido[] {
+  const fechas = fechasDelCalendario(p);
+  const prox = proximoPartido(p);
+  const jugados = p.jugados ?? [];
+  const out: DiaDePartido[] = [];
+  p.calendario.forEach((s, i) => {
+    const titulo = s.t === "liga" ? `Fecha ${s.fecha}` : nombreDePaso(p.copas[s.id]!, pasoDeSlot(p, i));
+    const base = { fecha: fechas[i]!, etapa: s.t === "liga" ? ("liga" as const) : ("copa" as const), titulo, ...(s.t === "copa" ? { copa: s.id } : {}) };
+    const j = jugados.find((x) => x.slot === i);
+    if (j) return out.push({ ...base, rival: j.rival, local: j.local, gane: j.gane, proximo: false });
+    if (i < p.paso) return;
+    const esProximo = i === p.paso && p.fase === "liga" && !!prox;
+    if (s.t === "liga") {
+      const par = fixture(p.orden, s.fecha).find((x) => x.includes(YO_CLUB))!;
+      return out.push({ ...base, rival: par[0] === YO_CLUB ? par[1] : par[0], local: par[0] === YO_CLUB, proximo: esProximo });
+    }
+    const c = p.copas[s.id]!;
+    if (!sigoEnCopa(c)) return;
+    if (esProximo) return out.push({ ...base, rival: prox!.rival, local: soyLocal(p), proximo: true });
+    // Un paso futuro de una copa en la que sigo: en grupos el rival sale del fixture; en cruces, a definir.
+    const k = pasoDeSlot(p, i);
+    const g = fechasDeGrupos(c);
+    if (c.grupos && k < g) {
+      const grupo = c.grupos.find((x) => x.includes(YO_CLUB))!;
+      const n = (grupo.length % 2 ? grupo.length + 1 : grupo.length) - 1;
+      const par = fixture(grupo.length % 2 ? [...grupo, "-"] : grupo, (k % n) + 1).find((x) => x.includes(YO_CLUB));
+      if (!par || par.includes("-")) return;
+      return out.push({ ...base, rival: par[0] === YO_CLUB ? par[1] : par[0], local: par[0] === YO_CLUB, proximo: false });
+    }
+    // El cruce que se está jugando ya tiene rival (aunque antes me toque otro partido).
+    const paso = pasoActual(c);
+    if (paso?.tipo === "cruces" && k === g + paso.ronda) {
+      const par = partidosDelPaso(c).find((x) => x.includes(YO_CLUB));
+      if (par) return out.push({ ...base, rival: par[0] === YO_CLUB ? par[1] : par[0], local: par[0] === YO_CLUB, proximo: false });
+    }
+    out.push({ ...base, rival: null, local: null, proximo: false });
+  });
+  for (const j of jugados.filter((x) => x.reducido !== undefined))
+    out.push({ fecha: fechaReducido(p, j.reducido!), etapa: "reducido", titulo: `Reducido · ${RONDAS_REDUCIDO[j.reducido! - 1]}`, rival: j.rival, local: j.local, gane: j.gane, proximo: false });
+  if (prox?.etapa === "reducido") {
+    const n = p.reducido!.rondas.length;
+    out.push({ fecha: fechaReducido(p, n), etapa: "reducido", titulo: prox.titulo, rival: prox.rival, local: soyLocal(p), proximo: true });
+  }
+  return out.sort((a, b) => a.fecha.localeCompare(b.fecha));
+}
+
+/** "Hoy" en el calendario: el día del partido que viene, o el 31 de diciembre si terminó la temporada. */
+export function hoy(p: AscensoProgress): string {
+  return agenda(p).find((d) => d.proximo)?.fecha ?? `${anioTemporada(p)}-12-31`;
 }

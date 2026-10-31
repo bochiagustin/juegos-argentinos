@@ -167,6 +167,12 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
   Logos de torneos (`ascenso/LogoTorneo.tsx`, sobre una chapa clara): las 4 ligas, Libertadores y Sudamericana bajados de
   FootyLogos (`tools/bajar-escudos.py --torneos` → `public/arte/torneos/`); Copa Argentina, Copa de la Liga, Supercopa y
   Recopa no están en FootyLogos y llevan un emblema dibujado propio.
+- **Agenda** (`ascenso/Calendario.tsx`, pestaña "Agenda"; `Screen ancho` en pantalla grande): calendario de enero a diciembre
+  como el de los juegos de fútbol. `agenda(p)` (career) le pone día a cada partido mío (`fechasDelCalendario`: liga los
+  domingos de fines de enero a noviembre, copas martes a viernes después de su fecha, Supercopa/Recopa en enero, Reducido
+  en diciembre; el año es 2025 + temporada) con rival, local/visitante y resultado (`jugados`). "Hoy" = el partido que
+  viene (`hoy`); al volver de jugar los días pasan solos (último día visto en localStorage). Al costado, la ficha del
+  rival (posición, puntos, grupo de copa, nivel, cruces de la temporada).
 
 ### Carrera y logros (diseño original)
 

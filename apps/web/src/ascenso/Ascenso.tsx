@@ -34,11 +34,18 @@ import { lanzarPartida } from "../partidas/lanzar.ts";
 import { useSave } from "../save/SaveContext.tsx";
 import { Fosforos } from "../ui/Modal.tsx";
 import { Screen } from "../ui/ui.tsx";
+import { Calendario } from "./Calendario.tsx";
 import { Bolillero, CopasPanel, Cuadro, Trofeo, Vitrina } from "./Copas.tsx";
 import { Escudo, MiClub, useNombreClub } from "./Escudo.tsx";
 import { ligaDe, LogoTorneo, type TorneoId } from "./LogoTorneo.tsx";
 
-type Pestana = "tabla" | "copas" | "reducido" | "vitrina" | "historial";
+type Pestana =
+  | "calendario"
+  | "tabla"
+  | "copas"
+  | "reducido"
+  | "vitrina"
+  | "historial";
 
 /** El Ascenso de un juego: de la Primera C a Primera División, con el Reducido y la Copa Argentina. */
 export function Ascenso({ game }: { game: CareerGame }) {
@@ -56,6 +63,7 @@ export function Ascenso({ game }: { game: CareerGame }) {
 
   return (
     <Screen
+      ancho={!!p}
       title={`Ascenso · ${gameInfo(game).nombre}`}
       onBack={back}
       right={<Fosforos n={save.carrera.fosforos} />}
@@ -212,11 +220,7 @@ function Torneo({
   const prox = proximoPartido(p);
   const sorteo = sorteoPendiente(p);
   const [pestana, setPestana] = useState<Pestana>(
-    p.fase === "reducido"
-      ? "reducido"
-      : prox?.etapa === "copa"
-        ? "copas"
-        : "tabla",
+    p.fase === "reducido" ? "reducido" : "calendario",
   );
   const fechas = fechasLiga(p);
   const reglas = reglasAscenso(game, cat);
@@ -240,6 +244,7 @@ function Torneo({
   };
 
   const pestanas: { id: Pestana; nombre: string }[] = [
+    { id: "calendario", nombre: "Agenda" },
     { id: "tabla", nombre: "Tabla" },
     { id: "copas", nombre: "Copas" },
     ...(p.reducido ? [{ id: "reducido" as const, nombre: "Reducido" }] : []),
@@ -251,88 +256,97 @@ function Torneo({
 
   return (
     <>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm font-bold">
-        <span className="flex items-center gap-2 rounded-full bg-black/35 py-1 pl-1 pr-3">
-          <LogoTorneo id={ligaDe(cat)} className="size-8 rounded-full" />
-          {NOMBRE_CATEGORIA[cat]} · Temporada {p.temporada}
-        </span>
-        <span className="rounded-full bg-black/35 px-3 py-1">
-          {mia.puesto}º · {mia.fila.pts} pts · Fecha{" "}
-          {Math.min(fechasJugadas(p) + 1, fechas)}/{fechas}
-        </span>
-      </div>
+      <div className="mx-auto max-w-2xl">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm font-bold">
+          <span className="flex items-center gap-2 rounded-full bg-black/35 py-1 pl-1 pr-3">
+            <LogoTorneo id={ligaDe(cat)} className="size-8 rounded-full" />
+            {NOMBRE_CATEGORIA[cat]} · Temporada {p.temporada}
+          </span>
+          <span className="rounded-full bg-black/35 px-3 py-1">
+            {mia.puesto}º · {mia.fila.pts} pts · Fecha{" "}
+            {Math.min(fechasJugadas(p) + 1, fechas)}/{fechas}
+          </span>
+        </div>
 
-      {p.resumen ? (
-        <FinTemporada
-          r={p.resumen}
-          onSeguir={() => guardar(nuevaTemporada(p))}
-        />
-      ) : prox ? (
-        <section
-          className={`cuero ${prox.final ? "cuero-mostaza" : info?.internacional ? "cuero-azul" : "cuero-verde"} rounded-3xl p-4`}
-        >
-          <div className="relative z-[1]">
-            <div className="flex flex-col items-center gap-1.5">
-              <LogoTorneo id={prox.copa ?? ligaDe(cat)} className="size-14" />
-              <p className="text-center text-xs font-black uppercase tracking-wider text-naranja">
-                {prox.final ? "🔥 " : ""}
-                {prox.titulo}
-              </p>
-            </div>
-            <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-              <EquipoGrande
-                id={YO_CLUB}
-                nombre={nombre(YO_CLUB)}
-                detalle={`${mia.puesto}º en la tabla`}
-              />
-              <span className="font-criolla text-3xl text-crema/80">vs</span>
-              <EquipoGrande
-                id={prox.rival}
-                nombre={nombre(prox.rival)}
-                detalle={`${club(prox.rival)?.pais ? `${club(prox.rival)!.pais} · ` : ""}Nivel ${prox.nivel} · ${nivelNombre(prox.nivel)}`}
-              />
-            </div>
-            {prox.nivel > club(prox.rival)!.nivel && (
-              <p className="mt-2 text-center text-xs font-black text-naranja">
-                {prox.final
-                  ? "Es una final: el rival juega un nivel más arriba."
-                  : "Libertadores: el rival juega un nivel más arriba."}
-              </p>
-            )}
-            <p className="mt-2 text-center text-xs text-crema/75">
-              {reglas.reglas}
-            </p>
-            <button
-              className="btn-criollo mt-3 min-h-14 w-full rounded-2xl font-criolla text-2xl"
-              onClick={jugar}
-            >
-              <span className="relative z-[1]">
-                {prox.final ? "¡A jugar la final!" : "¡A jugar!"}
-              </span>
-            </button>
-          </div>
-        </section>
-      ) : null}
-
-      <div className="hundido mt-4 flex gap-1 rounded-2xl p-1" role="tablist">
-        {pestanas.map((t) => (
-          <button
-            key={t.id}
-            role="tab"
-            aria-selected={pestana === t.id}
-            onClick={() => {
-              playSfx("click");
-              setPestana(t.id);
-            }}
-            className={`min-h-11 flex-1 rounded-xl px-1 text-[13px] font-black ${pestana === t.id ? "bg-naranja text-tinta" : "text-crema/80"}`}
+        {p.resumen ? (
+          <FinTemporada
+            r={p.resumen}
+            onSeguir={() => guardar(nuevaTemporada(p))}
+          />
+        ) : prox ? (
+          <section
+            className={`cuero ${prox.final ? "cuero-mostaza" : info?.internacional ? "cuero-azul" : "cuero-verde"} rounded-3xl p-4`}
           >
-            {t.nombre}
-          </button>
-        ))}
-      </div>
+            <div className="relative z-[1]">
+              <div className="flex flex-col items-center gap-1.5">
+                <LogoTorneo id={prox.copa ?? ligaDe(cat)} className="size-14" />
+                <p className="text-center text-xs font-black uppercase tracking-wider text-naranja">
+                  {prox.final ? "🔥 " : ""}
+                  {prox.titulo}
+                </p>
+              </div>
+              <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                <EquipoGrande
+                  id={YO_CLUB}
+                  nombre={nombre(YO_CLUB)}
+                  detalle={`${mia.puesto}º en la tabla`}
+                />
+                <span className="font-criolla text-3xl text-crema/80">vs</span>
+                <EquipoGrande
+                  id={prox.rival}
+                  nombre={nombre(prox.rival)}
+                  detalle={`${club(prox.rival)?.pais ? `${club(prox.rival)!.pais} · ` : ""}Nivel ${prox.nivel} · ${nivelNombre(prox.nivel)}`}
+                />
+              </div>
+              {prox.nivel > club(prox.rival)!.nivel && (
+                <p className="mt-2 text-center text-xs font-black text-naranja">
+                  {prox.final
+                    ? "Es una final: el rival juega un nivel más arriba."
+                    : "Libertadores: el rival juega un nivel más arriba."}
+                </p>
+              )}
+              <p className="mt-2 text-center text-xs text-crema/75">
+                {reglas.reglas}
+              </p>
+              <button
+                className="btn-criollo mt-3 min-h-14 w-full rounded-2xl font-criolla text-2xl"
+                onClick={jugar}
+              >
+                <span className="relative z-[1]">
+                  {prox.final ? "¡A jugar la final!" : "¡A jugar!"}
+                </span>
+              </button>
+            </div>
+          </section>
+        ) : null}
 
-      <section className="cuero cuero-oscuro mt-3 rounded-3xl p-3">
+        <div className="hundido mt-4 flex gap-1 rounded-2xl p-1" role="tablist">
+          {pestanas.map((t) => (
+            <button
+              key={t.id}
+              role="tab"
+              aria-selected={pestana === t.id}
+              onClick={() => {
+                playSfx("click");
+                setPestana(t.id);
+              }}
+              className={`min-h-11 flex-1 rounded-xl px-1 text-[13px] font-black ${pestana === t.id ? "bg-naranja text-tinta" : "text-crema/80"}`}
+            >
+              {t.nombre}
+            </button>
+          ))}
+        </div>
+      </div>
+      <section
+        className={`cuero cuero-oscuro mx-auto mt-3 rounded-3xl p-3 ${pestana === "calendario" ? "" : "max-w-2xl"}`}
+      >
         <div className="relative z-[1]">
+          {pestana === "calendario" && (
+            <Calendario
+              p={p}
+              guardarClave={`juegos-argentinos:calendario:${game}`}
+            />
+          )}
           {pestana === "tabla" && <Tabla p={p} cat={cat} />}
           {pestana === "copas" && <CopasPanel p={p} />}
           {pestana === "reducido" && p.reducido && (

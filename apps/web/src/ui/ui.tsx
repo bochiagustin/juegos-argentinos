@@ -6,18 +6,57 @@ import { useNav, type Route } from "../nav.tsx";
 
 export type Tab = "inicio" | "juegos" | "logros" | "mazos" | "ajustes";
 
-const TABS: { id: Tab; label: string; icon: string; arte: ArtId; route: Route }[] = [
-  { id: "inicio", label: "Inicio", icon: "🏠", arte: "tab-inicio", route: { name: "inicio" } },
-  { id: "juegos", label: "Jugar", icon: "▶️", arte: "tab-jugar", route: { name: "juegos" } },
-  { id: "logros", label: "Logros", icon: "🏆", arte: "tab-logros", route: { name: "logros" } },
-  { id: "mazos", label: "Mazos", icon: "🃏", arte: "tab-mazos", route: { name: "mazos" } },
-  { id: "ajustes", label: "Ajustes", icon: "⚙️", arte: "tab-ajustes", route: { name: "ajustes" } },
+const TABS: {
+  id: Tab;
+  label: string;
+  icon: string;
+  arte: ArtId;
+  route: Route;
+}[] = [
+  {
+    id: "inicio",
+    label: "Inicio",
+    icon: "🏠",
+    arte: "tab-inicio",
+    route: { name: "inicio" },
+  },
+  {
+    id: "juegos",
+    label: "Jugar",
+    icon: "▶️",
+    arte: "tab-jugar",
+    route: { name: "juegos" },
+  },
+  {
+    id: "logros",
+    label: "Logros",
+    icon: "🏆",
+    arte: "tab-logros",
+    route: { name: "logros" },
+  },
+  {
+    id: "mazos",
+    label: "Mazos",
+    icon: "🃏",
+    arte: "tab-mazos",
+    route: { name: "mazos" },
+  },
+  {
+    id: "ajustes",
+    label: "Ajustes",
+    icon: "⚙️",
+    arte: "tab-ajustes",
+    route: { name: "ajustes" },
+  },
 ];
 
 function TabBar({ active }: { active: Tab }) {
   const { goTo } = useNav();
   return (
-    <nav className="cuero cuero-oscuro sticky bottom-0 z-10 grid grid-cols-5 rounded-t-2xl pb-[env(safe-area-inset-bottom)]" aria-label="Secciones">
+    <nav
+      className="cuero cuero-oscuro sticky bottom-0 z-10 grid grid-cols-5 rounded-t-2xl pb-[env(safe-area-inset-bottom)]"
+      aria-label="Secciones"
+    >
       {TABS.map((t) => (
         <button
           key={t.id}
@@ -31,18 +70,41 @@ function TabBar({ active }: { active: Tab }) {
             t.id === active ? "text-naranja" : "text-crema/75"
           }`}
         >
-          <span className={`grid size-9 place-items-center text-2xl leading-none transition-transform ${t.id === active ? "scale-110" : "opacity-80 grayscale-[0.4]"}`} aria-hidden>
-            <Art id={t.arte} className="size-9 object-contain drop-shadow-[0_2px_2px_rgb(0_0_0_/_0.6)]" fallback={t.icon} />
+          <span
+            className={`grid size-9 place-items-center text-2xl leading-none transition-transform ${t.id === active ? "scale-110" : "opacity-80 grayscale-[0.4]"}`}
+            aria-hidden
+          >
+            <Art
+              id={t.arte}
+              className="size-9 object-contain drop-shadow-[0_2px_2px_rgb(0_0_0_/_0.6)]"
+              fallback={t.icon}
+            />
           </span>
           {t.label}
-          {t.id === active && <span className="absolute inset-x-4 top-1.5 h-1 rounded-full bg-naranja" />}
+          {t.id === active && (
+            <span className="absolute inset-x-4 top-1.5 h-1 rounded-full bg-naranja" />
+          )}
         </button>
       ))}
     </nav>
   );
 }
 
-export function Screen({ title, onBack, right, tab, children }: { title?: string; onBack?: () => void; right?: ReactNode; tab?: Tab; children: ReactNode }) {
+export function Screen({
+  title,
+  onBack,
+  right,
+  tab,
+  ancho = false,
+  children,
+}: {
+  title?: string;
+  onBack?: () => void;
+  right?: ReactNode;
+  tab?: Tab;
+  /** En pantalla grande usa casi todo el ancho (calendario). */ ancho?: boolean;
+  children: ReactNode;
+}) {
   return (
     <div className="pano flex min-h-dvh flex-col">
       {(title || onBack) && (
@@ -54,17 +116,31 @@ export function Screen({ title, onBack, right, tab, children }: { title?: string
           ) : (
             <span className="w-11" />
           )}
-          <h1 className="titulo-criollo relative z-[1] flex-1 truncate py-1 text-center text-[1.7rem]">{title}</h1>
+          <h1 className="titulo-criollo relative z-[1] flex-1 truncate py-1 text-center text-[1.7rem]">
+            {title}
+          </h1>
           {right ?? <span className="w-11" />}
         </header>
       )}
-      <main className={`mx-auto w-full max-w-2xl flex-1 px-4 py-5 ${tab ? "" : "pb-[calc(env(safe-area-inset-bottom)+1.25rem)]"}`}>{children}</main>
+      <main
+        className={`mx-auto w-full ${ancho ? "max-w-6xl" : "max-w-2xl"} flex-1 px-4 py-5 ${tab ? "" : "pb-[calc(env(safe-area-inset-bottom)+1.25rem)]"}`}
+      >
+        {children}
+      </main>
       {tab && <TabBar active={tab} />}
     </div>
   );
 }
 
-export function IconButton({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
+export function IconButton({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  children: ReactNode;
+}) {
   return (
     <button
       aria-label={label}
@@ -80,7 +156,17 @@ export function IconButton({ label, onClick, children }: { label: string; onClic
   );
 }
 
-export function BigButton({ children, onClick, disabled = false, variant = "criollo" }: { children: ReactNode; onClick?: () => void; disabled?: boolean; variant?: "criollo" | "secundario" }) {
+export function BigButton({
+  children,
+  onClick,
+  disabled = false,
+  variant = "criollo",
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  variant?: "criollo" | "secundario";
+}) {
   return (
     <button
       disabled={disabled}
@@ -98,11 +184,29 @@ export function BigButton({ children, onClick, disabled = false, variant = "crio
 }
 
 /** Fila con aspecto de ajuste: panel de cuero. */
-function Row({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`cuero rounded-2xl px-4 py-3 ${className}`}>{children}</div>;
+function Row({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`cuero rounded-2xl px-4 py-3 ${className}`}>{children}</div>
+  );
 }
 
-export function Toggle({ label, detail, checked, onChange }: { label: string; detail?: string; checked: boolean; onChange: (v: boolean) => void }) {
+export function Toggle({
+  label,
+  detail,
+  checked,
+  onChange,
+}: {
+  label: string;
+  detail?: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
   return (
     <button
       role="switch"
@@ -115,20 +219,40 @@ export function Toggle({ label, detail, checked, onChange }: { label: string; de
     >
       <span className="relative z-[1] flex-1">
         <span className="block font-bold">{label}</span>
-        {detail && <span className="block text-sm text-crema/75">{detail}</span>}
+        {detail && (
+          <span className="block text-sm text-crema/75">{detail}</span>
+        )}
       </span>
-      <span className={`hundido relative z-[1] h-7 w-12 shrink-0 rounded-full transition ${checked ? "hundido-on" : ""}`}>
-        <span className={`bronce absolute top-0.5 size-5.5 rounded-full transition-all ${checked ? "left-6" : "left-0.5"}`} />
+      <span
+        className={`hundido relative z-[1] h-7 w-12 shrink-0 rounded-full transition ${checked ? "hundido-on" : ""}`}
+      >
+        <span
+          className={`bronce absolute top-0.5 size-5.5 rounded-full transition-all ${checked ? "left-6" : "left-0.5"}`}
+        />
       </span>
     </button>
   );
 }
 
-export function Segmented<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: readonly { value: T; label: string }[]; onChange: (v: T) => void }) {
+export function Segmented<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: readonly { value: T; label: string }[];
+  onChange: (v: T) => void;
+}) {
   return (
     <Row>
       <p className="relative z-[1] mb-2 font-bold">{label}</p>
-      <div className="hundido relative z-[1] flex gap-1 rounded-full p-1" role="radiogroup" aria-label={label}>
+      <div
+        className="hundido relative z-[1] flex gap-1 rounded-full p-1"
+        role="radiogroup"
+        aria-label={label}
+      >
         {options.map((o) => (
           <button
             key={o.value}
@@ -148,10 +272,18 @@ export function Segmented<T extends string>({ label, value, options, onChange }:
   );
 }
 
-export function Section({ title, children }: { title: string; children: ReactNode }) {
+export function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
   return (
     <section className="mt-6 first:mt-0">
-      <h2 className="mb-2 font-criolla text-lg tracking-wide text-naranja drop-shadow">{title}</h2>
+      <h2 className="mb-2 font-criolla text-lg tracking-wide text-naranja drop-shadow">
+        {title}
+      </h2>
       <div className="flex flex-col gap-2">{children}</div>
     </section>
   );
@@ -161,13 +293,23 @@ export function Section({ title, children }: { title: string; children: ReactNod
 export function FileteEsquinas({ color = "#e8c27a" }: { color?: string }) {
   // El filete ilustrado (si está) o el trazo dibujado; la misma esquina girada para las cuatro.
   const corner = (rot: number, pos: string) => (
-    <span className={`pointer-events-none absolute size-9 ${pos}`} style={{ rotate: `${rot}deg` }} aria-hidden>
+    <span
+      className={`pointer-events-none absolute size-9 ${pos}`}
+      style={{ rotate: `${rot}deg` }}
+      aria-hidden
+    >
       <Art
         id="ui-filete"
         className="size-full object-contain opacity-90"
         fallback={
           <svg viewBox="0 0 40 40" className="size-full">
-            <path d="M4,36 C4,18 12,6 30,4 C22,10 20,16 24,20 C18,18 14,22 16,28 C12,24 8,28 4,36 Z" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" />
+            <path
+              d="M4,36 C4,18 12,6 30,4 C22,10 20,16 24,20 C18,18 14,22 16,28 C12,24 8,28 4,36 Z"
+              fill="none"
+              stroke={color}
+              strokeWidth={2}
+              strokeLinecap="round"
+            />
             <circle cx={30} cy={4} r={2.2} fill={color} />
           </svg>
         }
