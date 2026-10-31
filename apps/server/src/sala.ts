@@ -4,6 +4,7 @@
  * Así la misma lógica corre en un Durable Object de Cloudflare (producción) y en Node (desarrollo y tests).
  */
 import { createRng, nextInt, randomSeed, type GameId, type RngState } from "@juegos-argentinos/engine";
+import { chooseChanchoAction, demoraNariz, MESA_CHANCHO, tieneCuatro, TIEMPOS_CHANCHO, type ChanchoAction, type ChanchoState } from "@juegos-argentinos/engine/chancho";
 import { MESA, planTutti, puedeBasta, votosTutti, type TuttiState } from "@juegos-argentinos/engine/tutti-frutti";
 import { JUEGOS, type JuegoOnline, type JuegoConSala } from "./juegos.ts";
 import { JUEGOS_ONLINE, REACCIONES, SENAS, type ClienteMsg, type JugadorSala, type RelojTurno, type RelojTutti, type SalaInfo, type ServidorMsg } from "./protocolo.ts";
@@ -299,6 +300,7 @@ export class Sala {
     const pa = this.partida;
     if (!pa || this.estado !== "jugando") return;
     if (this.game === "tutti-frutti") return this.programarTutti(pa);
+    if (this.game === "chancho") return this.programarChancho(pa);
     this.limpiarTimers();
     const seat = this.juego.actor!(pa.state);
     this.turno = null;
@@ -386,13 +388,65 @@ export class Sala {
     }
   }
 
+  /** El chancho va: la sala es la mesa (reloj de cada vuelta, la nariz, el reparto) y juega por los bots. */
+  private programarChancho(pa: Partida) {
+    const s = pa.state as ChanchoState;
+    const ahora = this.reloj.now();
+    // Si ya eligieron todos, se pasa enseguida.
+    if (s.fase === "pasando" && s.players.every((_, i) => !s.vivos[i] || s.elegidas[i] !== null)) {
+      this.despues(ahora + 350, () => {
+        const st = this.partida?.state as ChanchoState | undefined;
+        if (st && st.fase === "pasando" && st.vueltas === s.vueltas && st.ronda === s.ronda) this.aplicar(MESA_CHANCHO, { type: "pasar" });
+      }, true);
+    }
+    const marca = `${s.ronda}-${s.fase}-${s.vueltas}`;
+    if (marca === this.tutti.marca) return;
+    this.tutti.marca = marca;
+    this.limpiarTimers(true);
+    const desde = Math.max(ahora, this.pausaHasta);
+    const T = TIEMPOS_CHANCHO;
+    const mesa = (ms: number, action: object) => {
+      this.tutti.cierreAt = desde + ms;
+      this.despues(desde + ms, () => this.aplicar(MESA_CHANCHO, action), true);
+    };
+    const bots = pa.ids.flatMap((id, seat) => (this.participantes[seat]!.bot && s.vivos[seat] ? [{ id, seat, skill: this.participantes[seat]!.skill }] : []));
+    const reaccion = (skill: number) => {
+      const [d, rng] = demoraNariz(skill, this.rng);
+      this.rng = rng;
+      return d;
+    };
+    if (s.fase === "pasando") {
+      mesa(T.pase, { type: "pasar" });
+      for (const b of bots) {
+        if (tieneCuatro(s.manos[b.seat]!)) {
+          this.despues(desde + reaccion(b.skill), () => this.aplicar(b.id, { type: "nariz" }), true);
+          continue;
+        }
+        this.despues(desde + Math.min(T.pase - 300, 300 + reaccion(b.skill) / 2), () => {
+          const st = this.partida?.state as ChanchoState | undefined;
+          if (!st || st.fase !== "pasando") return;
+          const valid = this.juego.def.getValidActions(st, b.id) as ChanchoAction[];
+          if (!valid.length) return;
+          const [a, rng] = chooseChanchoAction(this.juego.def.getPlayerView(st, b.id), valid, this.rng, b.skill);
+          this.rng = rng;
+          this.aplicar(b.id, a);
+        }, true);
+      }
+    } else if (s.fase === "nariz") {
+      mesa(T.nariz, { type: "cerrar-nariz" });
+      for (const b of bots) if (!s.nariz.includes(b.seat)) this.despues(desde + reaccion(b.skill), () => this.aplicar(b.id, { type: "nariz" }), true);
+    } else if (s.fase === "fin-ronda") {
+      mesa(T.resumen, { type: "seguir" });
+    }
+  }
+
   // ───────────────────────────── envíos ─────────────────────────────
 
   private relojes(): { turno: RelojTurno | null; tutti: RelojTutti | null } {
     const ahora = this.reloj.now();
     const turno = this.turno ? { seat: this.turno.seat, restanteMs: Math.max(0, this.turno.at - ahora) } : null;
     const tutti =
-      this.partida?.game === "tutti-frutti" && this.estado === "jugando"
+      (this.partida?.game === "tutti-frutti" || this.partida?.game === "chancho") && this.estado === "jugando"
         ? { escribirEnMs: Math.max(0, this.tutti.escribirAt - ahora), cierreEnMs: this.tutti.cierreAt === null ? null : Math.max(0, this.tutti.cierreAt - ahora) }
         : null;
     return { turno, tutti };

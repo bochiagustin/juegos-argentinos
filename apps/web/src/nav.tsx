@@ -21,6 +21,8 @@ export type Route =
   | { name: "tutti-mesa" }
   | { name: "generala-setup" }
   | { name: "generala-mesa" }
+  | { name: "chancho-setup" }
+  | { name: "chancho-mesa" }
   | { name: "amigos"; game?: GameId }
   | { name: "sala"; codigo: string; game?: GameId }
   | { name: "gira"; game: CareerGame }

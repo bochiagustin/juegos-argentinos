@@ -7,6 +7,7 @@ import { playSfx, vibrate } from "../audio/sfx.ts";
 import { CasitaMesaOnline } from "../casita/CasitaMesa.tsx";
 import { ChinchonMesaOnline } from "../chinchon/ChinchonMesa.tsx";
 import { EscobaMesaOnline } from "../escoba/EscobaMesa.tsx";
+import { ChanchoMesaOnline } from "../chancho/ChanchoMesa.tsx";
 import { GeneralaMesaOnline } from "../generala/GeneralaMesa.tsx";
 import { GAMES, gameInfo } from "../games.ts";
 import { useNav } from "../nav.tsx";
@@ -200,7 +201,7 @@ function MesaOnline({ remoto }: { remoto: Remoto }) {
     case "generala":
       return <GeneralaMesaOnline remoto={remoto} />;
     case "chancho":
-      return null;
+      return <ChanchoMesaOnline remoto={remoto} />;
   }
 }
 

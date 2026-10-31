@@ -99,6 +99,15 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
   multiconjunto), anotar = puntaje − "par" de la casilla; nivel = cuánto se equivoca. Web: `src/generala/` (`Dado`,
   `Cubilete`, `GeneralaSetup`, `GeneralaMesa` con planilla tocable; también online). Sin Gira ni Ascenso todavía.
 
+- Chancho va (`src/chancho/`): 3 a 6, una figura por jugador (`FIGURAS`: animales) × 4 cartas, 4 cada uno. Tiempo real como el
+  tutti: la **mesa** (`MESA_CHANCHO`; la app o el servidor) manda `pasar` (cada vuelta, al vencer `TIEMPOS_CHANCHO.pase` o
+  cuando todos eligieron; al que no eligió le sale una al azar), `cerrar-nariz` y `seguir`. El que tiene 4 iguales se toca la
+  nariz y abre la fase `nariz`; el último en tocársela (o los que no llegaron) suma letra; con 2 vivos, el otro pierde en el
+  acto. CHANCHO completo = afuera; se reparte con una figura menos. Bot: junta la figura que más tiene, pasa la que menos (con
+  azar en los empates, para no ciclar); `demoraNariz` por nivel (2,2 s → 0,5 s). Web: `src/chancho/` (`ChanchoMesa`:
+  controlador local con el reloj y los bots, y `ChanchoMesaOnline`; el servidor hace de mesa en `programarChancho` y manda el
+  reloj en el campo `tutti`). Sin Gira ni Ascenso todavía.
+
 ### Truco: decisiones de implementación
 
 - Contesta un canto el **siguiente rival en el orden de juego** (en 2v2/3v3 no contesta "cualquiera del equipo").
@@ -423,3 +432,5 @@ reglamento rioplatense estándar, dudas en `MEMORY.md`.)*
 - [x] **Ascenso** — modo nuevo en los cinco juegos: de la Primera C a Primera con clubes reales, Reducido, descensos y
   Copa Argentina. 116 clubes reales con escudos (FootyLogos), elegís tu club y arranca en la C. Copas: Supercopa,
   Recopa, Copa de la Liga, Libertadores y Sudamericana (52 clubes de afuera), vitrina, bolillero y festejo.
+- [x] **Señas, Generala y Chancho va** — señas clásicas contra la máquina en el truco 2v2/3v3 (los bots las usan en su
+  simulación); dos juegos nuevos (7 en total) contra la IA y online. Falta sumarlos a la Gira y al Ascenso.

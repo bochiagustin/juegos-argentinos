@@ -16,7 +16,7 @@ const SETUP = {
   escoba: "escoba-setup",
   "tutti-frutti": "tutti-setup",
   generala: "generala-setup",
-  chancho: "juegos",
+  chancho: "chancho-setup",
 } as const satisfies Record<GameId, string>;
 
 export function Juego({ id }: { id: GameId }) {

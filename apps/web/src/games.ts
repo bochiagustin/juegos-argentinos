@@ -1,5 +1,6 @@
 import type { GameId } from "@juegos-argentinos/engine";
 import type { ArtId } from "./art/manifest.ts";
+import { REGLAS_CHANCHO } from "./chancho/reglas.ts";
 import { REGLAS_GENERALA } from "./generala/reglas.ts";
 
 export type ModoId = "ia" | "carrera" | "ascenso" | "amigos";
@@ -129,6 +130,18 @@ export const GAMES: readonly GameInfo[] = [
     muestra: [],
     modos: { ia: "disponible", carrera: "proximamente", ascenso: "proximamente", amigos: "disponible" },
     reglas: REGLAS_GENERALA,
+  },
+  {
+    id: "chancho",
+    nombre: "Chancho va",
+    bajada: "Pasá rápido y tocate la nariz",
+    jugadores: "3 a 6 jugadores",
+    colores: ["#ec4899", "#831843"],
+    cuero: "cuero-rojo",
+    arte: "juego-chancho",
+    muestra: [],
+    modos: { ia: "disponible", carrera: "proximamente", ascenso: "proximamente", amigos: "disponible" },
+    reglas: REGLAS_CHANCHO,
   },
 ];
 

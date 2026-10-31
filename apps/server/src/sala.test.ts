@@ -125,6 +125,8 @@ describe("partida", () => {
     ["casita-robada", 4],
     ["escoba", 3],
     ["tutti-frutti", 3],
+    ["generala", 3],
+    ["chancho", 4],
   ];
   for (const [game, n] of juegos) {
     it(`${game}: con un humano que no juega y bots, la partida termina sola (reloj de turno)`, () => {
