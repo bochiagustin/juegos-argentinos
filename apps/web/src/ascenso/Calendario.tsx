@@ -222,6 +222,10 @@ export function Calendario({
             <span className="mr-1 inline-block size-2.5 rounded-sm bg-[#7c3aed]" />
             Hoy
           </span>
+          <span>
+            <span className="mr-1 inline-block size-2.5 rounded-sm ring-2 ring-[#fde68a]" />
+            Clásico
+          </span>
           <span>G ganado · P perdido</span>
         </p>
       </section>
@@ -248,6 +252,7 @@ function Celda({
   onElegir: () => void;
 }) {
   const n = fecha(dia).getUTCDate();
+  const clasico = !!partido?.clasico && delMes;
   const fondo = esHoy
     ? "bg-[#7c3aed]"
     : partido && delMes && !pasado && partido.gane === undefined
@@ -273,7 +278,10 @@ function Celda({
         <>
           <span className="absolute right-0.5 top-0.5">
             {partido.rival ? (
-              <Escudo id={partido.rival} className="size-5 sm:size-7 lg:size-11" />
+              <Escudo
+                id={partido.rival}
+                className="size-5 sm:size-7 lg:size-11"
+              />
             ) : (
               <span className="text-xs text-white/60">?</span>
             )}
@@ -287,7 +295,10 @@ function Celda({
           )}
           <span className="absolute inset-x-0.5 bottom-0.5 truncate text-left text-[8px] font-black leading-tight text-white/90 sm:text-[10px]">
             {partido.local === null ? "" : partido.local ? "Local" : "Visit."}
-            <span className="block truncate text-white/70">
+            <span
+              className={`block truncate ${clasico ? "text-[#fde68a]" : "text-white/70"}`}
+            >
+              {clasico && "🔥 "}
               {etiquetaTorneo(partido)}
             </span>
           </span>
@@ -295,7 +306,7 @@ function Celda({
       )}
     </>
   );
-  const clases = `relative h-16 sm:h-20 lg:h-[5.5rem] ${fondo} ${elegido ? "outline outline-2 -outline-offset-2 outline-[#5eead4]" : ""}`;
+  const clases = `relative h-16 sm:h-20 lg:h-[5.5rem] ${fondo} ${elegido ? "outline outline-2 -outline-offset-2 outline-[#5eead4]" : clasico ? "outline outline-2 -outline-offset-2 outline-[#fde68a]" : ""}`;
   return partido && delMes ? (
     <button
       className={clases}
@@ -399,9 +410,10 @@ function FichaRival({ p, d }: { p: AscensoProgress; d: DiaDePartido }) {
               />
             </>
           )}
+          {d.clasico && <Dato t="Clásico" v={`🔥 ${d.clasico}`} ancho />}
           <Dato
             t="Nivel"
-            v={`${nivelClub(rival)}${d.copa === "libertadores" ? " (+1 en la Libertadores)" : ""}`}
+            v={`${nivelClub(rival)}${d.copa === "libertadores" ? " (+1 en la Libertadores)" : ""}${d.clasico ? " (+1 en el clásico)" : ""}`}
             ancho
           />
           {cruces.length > 0 && (

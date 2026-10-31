@@ -238,6 +238,10 @@ function cumple(id: string, s: CareerState, r: Reporte): boolean {
       return (c["titulo:liga-primera"] ?? 0) >= 1;
     case "copa-argentina":
       return (c["titulo:copa-argentina"] ?? 0) >= 1;
+    case "clasico":
+      return (c["clasicos-ganados"] ?? 0) >= 1;
+    case "duenio-del-barrio":
+      return (c["clasicos-ganados"] ?? 0) >= 5;
     case "sudamericana":
       return (c["titulo:sudamericana"] ?? 0) >= 1;
     case "libertadores":
@@ -275,6 +279,10 @@ export function registrarPartida(state: CareerState, r: Reporte): { state: Caree
       if (res.ascendi) inc("ascensos");
       if (res.llegueAPrimera) inc("llegadas-primera");
       for (const t of res.titulos) inc(`titulo:${t}`);
+      if (res.clasico) {
+        premio.ascenso.clasico = res.clasico;
+        if (res.clasico.gane) inc("clasicos-ganados");
+      }
     }
   }
 

@@ -1,6 +1,7 @@
 import {
   CATEGORIAS,
   club,
+  rivalesClasicos,
   CLUBES,
   copaInfo,
   fechasJugadas,
@@ -193,6 +194,10 @@ function ElegirClub({
               </span>
               <span className="block text-xs font-bold opacity-80">
                 Arranca en la Primera C
+                {rivalesClasicos(c.id).length > 0 &&
+                  ` · Su clásico: ${rivalesClasicos(c.id)
+                    .map((x) => club(x.rival)!.nombre)
+                    .join(", ")}`}
               </span>
             </span>
           </button>
@@ -229,7 +234,7 @@ function Torneo({
   const jugar = () => {
     if (!prox) return;
     const c = club(prox.rival)!;
-    playSfx("barajar");
+    playSfx(prox.clasico ? "hinchada" : "barajar");
     const yo = {
       nombre: save.perfil.apodo || "Vos",
       avatar: save.perfil.avatar,
@@ -275,11 +280,21 @@ function Torneo({
           />
         ) : prox ? (
           <section
-            className={`cuero ${prox.final ? "cuero-mostaza" : info?.internacional ? "cuero-azul" : "cuero-verde"} rounded-3xl p-4`}
+            className={`cuero ${prox.clasico ? "cuero-rojo" : prox.final ? "cuero-mostaza" : info?.internacional ? "cuero-azul" : "cuero-verde"} rounded-3xl p-4`}
           >
             <div className="relative z-[1]">
               <div className="flex flex-col items-center gap-1.5">
                 <LogoTorneo id={prox.copa ?? ligaDe(cat)} className="size-14" />
+                {prox.clasico && (
+                  <motion.p
+                    initial={{ scale: 0.6, rotate: -4 }}
+                    animate={{ scale: [1, 1.06, 1], rotate: -2 }}
+                    transition={{ scale: { repeat: Infinity, duration: 1.4 } }}
+                    className="rounded-xl border-2 border-[#fde68a] bg-[#7f1d1d] px-3 py-1 text-center font-criolla text-lg leading-tight text-[#fde68a] shadow-lg sm:text-2xl"
+                  >
+                    🔥 {prox.clasico} 🔥
+                  </motion.p>
+                )}
                 <p className="text-center text-xs font-black uppercase tracking-wider text-naranja">
                   {prox.final ? "🔥 " : ""}
                   {prox.titulo}
@@ -300,9 +315,11 @@ function Torneo({
               </div>
               {prox.nivel > club(prox.rival)!.nivel && (
                 <p className="mt-2 text-center text-xs font-black text-naranja">
-                  {prox.final
-                    ? "Es una final: el rival juega un nivel más arriba."
-                    : "Libertadores: el rival juega un nivel más arriba."}
+                  {prox.clasico
+                    ? `Es un clásico: el rival deja todo y juega ${prox.nivel - club(prox.rival)!.nivel === 1 ? "un nivel" : "dos niveles"} más arriba.`
+                    : prox.final
+                      ? "Es una final: el rival juega un nivel más arriba."
+                      : "Libertadores: el rival juega un nivel más arriba."}
                 </p>
               )}
               <p className="mt-2 text-center text-xs text-crema/75">
@@ -313,7 +330,11 @@ function Torneo({
                 onClick={jugar}
               >
                 <span className="relative z-[1]">
-                  {prox.final ? "¡A jugar la final!" : "¡A jugar!"}
+                  {prox.clasico
+                    ? "¡A jugar el clásico!"
+                    : prox.final
+                      ? "¡A jugar la final!"
+                      : "¡A jugar!"}
                 </span>
               </button>
             </div>
@@ -337,9 +358,7 @@ function Torneo({
           ))}
         </div>
       </div>
-      <section
-        className="cuero cuero-oscuro mt-3 rounded-3xl p-3"
-      >
+      <section className="cuero cuero-oscuro mt-3 rounded-3xl p-3">
         <div className="relative z-[1]">
           {pestana === "calendario" && (
             <Calendario

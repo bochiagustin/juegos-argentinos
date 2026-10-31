@@ -130,5 +130,5 @@ export interface Premio {
   /** Cómo cambió mi puesto en el ranking de la región (si cambió). */
   puesto: { region: RegionId; antes: number; despues: number } | null;
   /** Si fue un partido del Ascenso: qué pasó en el torneo. */
-  ascenso: { lineas: string[]; titulos: { id: TituloId; nombre: string }[] } | null;
+  ascenso: { lineas: string[]; titulos: { id: TituloId; nombre: string }[]; clasico?: { nombre: string; gane: boolean } } | null;
 }

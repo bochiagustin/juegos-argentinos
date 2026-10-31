@@ -1,3 +1,4 @@
+import { clasico } from "./clasicos.ts";
 import { CATEGORIAS, CLUBES, club, EXTERIOR, NOMBRE_CATEGORIA, TAMANO, type Categoria } from "./clubes.ts";
 import {
   alcanceEnCopa,
@@ -331,6 +332,8 @@ export interface Partido {
   /** Nivel del rival en este partido (las finales y la Libertadores, uno más). */
   nivel: number;
   final: boolean;
+  /** El nombre del clásico, si el rival es el de toda la vida ("Superclásico"). */
+  clasico: string | null;
 }
 
 export function proximoPartido(p: AscensoProgress): Partido | null {
@@ -340,7 +343,9 @@ export function proximoPartido(p: AscensoProgress): Partido | null {
     etapa,
     titulo,
     final,
-    nivel: Math.min(10, nivelClub(rival) + (final || copa === "libertadores" ? 1 : 0)),
+    // Las finales y la Libertadores, un nivel más; los clásicos, otro más.
+    nivel: Math.min(10, nivelClub(rival) + (final || copa === "libertadores" ? 1 : 0) + (clasico(p.miClub, rival) ? 1 : 0)),
+    clasico: clasico(p.miClub, rival),
     ...(copa ? { copa } : {}),
   });
   if (p.fase === "reducido") {
@@ -392,6 +397,8 @@ export interface ResultadoAscenso {
   llegueAPrimera: boolean;
   /** Títulos que se ganaron con este partido (o al cerrar la temporada). */
   titulos: TituloId[];
+  /** Si fue un clásico: cuál y si lo gané. */
+  clasico: { nombre: string; gane: boolean } | null;
 }
 
 function ganarTitulo(p: AscensoProgress, r: ResultadoAscenso, id: TituloId) {
@@ -407,7 +414,12 @@ export function registrarAscenso(p0: AscensoProgress, rival: string, ganada: boo
   const prox = proximoPartido(p0);
   if (!prox || prox.rival !== rival) return null;
   const p = copia(p0);
-  const r: ResultadoAscenso = { progreso: p, lineas: [], fosforos: 0, ascendi: false, llegueAPrimera: false, titulos: [] };
+  const r: ResultadoAscenso = { progreso: p, lineas: [], fosforos: 0, ascendi: false, llegueAPrimera: false, titulos: [], clasico: null };
+  if (prox.clasico) {
+    r.clasico = { nombre: prox.clasico, gane: ganada };
+    r.lineas.push(ganada ? `🔥 ¡Ganaste el ${prox.clasico}!` : `😤 Perdiste el ${prox.clasico}…`);
+    if (ganada) r.fosforos += 50;
+  }
   const cat = miCategoria(p);
   const nombre = club(rival)?.nombre ?? rival;
   (p.jugados ??= []).push({
@@ -645,6 +657,8 @@ export interface DiaDePartido {
   gane?: boolean;
   /** Es el partido que viene. */
   proximo: boolean;
+  /** El nombre del clásico, si lo es. */
+  clasico?: string | null;
 }
 
 /** El año de la temporada (la primera es 2026). */
@@ -747,7 +761,7 @@ export function agenda(p: AscensoProgress): DiaDePartido[] {
     const n = p.reducido!.rondas.length;
     out.push({ fecha: fechaReducido(p, n), etapa: "reducido", titulo: prox.titulo, rival: prox.rival, local: soyLocal(p), proximo: true });
   }
-  return out.sort((a, b) => a.fecha.localeCompare(b.fecha));
+  return out.map((d) => ({ ...d, clasico: d.rival ? clasico(p.miClub, d.rival) : null })).sort((a, b) => a.fecha.localeCompare(b.fecha));
 }
 
 /** "Hoy" en el calendario: el día del partido que viene, o el 31 de diciembre si terminó la temporada. */

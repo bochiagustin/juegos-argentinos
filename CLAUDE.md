@@ -173,6 +173,11 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
   en diciembre; el año es 2025 + temporada) con rival, local/visitante y resultado (`jugados`). "Hoy" = el partido que
   viene (`hoy`); al volver de jugar los días pasan solos (último día visto en localStorage). Al costado, la ficha del
   rival (posición, puntos, grupo de copa, nivel, cruces de la temporada).
+- **Clásicos** (`career/src/clasicos.ts`: 27 rivalidades entre los clubes del Ascenso, `clasico(a, b)`, `rivalesClasicos`):
+  si el próximo rival es el clásico de tu club (en la liga o una copa), `Partido.clasico` trae el nombre, el rival juega
+  un nivel más (se suma al de finales/Libertadores), ganarlo da 50 fósforos, una línea y el festejo; 2 logros ("¡Es un
+  clásico!", "Dueño del barrio" con 5). En la web: cartel rojo animado en el partido, sonido `hinchada`, borde dorado
+  y 🔥 en la agenda, y en la elección de club se muestra su clásico.
 
 ### Carrera y logros (diseño original)
 

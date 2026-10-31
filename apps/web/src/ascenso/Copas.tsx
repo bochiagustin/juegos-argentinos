@@ -504,9 +504,12 @@ const PAPELITOS = [
 /** Festejo de campeón: trofeo, papelitos y la hinchada. Encima de la pantalla final. */
 export function Festejo({
   titulos,
+  clasico,
   onCerrar,
 }: {
   titulos: { id: TituloId; nombre: string }[];
+  /** Si se ganó un clásico (sin título), se festeja igual. */
+  clasico?: string | undefined;
   onCerrar: () => void;
 }) {
   useEffect(() => {
@@ -559,20 +562,34 @@ export function Festejo({
           animate={{ y: [0, -10, 0] }}
           transition={{ repeat: Infinity, duration: 1.2 }}
         >
-          <Trofeo
-            id={titulos[0]?.id ?? "liga-primera"}
-            className="size-40 drop-shadow-[0_0_30px_rgba(253,230,138,0.7)]"
-          />
+          {titulos[0] ? (
+            <Trofeo
+              id={titulos[0].id}
+              className="size-40 drop-shadow-[0_0_30px_rgba(253,230,138,0.7)]"
+            />
+          ) : (
+            <span
+              className="block text-9xl drop-shadow-[0_0_30px_rgba(248,113,113,0.8)]"
+              aria-hidden
+            >
+              🔥
+            </span>
+          )}
         </motion.div>
         {titulos[0] && !titulos[0].id.startsWith("reducido-") && (
           <LogoTorneo id={titulos[0].id as TorneoId} className="size-20" />
         )}
-        <h2 className="titulo-criollo text-6xl">¡Campeón!</h2>
+        <h2 className="titulo-criollo text-6xl">
+          {titulos.length ? "¡Campeón!" : "¡Ganamos el clásico!"}
+        </h2>
         {titulos.map((t) => (
           <p key={t.id} className="font-criolla text-2xl text-naranja">
             {t.nombre}
           </p>
         ))}
+        {clasico && (
+          <p className="font-criolla text-2xl text-[#fde68a]">🔥 {clasico}</p>
+        )}
         <p className="mt-4 text-sm text-crema/70">Tocá para seguir</p>
       </motion.div>
     </motion.div>

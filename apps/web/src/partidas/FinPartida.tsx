@@ -27,7 +27,9 @@ export function FinPartida({
 }) {
   const armado = useArmado();
   const p = r.premio;
-  const [festejo, setFestejo] = useState(!!p.ascenso?.titulos.length);
+  const [festejo, setFestejo] = useState(
+    !!p.ascenso?.titulos.length || !!p.ascenso?.clasico?.gane,
+  );
   const region = p.regionDesbloqueada
     ? REGIONES.find((x) => x.id === p.regionDesbloqueada)?.nombre
     : null;
@@ -40,6 +42,9 @@ export function FinPartida({
         {festejo && (
           <Festejo
             titulos={p.ascenso!.titulos}
+            clasico={
+              p.ascenso!.clasico?.gane ? p.ascenso!.clasico.nombre : undefined
+            }
             onCerrar={() => setFestejo(false)}
           />
         )}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { agenda, anioTemporada, armarCalendario, hoy, fixture, idReal, sorteoPendiente, marcarSorteoVisto, iniciarAscenso, normalizarAscenso, nuevaTemporada, proximoPartido, registrarAscenso, tablaOrdenada, YO_CLUB, type AscensoProgress } from "./ascenso.ts";
+import { miCategoria, agenda, anioTemporada, armarCalendario, hoy, fixture, idReal, sorteoPendiente, marcarSorteoVisto, iniciarAscenso, normalizarAscenso, nuevaTemporada, proximoPartido, registrarAscenso, tablaOrdenada, YO_CLUB, type AscensoProgress } from "./ascenso.ts";
+import { clasico } from "./clasicos.ts";
 import { defaultCareer, normalizeCareer, registrarPartida } from "./career.ts";
 import { CATEGORIAS, CLUBES, club, EXTERIOR, TAMANO } from "./clubes.ts";
 import { pasosCopa } from "./copas.ts";
@@ -236,5 +237,28 @@ describe("Ascenso", () => {
       expect(hoy(p)).toBe(`${anio}-12-31`);
       p = nuevaTemporada(p);
     }
+  });
+
+  it("clásicos: con Atlanta en la Nacional se cruza con Chacarita y All Boys, un nivel más arriba y con premio", () => {
+    expect(clasico("boca-juniors", "river-plate")).toBe("Superclásico");
+    expect(clasico("river-plate", "racing-club")).toBeNull();
+    let p = iniciarAscenso("clasico", "atletico-atlanta");
+    for (let t = 0; t < 2; t++) p = nuevaTemporada(temporada(p, () => true));
+    expect(miCategoria(p)).toBe("nacional");
+    const clasicos = agenda(p).filter((d) => d.clasico);
+    expect(clasicos.map((d) => d.clasico).sort()).toEqual(["Clásico de Floresta", "Clásico de Villa Crespo"]);
+    let vistos = 0;
+    while (proximoPartido(p)) {
+      const prox = proximoPartido(p)!;
+      if (prox.clasico) {
+        vistos++;
+        expect(prox.nivel).toBe(Math.min(10, (club(prox.rival)?.nivel ?? 5) + 1 + (prox.final || prox.copa === "libertadores" ? 1 : 0)));
+        const r = registrarAscenso(p, prox.rival, true)!;
+        expect(r.clasico).toEqual({ nombre: prox.clasico, gane: true });
+        expect(r.lineas[0]).toContain(prox.clasico);
+        p = r.progreso;
+      } else p = registrarAscenso(p, prox.rival, true)!.progreso;
+    }
+    expect(vistos).toBeGreaterThanOrEqual(2);
   });
 });
