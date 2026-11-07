@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { setSfxEnabled, setVibrationEnabled } from "../audio/sfx.ts";
 import { setVozEnabled } from "../audio/voz.ts";
+import { programarSubida, vigilarCierre } from "./nube.ts";
 import { clearSave, defaultSave, loadSave, writeSave, type Save } from "./save.ts";
 
 interface SaveContextValue {
@@ -26,8 +27,12 @@ export function SaveProvider({ children }: { children: ReactNode }) {
     void navigator.storage?.persist?.().catch(() => {});
   }, []);
 
+  useEffect(() => vigilarCierre(), []);
+
   useEffect(() => {
     writeSave(save);
+    // Cada cambio del progreso se sube a la nube a los pocos segundos.
+    programarSubida();
     setSfxEnabled(save.ajustes.sonido);
     setVozEnabled(save.ajustes.sonido);
     setVibrationEnabled(save.ajustes.vibracion);

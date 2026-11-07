@@ -8,11 +8,13 @@
   "durable_objects": {
     "bindings": [
       { "name": "Sala", "class_name": "SalaServer" },
-      { "name": "Reportes", "class_name": "ReportesServer" }
+      { "name": "Reportes", "class_name": "ReportesServer" },
+      { "name": "Nube", "class_name": "NubeServer" }
     ]
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["SalaServer"] },
-    { "tag": "v2", "new_sqlite_classes": ["ReportesServer"] }
+    { "tag": "v2", "new_sqlite_classes": ["ReportesServer"] },
+    { "tag": "v3", "new_sqlite_classes": ["NubeServer"] }
   ]
 }

@@ -1,6 +1,6 @@
 import { usarLexico, usarPalabrasPropias } from "@juegos-argentinos/engine/tutti-frutti";
 import type { PalabraReportada, Save } from "../save/save.ts";
-import { servidorSalas } from "../online/conexion.ts";
+import { servidorHttp } from "../online/conexion.ts";
 
 /**
  * Las palabras del tutti-frutti que no vienen en el motor: el léxico general del castellano para "Cosa"
@@ -24,11 +24,7 @@ export function aplicarPropias(reportadas: readonly PalabraReportada[]): void {
   usarPalabrasPropias(reportadas);
 }
 
-/** La URL http(s) del servidor de salas (de donde sale el ws://), o null si no hay servidor. */
-function servidorHttp(): string | null {
-  const ws = servidorSalas();
-  return ws ? ws.replace(/^ws(s?):/, "http$1:").replace(/\/+$/, "") : null;
-}
+
 
 /** Manda al servidor las reportadas que todavía no llegaron. Devuelve cuáles se mandaron bien. */
 export async function enviarReportes(reportadas: readonly PalabraReportada[]): Promise<PalabraReportada[]> {

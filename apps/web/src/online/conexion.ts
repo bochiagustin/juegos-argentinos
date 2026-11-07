@@ -57,6 +57,12 @@ export function servidorSalas(): string | null {
   return null;
 }
 
+/** La URL http(s) del servidor de salas (de donde sale el ws://), o null si no hay servidor. */
+export function servidorHttp(): string | null {
+  const ws = servidorSalas();
+  return ws ? ws.replace(/^ws(s?):/, "http$1:").replace(/\/+$/, "") : null;
+}
+
 export function guardarServidor(url: string) {
   try {
     if (url.trim()) localStorage.setItem(KEY_SERVIDOR, url.trim().replace(/\/+$/, ""));

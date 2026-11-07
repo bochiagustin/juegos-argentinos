@@ -1,8 +1,27 @@
 import { AnimatePresence } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  activarNube,
+  aplicarDeNube,
+  buscarEnNube,
+  estadoNube,
+  formatearCodigo,
+  miCodigoNube,
+  subirAhora,
+  suscribirNube,
+} from "../save/nube.ts";
 import { playSfx } from "../audio/sfx.ts";
 import { useNav } from "../nav.tsx";
-import { aplicarRespaldo, armarRespaldo, CLAVE_ULTIMO_RESPALDO, leerRespaldo, nombreArchivo, resumenActual, type Respaldo, type ResumenRespaldo } from "../save/respaldo.ts";
+import {
+  aplicarRespaldo,
+  armarRespaldo,
+  CLAVE_ULTIMO_RESPALDO,
+  leerRespaldo,
+  nombreArchivo,
+  resumenActual,
+  type Respaldo,
+  type ResumenRespaldo,
+} from "../save/respaldo.ts";
 import { useSave } from "../save/SaveContext.tsx";
 import { FosforoIcono, Modal } from "../ui/Modal.tsx";
 import { BigButton, Screen, Section } from "../ui/ui.tsx";
@@ -17,8 +36,11 @@ export function ultimoRespaldo(): number | null {
   }
 }
 
-/** Hay progreso que valga la pena y no se guardó copia en la última semana. */
+/** Hay progreso que valga la pena y no está a salvo (ni en la nube ni en una copia de la última semana). */
 export function conviene(partidasJugadas: number): boolean {
+  const n = estadoNube();
+  if (n.activa && n.ultima !== null && Date.now() - n.ultima < 7 * 86_400_000)
+    return false;
   const u = ultimoRespaldo();
   return partidasJugadas > 0 && (u === null || Date.now() - u > 7 * 86_400_000);
 }
@@ -32,28 +54,42 @@ function haceCuanto(ms: number): string {
 
 function fechaLinda(iso: string): string {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "fecha desconocida" : d.toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
+  return Number.isNaN(d.getTime())
+    ? "fecha desconocida"
+    : d.toLocaleDateString("es-AR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
 }
 
 function Resumen({ r }: { r: ResumenRespaldo }) {
   return (
     <ul className="grid grid-cols-2 gap-2 text-sm">
       <li className="rounded-xl bg-black/25 px-3 py-2">
-        <span className="block text-[11px] font-bold uppercase text-crema/60">Apodo</span>
+        <span className="block text-[11px] font-bold uppercase text-crema/60">
+          Apodo
+        </span>
         <b>{r.apodo || "—"}</b>
       </li>
       <li className="rounded-xl bg-black/25 px-3 py-2">
-        <span className="block text-[11px] font-bold uppercase text-crema/60">Fósforos</span>
+        <span className="block text-[11px] font-bold uppercase text-crema/60">
+          Fósforos
+        </span>
         <b className="inline-flex items-center gap-1">
           <FosforoIcono /> {r.fosforos}
         </b>
       </li>
       <li className="rounded-xl bg-black/25 px-3 py-2">
-        <span className="block text-[11px] font-bold uppercase text-crema/60">Partidas jugadas</span>
+        <span className="block text-[11px] font-bold uppercase text-crema/60">
+          Partidas jugadas
+        </span>
         <b>{r.partidas}</b>
       </li>
       <li className="rounded-xl bg-black/25 px-3 py-2">
-        <span className="block text-[11px] font-bold uppercase text-crema/60">Logros</span>
+        <span className="block text-[11px] font-bold uppercase text-crema/60">
+          Logros
+        </span>
         <b>{r.logros}</b>
       </li>
     </ul>
@@ -70,7 +106,57 @@ export function Guardado() {
   const [ultimo, setUltimo] = useState(ultimoRespaldo);
   const [aviso, setAviso] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [aCargar, setACargar] = useState<{ respaldo: Respaldo; resumen: ResumenRespaldo } | null>(null);
+  const [aCargar, setACargar] = useState<{
+    respaldo: Respaldo;
+    resumen: ResumenRespaldo;
+    codigo?: string;
+  } | null>(null);
+  const nube = useSyncExternalStore(suscribirNube, estadoNube);
+  const [codigo] = useState(miCodigoNube);
+  const [codigoOtro, setCodigoOtro] = useState("");
+  const [buscando, setBuscando] = useState(false);
+  const [subiendo, setSubiendo] = useState(false);
+  const [, refrescar] = useState(0);
+
+  // Al entrar se sube la copia (así el estado está al día) y el "hace X" se actualiza solo.
+  useEffect(() => {
+    void subirAhora();
+    const t = window.setInterval(() => refrescar((x) => x + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const guardarYa = async () => {
+    setSubiendo(true);
+    const ok = await subirAhora();
+    setSubiendo(false);
+    playSfx(ok ? "turno" : "error");
+  };
+
+  const compartirCodigo = async () => {
+    const texto = `Mi código de Juegos Argentinos para recuperar el progreso: ${formatearCodigo(codigo)}`;
+    try {
+      if (navigator.share) await navigator.share({ text: texto });
+      else {
+        await navigator.clipboard.writeText(formatearCodigo(codigo));
+        setAviso("Código copiado.");
+      }
+    } catch {
+      // cancelado
+    }
+  };
+
+  const recuperar = async () => {
+    setError(null);
+    setBuscando(true);
+    const r = await buscarEnNube(codigoOtro);
+    setBuscando(false);
+    if (!r.ok) {
+      playSfx("error");
+      setError(r.error);
+      return;
+    }
+    setACargar({ respaldo: r.respaldo, resumen: r.resumen, codigo: r.codigo });
+  };
   const [texto, setTexto] = useState("");
   const archivo = useRef<HTMLInputElement>(null);
   const actual = resumenActual(save);
@@ -91,7 +177,10 @@ export function Guardado() {
 
   const contenido = () => {
     const ahora = new Date();
-    return { texto: JSON.stringify(armarRespaldo(localStorage, ahora)), nombre: nombreArchivo(ahora) };
+    return {
+      texto: JSON.stringify(armarRespaldo(localStorage, ahora)),
+      nombre: nombreArchivo(ahora),
+    };
   };
 
   const guardar = async () => {
@@ -102,9 +191,14 @@ export function Guardado() {
     // En el celu: compartir el archivo (Drive, WhatsApp, mail…). Si no se puede, se descarga.
     try {
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "Mi progreso de Juegos Argentinos" });
+        await navigator.share({
+          files: [file],
+          title: "Mi progreso de Juegos Argentinos",
+        });
         marcar();
-        setAviso("¡Copia guardada! Guardala en un lugar seguro, como Drive o un chat con vos mismo.");
+        setAviso(
+          "¡Copia guardada! Guardala en un lugar seguro, como Drive o un chat con vos mismo.",
+        );
         return;
       }
     } catch (e) {
@@ -125,7 +219,9 @@ export function Guardado() {
     try {
       await navigator.clipboard.writeText(contenido().texto);
       marcar();
-      setAviso("Copiaste tu progreso como texto. Pegalo en un chat con vos mismo o en una nota para guardarlo.");
+      setAviso(
+        "Copiaste tu progreso como texto. Pegalo en un chat con vos mismo o en una nota para guardarlo.",
+      );
     } catch {
       setError("No se pudo copiar. Probá con «Guardar copia».");
     }
@@ -151,7 +247,8 @@ export function Guardado() {
   const confirmar = () => {
     if (!aCargar) return;
     try {
-      aplicarRespaldo(localStorage, aCargar.respaldo);
+      if (aCargar.codigo) aplicarDeNube(aCargar.respaldo, aCargar.codigo);
+      else aplicarRespaldo(localStorage, aCargar.respaldo);
     } catch {
       setError("No se pudo cargar la copia en este dispositivo.");
       return;
@@ -164,55 +261,164 @@ export function Guardado() {
   return (
     <Screen title="Guardar progreso" onBack={back}>
       <div className="cuero cuero-verde rounded-2xl p-4">
-        <div className="relative z-[1] text-sm">
-          <p>
-            Tu progreso se guarda <b>solo en este celu</b> después de cada partida. Si borrás los datos del navegador o cambiás de teléfono, se pierde. Para que no
-            pase, <b>guardá una copia</b> y tenela en un lugar seguro.
-          </p>
-          <p className="mt-2 font-bold text-crema/90">Última copia: {ultimo ? haceCuanto(ultimo) : "nunca"}</p>
+        <div className="relative z-[1]">
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-criolla text-xl">☁️ Guardado en la nube</p>
+            <button
+              role="switch"
+              aria-checked={nube.activa}
+              aria-label="Guardado automático en la nube"
+              onClick={() => activarNube(!nube.activa)}
+              className={`hundido relative h-8 w-14 shrink-0 rounded-full ${nube.activa ? "bg-[#16a34a]" : "bg-black/40"}`}
+            >
+              <span
+                className={`absolute top-1 size-6 rounded-full bg-crema shadow transition-all ${nube.activa ? "left-7" : "left-1"}`}
+              />
+            </button>
+          </div>
+          {nube.activa ? (
+            <>
+              <p className="mt-1 text-sm">
+                Se guarda <b>solo</b> después de cada partida. Si cambiás de
+                celu o se borra la app, recuperás todo con tu código:
+              </p>
+              <p className="my-2 select-all rounded-xl bg-black/35 py-2 text-center font-mono text-2xl font-black tracking-widest">
+                {formatearCodigo(codigo)}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  className="boton boton-cuero min-h-11 rounded-xl text-sm"
+                  onClick={compartirCodigo}
+                >
+                  📤 Guardarme el código
+                </button>
+                <button
+                  className="boton boton-cuero min-h-11 rounded-xl text-sm"
+                  disabled={subiendo}
+                  onClick={guardarYa}
+                >
+                  {subiendo ? "Guardando…" : "☁️ Guardar ahora"}
+                </button>
+              </div>
+              <p className="mt-2 text-sm font-bold" aria-live="polite">
+                {nube.fallo
+                  ? "⚠️ Sin conexión: se guarda apenas vuelva internet."
+                  : nube.ultima
+                    ? `✓ Guardado ${haceCuanto(nube.ultima)} (${new Date(nube.ultima).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })})`
+                    : "Todavía no se guardó."}
+              </p>
+              <p className="mt-1 text-xs text-crema/75">
+                Anotá el código o mandátelo por WhatsApp: es la llave de tu
+                progreso (no se lo pases a nadie).
+              </p>
+            </>
+          ) : (
+            <p className="mt-1 text-sm">
+              Apagado: tu progreso queda solo en este celu. Prendelo para no
+              perderlo nunca.
+            </p>
+          )}
         </div>
       </div>
+
+      <Section title="¿Cambiaste de celu?">
+        <p className="px-1 text-sm text-crema/85">
+          Escribí el código de tu otro teléfono y recuperás todo.
+        </p>
+        <div className="flex gap-2">
+          <input
+            value={codigoOtro}
+            onChange={(e) => setCodigoOtro(e.target.value.toUpperCase())}
+            placeholder="MATE-4823-GRAN"
+            aria-label="Código de recuperación"
+            autoCapitalize="characters"
+            className="min-h-12 min-w-0 flex-1 rounded-xl border border-borde bg-superficie px-3 font-mono text-lg font-bold tracking-wider text-texto"
+          />
+          <button
+            className="boton boton-verde min-h-12 shrink-0 rounded-xl px-4 font-black"
+            disabled={
+              buscando || codigoOtro.replace(/[^A-Za-z0-9]/g, "").length < 12
+            }
+            onClick={recuperar}
+          >
+            {buscando ? "…" : "Recuperar"}
+          </button>
+        </div>
+      </Section>
 
       <Section title="Lo que tenés ahora">
         <Resumen r={actual} />
       </Section>
 
-      <Section title="Guardar una copia">
-        <BigButton onClick={guardar}>💾 Guardar copia</BigButton>
-        <button className="boton boton-cuero min-h-12 w-full rounded-xl" onClick={copiarTexto}>
-          Copiar como texto
-        </button>
-        <p className="px-1 text-xs text-crema/70">En el celu se abre para mandarla a Drive, WhatsApp o mail. En la compu se descarga un archivo.</p>
-      </Section>
-
-      <Section title="Cargar una copia">
-        <input ref={archivo} type="file" accept=".json,application/json,text/plain" className="hidden" onChange={(e) => void elegirArchivo(e.target.files?.[0])} />
-        <BigButton variant="secundario" onClick={() => archivo.current?.click()}>
-          📂 Elegir el archivo
-        </BigButton>
-        <details className="rounded-xl bg-black/20 px-3 py-2">
-          <summary className="cursor-pointer text-sm font-bold">La tengo como texto</summary>
-          <textarea
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            rows={4}
-            placeholder="Pegá acá el texto de tu copia"
-            aria-label="Texto de la copia"
-            className="mt-2 w-full rounded-xl border border-borde bg-superficie p-2 text-xs text-texto"
-          />
-          <button className="boton boton-cuero mt-2 min-h-11 w-full rounded-xl" disabled={!texto.trim()} onClick={() => revisar(texto)}>
-            Revisar la copia
+      <details className="mt-6 rounded-2xl bg-black/20 p-3">
+        <summary className="cursor-pointer font-bold">
+          📁 Otras formas: copia en un archivo{" "}
+          {ultimo ? `(última: ${haceCuanto(ultimo)})` : ""}
+        </summary>
+        <Section title="Guardar una copia">
+          <BigButton onClick={guardar}>💾 Guardar copia</BigButton>
+          <button
+            className="boton boton-cuero min-h-12 w-full rounded-xl"
+            onClick={copiarTexto}
+          >
+            Copiar como texto
           </button>
-        </details>
-      </Section>
+          <p className="px-1 text-xs text-crema/70">
+            En el celu se abre para mandarla a Drive, WhatsApp o mail. En la
+            compu se descarga un archivo.
+          </p>
+        </Section>
+
+        <Section title="Cargar una copia">
+          <input
+            ref={archivo}
+            type="file"
+            accept=".json,application/json,text/plain"
+            className="hidden"
+            onChange={(e) => void elegirArchivo(e.target.files?.[0])}
+          />
+          <BigButton
+            variant="secundario"
+            onClick={() => archivo.current?.click()}
+          >
+            📂 Elegir el archivo
+          </BigButton>
+          <details className="rounded-xl bg-black/20 px-3 py-2">
+            <summary className="cursor-pointer text-sm font-bold">
+              La tengo como texto
+            </summary>
+            <textarea
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
+              rows={4}
+              placeholder="Pegá acá el texto de tu copia"
+              aria-label="Texto de la copia"
+              className="mt-2 w-full rounded-xl border border-borde bg-superficie p-2 text-xs text-texto"
+            />
+            <button
+              className="boton boton-cuero mt-2 min-h-11 w-full rounded-xl"
+              disabled={!texto.trim()}
+              onClick={() => revisar(texto)}
+            >
+              Revisar la copia
+            </button>
+          </details>
+        </Section>
+      </details>
 
       {aviso && (
-        <p role="status" className="mt-4 rounded-xl bg-pano/70 px-4 py-3 text-sm font-bold">
+        <p
+          role="status"
+          className="mt-4 rounded-xl bg-pano/70 px-4 py-3 text-sm font-bold"
+        >
           {aviso}
         </p>
       )}
       {error && (
-        <p role="alert" className="mt-4 rounded-xl bg-red-900/70 px-4 py-3 text-sm font-bold">
+        <p
+          role="alert"
+          className="mt-4 rounded-xl bg-red-900/70 px-4 py-3 text-sm font-bold"
+        >
           {error}
         </p>
       )}
@@ -220,15 +426,27 @@ export function Guardado() {
       <AnimatePresence>
         {aCargar && (
           <Modal key="cargar" onClose={() => setACargar(null)}>
-            <h2 className="titulo-criollo mb-2 text-center text-3xl">¿Cargar esta copia?</h2>
-            <p className="mb-3 text-center text-sm text-crema/80">Copia del {fechaLinda(aCargar.resumen.fecha)}</p>
+            <h2 className="titulo-criollo mb-2 text-center text-3xl">
+              ¿Cargar esta copia?
+            </h2>
+            <p className="mb-3 text-center text-sm text-crema/80">
+              Copia del {fechaLinda(aCargar.resumen.fecha)}
+            </p>
             <Resumen r={aCargar.resumen} />
-            <p className="my-3 rounded-xl bg-red-900/50 px-3 py-2 text-sm">Lo que tenés ahora en este dispositivo se reemplaza por la copia.</p>
+            <p className="my-3 rounded-xl bg-red-900/50 px-3 py-2 text-sm">
+              Lo que tenés ahora en este dispositivo se reemplaza por la copia.
+            </p>
             <div className="grid grid-cols-2 gap-2">
-              <button className="boton boton-cuero min-h-12 rounded-xl" onClick={() => setACargar(null)}>
+              <button
+                className="boton boton-cuero min-h-12 rounded-xl"
+                onClick={() => setACargar(null)}
+              >
                 Mejor no
               </button>
-              <button className="boton boton-verde min-h-12 rounded-xl font-black" onClick={confirmar}>
+              <button
+                className="boton boton-verde min-h-12 rounded-xl font-black"
+                onClick={confirmar}
+              >
                 Cargar
               </button>
             </div>

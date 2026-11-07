@@ -8,7 +8,7 @@ import { migrate, SAVE_KEY, type KeyValueStore, type Save } from "./save.ts";
  */
 
 const PREFIJO = "juegos-argentinos:";
-const FUERA = new Set([`${PREFIJO}online-token`, `${PREFIJO}servidor-salas`, `${PREFIJO}ultimo-respaldo`]);
+const FUERA = new Set([`${PREFIJO}online-token`, `${PREFIJO}servidor-salas`, `${PREFIJO}ultimo-respaldo`, `${PREFIJO}codigo-nube`, `${PREFIJO}nube`]);
 export const CLAVE_ULTIMO_RESPALDO = `${PREFIJO}ultimo-respaldo`;
 
 export interface Respaldo {

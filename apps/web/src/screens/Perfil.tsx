@@ -7,7 +7,7 @@ import { useSave } from "../save/SaveContext.tsx";
 import { BigButton, Screen, Section } from "../ui/ui.tsx";
 
 export function Perfil({ bienvenida = false }: { bienvenida?: boolean }) {
-  const { back, replace } = useNav();
+  const { back, replace, push } = useNav();
   const { save, update } = useSave();
   const [apodo, setApodo] = useState(save.perfil.apodo);
   const [avatar, setAvatar] = useState(save.perfil.avatar);
@@ -28,6 +28,11 @@ export function Perfil({ bienvenida = false }: { bienvenida?: boolean }) {
           <Cara avatar={avatar} />
         </span>
         {bienvenida && <p className="text-center text-lg font-bold">Antes de sentarte a la mesa: ¿cómo te dicen?</p>}
+        {bienvenida && (
+          <button className="text-sm font-bold text-celeste underline underline-offset-4" onClick={() => push({ name: "guardado" })}>
+            ¿Ya jugabas en otro celu? Recuperá tu progreso con tu código
+          </button>
+        )}
       </div>
 
       <Section title="Apodo">

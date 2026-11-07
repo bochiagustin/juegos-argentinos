@@ -6,6 +6,7 @@
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
+import { copiaValida, CORS_NUBE, MAX_NUBE, normalizarCodigoNube } from "./nube.ts";
 import { esCodigo } from "./protocolo.ts";
 import { acumular, claveReporte, CORS, MAX_GUARDADOS, ordenar, sanearReportes, type Acumulado } from "./reportes.ts";
 import { Sala, type Reloj } from "./sala.ts";
@@ -22,7 +23,46 @@ const salas = new Map<string, { sala: Sala; sockets: Map<string, WebSocket> }>()
 /** Palabras reportadas del tutti-frutti (en memoria: se pierden al reiniciar el servidor de desarrollo). */
 const reportados = new Map<string, Acumulado>();
 
+/** Guardado en la nube (en memoria en desarrollo). */
+const nubes = new Map<string, { copia: string; actualizado: number }>();
+
 const http = createServer((req, res) => {
+  const ruta = (req.url ?? "").split("?")[0]!;
+  if (ruta.startsWith("/nube/")) {
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, CORS_NUBE);
+      res.end();
+      return;
+    }
+    const codigo = normalizarCodigoNube(ruta.slice(6));
+    if (!codigo) {
+      res.writeHead(400, CORS_NUBE);
+      res.end("Código inválido");
+      return;
+    }
+    if (req.method === "GET") {
+      const r = nubes.get(codigo);
+      res.writeHead(r ? 200 : 404, { ...CORS_NUBE, "content-type": "application/json" });
+      res.end(JSON.stringify(r ? { ok: true, ...r } : { ok: false, error: "No hay nada guardado con ese código" }));
+      return;
+    }
+    let texto = "";
+    req.on("data", (c: Buffer) => {
+      if (texto.length <= MAX_NUBE) texto += c.toString();
+    });
+    req.on("end", () => {
+      if (!copiaValida(texto)) {
+        res.writeHead(400, CORS_NUBE);
+        res.end("Copia inválida");
+        return;
+      }
+      const actualizado = Date.now();
+      nubes.set(codigo, { copia: texto, actualizado });
+      res.writeHead(200, { ...CORS_NUBE, "content-type": "application/json" });
+      res.end(JSON.stringify({ ok: true, actualizado }));
+    });
+    return;
+  }
   if ((req.url ?? "").split("?")[0] === "/reportes") {
     if (req.method === "OPTIONS") {
       res.writeHead(204, CORS);

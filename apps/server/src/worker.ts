@@ -5,12 +5,14 @@
 import { DurableObject } from "cloudflare:workers";
 import { routePartykitRequest, Server, type Connection } from "partyserver";
 import { esCodigo } from "./protocolo.ts";
+import { copiaValida, CORS_NUBE, normalizarCodigoNube } from "./nube.ts";
 import { acumular, claveReporte, CORS, MAX_GUARDADOS, ordenar, sanearReportes, type Acumulado } from "./reportes.ts";
 import { Sala, type Reloj } from "./sala.ts";
 
 interface Env {
   Sala: DurableObjectNamespace;
   Reportes: DurableObjectNamespace<ReportesServer>;
+  Nube: DurableObjectNamespace<NubeServer>;
 }
 
 const reloj: Reloj = {
@@ -68,6 +70,37 @@ export class ReportesServer extends DurableObject<Env> {
   }
 }
 
+/** Un Durable Object por código de recuperación: guarda la última copia del progreso de ese jugador. */
+export class NubeServer extends DurableObject<Env> {
+  async leer(): Promise<{ copia: string; actualizado: number } | null> {
+    const copia = await this.ctx.storage.get<string>("copia");
+    return copia ? { copia, actualizado: (await this.ctx.storage.get<number>("actualizado")) ?? 0 } : null;
+  }
+
+  async guardar(copia: string): Promise<number> {
+    const ahora = Date.now();
+    await this.ctx.storage.put({ copia, actualizado: ahora });
+    return ahora;
+  }
+}
+
+async function nube(req: Request, env: Env, raw: string): Promise<Response> {
+  if (req.method === "OPTIONS") return new Response(null, { headers: CORS_NUBE });
+  const codigo = normalizarCodigoNube(raw);
+  if (!codigo) return new Response("Código inválido", { status: 400, headers: CORS_NUBE });
+  const stub = env.Nube.get(env.Nube.idFromName(codigo));
+  if (req.method === "GET") {
+    const r = await stub.leer();
+    return r ? Response.json({ ok: true, ...r }, { headers: CORS_NUBE }) : Response.json({ ok: false, error: "No hay nada guardado con ese código" }, { status: 404, headers: CORS_NUBE });
+  }
+  if (req.method === "PUT") {
+    const texto = await req.text();
+    if (!copiaValida(texto)) return new Response("Copia inválida", { status: 400, headers: CORS_NUBE });
+    return Response.json({ ok: true, actualizado: await stub.guardar(texto) }, { headers: CORS_NUBE });
+  }
+  return new Response("Método no permitido", { status: 405, headers: CORS_NUBE });
+}
+
 async function reportes(req: Request, env: Env): Promise<Response> {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   const stub = env.Reportes.get(env.Reportes.idFromName("reportes"));
@@ -89,6 +122,7 @@ export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
     if (url.pathname === "/reportes") return reportes(req, env);
+    if (url.pathname.startsWith("/nube/")) return nube(req, env, url.pathname.slice(6));
     const codigo = url.pathname.split("/")[3] ?? "";
     if (url.pathname.startsWith("/parties/") && !esCodigo(codigo)) return new Response("Código de sala inválido", { status: 400 });
     if (url.pathname === "/") return new Response("Juegos Argentinos: servidor de salas", { headers: { "content-type": "text/plain; charset=utf-8" } });

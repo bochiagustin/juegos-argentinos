@@ -212,6 +212,12 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
 - Guardado local en `src/save/` (`save.ts`): una clave de localStorage, esquema versionado con `MIGRATIONS`, todo en try/catch,
   normaliza lo leído. `SaveContext.tsx` lo expone (`useSave`) y aplica tema, sonido y vibración (y pide `navigator.storage.persist`
   para que el navegador no lo borre). Tests en `save.test.ts`.
+- **Guardado en la nube** (`save/nube.ts`, servidor `nube.ts` + Durable Object `NubeServer` en `/nube/<código>`, GET/PUT; en
+  desarrollo, memoria): cada dispositivo tiene un código de recuperación de 12 letras/números (`miCodigoNube`, sin I/O/0/1,
+  se muestra `XXXX-XXXX-XXXX`); cada cambio del guardado sube la copia a los 4 s (`programarSubida`) y al mandar la app al
+  fondo (`vigilarCierre`). Prendido por defecto (se apaga en "Guardar progreso"). En otro teléfono se escribe el código
+  ("¿Ya jugabas en otro celu?" en la bienvenida) y se recupera todo; el teléfono nuevo adopta el código. El código es el
+  secreto (≈ 8·10¹⁷ combinaciones); el servidor solo acepta copias de la app de hasta 600 KB.
 - **Copia de seguridad** (`save/respaldo.ts` + `screens/Guardado.tsx`, botón 💾 del Inicio y Ajustes → Datos): un archivo
   `juegos-argentinos-AAAA-MM-DD.json` con todas las claves `juegos-argentinos:*` (progreso, Ascenso, partidas a medias; no el
   token del online). En el celu se comparte (Drive, WhatsApp…), en la compu se descarga; también "Copiar como texto".
@@ -438,4 +444,5 @@ reglamento rioplatense estándar, dudas en `MEMORY.md`.)*
   Recopa, Copa de la Liga, Libertadores y Sudamericana (52 clubes de afuera), vitrina, bolillero y festejo.
 - [x] **Señas y Generala** — señas clásicas contra la máquina en el truco 2v2/3v3 (los bots las usan en su simulación);
   Generala contra la IA y online (falta sumarla a la Gira y al Ascenso). El Chancho va se hizo y se sacó: al usuario no le gustó.
-- [x] **Guardar progreso** — copia de seguridad en archivo (guardar/cargar), para no perder nada al cambiar de celu.
+- [x] **Guardar progreso** — guardado automático en la nube con código de recuperación (y copia en archivo como alternativa).
+  IA del truco con más lógica (nunca rechaza un retruco con el ancho, lee al que canta) y Ascenso más difícil al avanzar.
