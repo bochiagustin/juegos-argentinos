@@ -9,6 +9,7 @@ import { SpanishCard } from "../cards/SpanishCard.tsx";
 import { useNav } from "../nav.tsx";
 import { useSave } from "../save/SaveContext.tsx";
 import { Fosforos } from "../ui/Modal.tsx";
+import { conviene } from "./Guardado.tsx";
 
 /** Pampa al atardecer dibujada en código, hasta que esté la ilustración de la portada. */
 function PampaFallback() {
@@ -158,6 +159,8 @@ function CardsFallback() {
 export function Inicio() {
   const { push } = useNav();
   const { save } = useSave();
+  // Hay progreso y no se guardó una copia en la última semana: el botón de guardar avisa.
+  const [avisarCopia] = useState(() => conviene(Object.values(save.juegos).reduce((a, j) => a + (j?.jugadas ?? 0), 0)));
 
   const jugar = () => {
     vibrate(15);
@@ -193,7 +196,7 @@ export function Inicio() {
           <button onClick={jugar} className="btn-criollo flex min-h-[4.5rem] items-center justify-center gap-3 rounded-2xl font-criolla text-4xl tracking-wider">
             <span className="relative z-[1]">JUGAR</span>
           </button>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-[1fr_auto_1fr] gap-3">
             <button
               onClick={() => {
                 playSfx("click");
@@ -205,6 +208,17 @@ export function Inicio() {
                 <Cara avatar={save.perfil.avatar} />
               </span>
               <span className="relative z-[1] truncate">{save.perfil.apodo || "Perfil"}</span>
+            </button>
+            <button
+              onClick={() => {
+                playSfx("click");
+                push({ name: "guardado" });
+              }}
+              aria-label={avisarCopia ? "Guardar progreso (hace rato que no guardás una copia)" : "Guardar progreso"}
+              className="cuero cuero-oscuro relative flex min-h-14 items-center justify-center rounded-2xl px-4 text-2xl"
+            >
+              <span className="relative z-[1]">💾</span>
+              {avisarCopia && <span className="absolute -right-1 -top-1 z-[2] grid size-5 place-items-center rounded-full bg-naranja text-xs font-black text-tinta">!</span>}
             </button>
             <button
               onClick={() => {

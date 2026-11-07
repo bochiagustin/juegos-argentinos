@@ -204,7 +204,13 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
   Pantallas en `src/screens/`: Inicio, Juegos, Juego (modos + "Cómo se juega"), Perfil, Ajustes, Mazos.
 - Catálogo de juegos y modos en `src/games.ts` (`modos.ia/carrera/amigos`: "disponible" | "proximamente").
 - Guardado local en `src/save/` (`save.ts`): una clave de localStorage, esquema versionado con `MIGRATIONS`, todo en try/catch,
-  normaliza lo leído. `SaveContext.tsx` lo expone (`useSave`) y aplica tema, sonido y vibración. Tests en `save.test.ts`.
+  normaliza lo leído. `SaveContext.tsx` lo expone (`useSave`) y aplica tema, sonido y vibración (y pide `navigator.storage.persist`
+  para que el navegador no lo borre). Tests en `save.test.ts`.
+- **Copia de seguridad** (`save/respaldo.ts` + `screens/Guardado.tsx`, botón 💾 del Inicio y Ajustes → Datos): un archivo
+  `juegos-argentinos-AAAA-MM-DD.json` con todas las claves `juegos-argentinos:*` (progreso, Ascenso, partidas a medias; no el
+  token del online). En el celu se comparte (Drive, WhatsApp…), en la compu se descarga; también "Copiar como texto".
+  Cargar: archivo o texto pegado, se valida con `migrate`, muestra un resumen, reemplaza y recarga. El 💾 marca "!" si hay
+  partidas y no se guardó copia en 7 días.
 - Tema por tokens CSS en `src/index.css` (`--fondo`, `--superficie`, `--texto`…; `data-theme="claro"`), expuestos a Tailwind con
   `@theme inline` (`bg-fondo`, `text-texto-suave`, …). Paleta criolla fija: tierra, paño, celeste, naranja, tinta.
 - Fuentes empaquetadas (sin CDN): Rye (títulos, `font-criolla`), Fraunces (índices de cartas), Nunito (UI).
@@ -426,3 +432,4 @@ reglamento rioplatense estándar, dudas en `MEMORY.md`.)*
   Recopa, Copa de la Liga, Libertadores y Sudamericana (52 clubes de afuera), vitrina, bolillero y festejo.
 - [x] **Señas y Generala** — señas clásicas contra la máquina en el truco 2v2/3v3 (los bots las usan en su simulación);
   Generala contra la IA y online (falta sumarla a la Gira y al Ascenso). El Chancho va se hizo y se sacó: al usuario no le gustó.
+- [x] **Guardar progreso** — copia de seguridad en archivo (guardar/cargar), para no perder nada al cambiar de celu.

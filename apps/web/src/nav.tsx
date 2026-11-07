@@ -8,6 +8,7 @@ export type Route =
   | { name: "juego"; id: GameId }
   | { name: "perfil"; bienvenida?: boolean }
   | { name: "ajustes" }
+  | { name: "guardado" }
   | { name: "mazos" }
   | { name: "truco-setup" }
   | { name: "truco-mesa" }

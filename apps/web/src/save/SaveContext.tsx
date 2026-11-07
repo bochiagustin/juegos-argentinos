@@ -21,6 +21,11 @@ function applyTheme(tema: Save["ajustes"]["tema"]) {
 export function SaveProvider({ children }: { children: ReactNode }) {
   const [save, setSave] = useState<Save>(() => loadSave());
 
+  // Pedirle al navegador que no borre lo guardado cuando le falta lugar (el progreso vive en este dispositivo).
+  useEffect(() => {
+    void navigator.storage?.persist?.().catch(() => {});
+  }, []);
+
   useEffect(() => {
     writeSave(save);
     setSfxEnabled(save.ajustes.sonido);

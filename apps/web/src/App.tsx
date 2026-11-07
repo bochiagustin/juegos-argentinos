@@ -18,6 +18,7 @@ import { TuttiSetup } from "./tutti/TuttiSetup.tsx";
 import { NavProvider, useNav, type Route } from "./nav.tsx";
 import { SaveProvider, useSave } from "./save/SaveContext.tsx";
 import { Ajustes } from "./screens/Ajustes.tsx";
+import { Guardado } from "./screens/Guardado.tsx";
 import { Inicio } from "./screens/Inicio.tsx";
 import { Juego } from "./screens/Juego.tsx";
 import { Juegos } from "./screens/Juegos.tsx";
@@ -42,6 +43,8 @@ function CurrentScreen({ route }: { route: Route }) {
       return <Perfil bienvenida={route.bienvenida ?? false} />;
     case "ajustes":
       return <Ajustes />;
+    case "guardado":
+      return <Guardado />;
     case "mazos":
       return <Mazos />;
     case "truco-setup":

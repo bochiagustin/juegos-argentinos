@@ -136,6 +136,7 @@ export function Ajustes() {
       </Section>
 
       <Section title="Datos">
+        <BigButton onClick={() => push({ name: "guardado" })}>💾 Guardar o cargar una copia</BigButton>
         {confirmando ? (
           <div className="cuero cuero-rojo rounded-2xl p-4"><div className="relative z-[1]">
             <p className="mb-3 font-bold">¿Seguro? Se borran tu perfil y tus ajustes de este dispositivo.</p>
