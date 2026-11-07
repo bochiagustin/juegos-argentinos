@@ -126,7 +126,11 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
   Truco: los errores de nivel bajo son solo de carta tirada (nunca un canto o una respuesta al azar). Para contestar un truco
   siempre simula (40+ repartos) y quiere si conviene en puntos (`pr > 1/(2L)` + margen; retruco ≈ 30%), mirando si no querer
   o perder le da la partida al rival. `manoAsegurada`: con la mano ganada pase lo que pase (cartas que nadie mata + bazas
-  ganadas) siempre quiere o sube. Tests en `truco/bot.test.ts`.
+  ganadas) siempre quiere o sube. `cartaInvicta` + sin bazas perdidas (ej. el ancho de espada): nunca "no quiero". Al
+  contestar lee al que cantó (`winProbability(…, canto)`: los repartos en que no tiene un 2 o mejor se vuelven a mezclar 3 de
+  cada 4 veces) y el margen es chico (truco +0,10, retruco/vale 4 +0,05). Miente más si el rival mostró cartas flojas.
+  Ojo: más simulaciones NO lo hacen más fuerte (la simulación es sesgada; 8 + 10·nivel es lo mejor medido). Tests en
+  `truco/bot.test.ts` (incluye cientos de manos con el ancho contra un retruco).
 - Carrera: skill fijo por rival, sube por región y por lugar en el ranking inicial. **Rasgos** (`core/rasgos.ts`, 0–10, 5 = normal)
   que solo tienen los rivales de la gira (`useBotMatch`/`useTrucoMatch` los pasan al asiento 1): truco → mentiroso = más
   bluff, pescador = `pesca` (se calla con 30+ de tanto o la mano casi ganada para que el otro cante, y después sube),
@@ -173,7 +177,9 @@ docs/             arte.md (checklist de ilustraciones), deploy.md (cómo publica
   sirven para los dos modos). Web: `src/ascenso/` (`Ascenso.tsx`: próximo partido, tabla con zonas, Copa, Reducido,
   historial, y antes de arrancar `ElegirClub`; `Escudo.tsx`: `arte/escudos/<id>.webp` o uno dibujado, `MiClub` = contexto con el club elegido), `partidas/lanzar.ts` (arma la partida 1v1 de la
   carrera, lo usa también la Gira). Fin de partido del Ascenso: "Volver al torneo" (sin revancha). Escudos:
-  `tools/bajar-escudos.py` (los baja de FootyLogos), `docs/escudos.md`. 6 logros (ascenso, a Primera, campeón, Copa
+  `tools/bajar-escudos.py` (los baja de FootyLogos), `docs/escudos.md`. **Dificultad que sube**: `exigencia(p)` suma al nivel de
+  todos los rivales (B y Nacional +1, Primera +2, y +1/+2 desde la 4ª/7ª temporada); cada club tiene rasgos fijos
+  (`rasgosClub`, del id; los grandes más agresivos) que `rasgosRival` le pasa al bot, y la agenda muestra "Cómo juega". 6 logros (ascenso, a Primera, campeón, Copa
   Argentina, Sudamericana, Libertadores). Web de las copas: `ascenso/Copas.tsx` (`CopasPanel` con grupos y cruces,
   `Vitrina` con `Trofeo` dibujado, `Bolillero` del sorteo, `Festejo` de campeón con papelitos y sonido `festejo`).
   Logos de torneos (`ascenso/LogoTorneo.tsx`, sobre una chapa clara): las 4 ligas, Libertadores y Sudamericana bajados de

@@ -241,6 +241,18 @@ export const EXTERIOR: Club[] = [...exterior(LIBERTADORES, "libertadores"), ...e
 
 const TODOS = new Map([...CLUBES, ...EXTERIOR].map((c) => [c.id, c]));
 
+/**
+ * La personalidad de un club en la mesa (mentiroso, pescador, agresivo, de 0 a 10): fija para cada club, sale de su id.
+ * Los grandes son un poco más agresivos.
+ */
+export function rasgosClub(id: string): { mentiroso: number; pescador: number; agresivo: number } {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619) >>> 0;
+  const d = (k: number) => ((h >>> (k * 5)) % 8) + 1;
+  const nivel = club(id)?.nivel ?? 5;
+  return { mentiroso: d(0), pescador: d(1), agresivo: Math.min(10, d(2) + (nivel >= 9 ? 2 : 0)) };
+}
+
 export function club(id: string): Club | undefined {
   return TODOS.get(id);
 }

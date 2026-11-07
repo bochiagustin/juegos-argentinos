@@ -343,8 +343,8 @@ export function proximoPartido(p: AscensoProgress): Partido | null {
     etapa,
     titulo,
     final,
-    // Las finales y la Libertadores, un nivel más; los clásicos, otro más.
-    nivel: Math.min(10, nivelClub(rival) + (final || copa === "libertadores" ? 1 : 0) + (clasico(p.miClub, rival) ? 1 : 0)),
+    // Las finales y la Libertadores, un nivel más; los clásicos, otro más; y cuanto más arriba y más temporadas, más exigente.
+    nivel: Math.min(10, nivelClub(rival) + (final || copa === "libertadores" ? 1 : 0) + (clasico(p.miClub, rival) ? 1 : 0) + exigencia(p)),
     clasico: clasico(p.miClub, rival),
     ...(copa ? { copa } : {}),
   });
@@ -363,6 +363,15 @@ export function proximoPartido(p: AscensoProgress): Partido | null {
   const rival = rivalEnCopa(c);
   if (!rival) return null;
   return partido(rival, "copa", `${copaInfo(s.id).nombre} · ${nombrePaso(pasoActual(c)!)}`, esFinal(c), s.id);
+}
+
+/**
+ * Lo que se suma al nivel de todos los rivales a medida que avanzás: según la categoría (la B +1, la Nacional +1,
+ * Primera +2) y la experiencia (+1 desde la cuarta temporada, +2 desde la séptima).
+ */
+export function exigencia(p: AscensoProgress): number {
+  const cat = { c: 0, b: 1, nacional: 1, primera: 2 }[miCategoria(p)];
+  return cat + Math.min(2, Math.floor((p.temporada - 1) / 3));
 }
 
 /** Un sorteo que todavía no se mostró: el grupo o el cruce del partido que viene. */

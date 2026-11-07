@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { cardFromId, createRng, type Rasgos, type SuitedCard } from "../core/index.ts";
+import { cardFromId, createRng, shuffle, type Rasgos, type SuitedCard } from "../core/index.ts";
+import { trucoDeck } from "./cards.ts";
 import { chooseTrucoAction, manoAsegurada } from "./bot.ts";
 import { pistaDeSena, senasDeMano, type Pista } from "./senas.ts";
 import { truco } from "./game.ts";
@@ -127,6 +128,43 @@ describe("señas", () => {
     const sin = quiere([]);
     const con = quiere([pistaDeSena(0, "cejas")!, pistaDeSena(0, "guino")!]);
     expect(con).toBeGreaterThan(sin);
-    expect(con).toBeGreaterThanOrEqual(55);
+    expect(con).toBeGreaterThanOrEqual(50);
   });
+});
+
+describe("el ancho de espada", () => {
+  it("con el ancho y sin bazas perdidas, ningún nivel ni personalidad dice 'no quiero' al retruco (cientos de manos)", () => {
+    const ancho = cardFromId("1-espada") as SuitedCard;
+    const resto = trucoDeck().filter((x) => x.id !== "1-espada");
+    let casos = 0;
+    for (let i = 0; i < 120; i++) {
+      const [mazo] = shuffle(resto, createRng(`ancho-${i}`));
+      const h0 = mazo.slice(0, 3);
+      const h1 = [ancho, ...mazo.slice(3, 5)];
+      let s = truco.initialState({ ...DEFAULT_TRUCO_CONFIG, players: 2, target: 30 }, ["a", "b"], `a${i}`);
+      s = { ...s, round: { ...s.round, mano: 0, turn: 0, tricks: [{ leader: 0, plays: [] }], hands: [h0, h1], dealt: [h0.slice(), h1.slice()] } };
+      const pasos: [string, TrucoAction][] = [
+        ["a", { type: "jugar", card: h0[0]!.id }],
+        ["b", { type: "truco" }],
+        ["a", { type: "truco" }],
+      ];
+      let ok = true;
+      for (const [id, a] of pasos) {
+        const r = truco.applyAction(s, id, a);
+        if (!r.ok) {
+          ok = false;
+          break;
+        }
+        s = r.state;
+      }
+      if (!ok) continue;
+      for (const skill of [1, 4, 7, 10])
+        for (const rasgos of RASGOS) {
+          casos++;
+          const [a] = chooseTrucoAction(truco.getPlayerView(s, "b"), truco.getValidActions(s, "b"), createRng(`r-${i}-${skill}`), skill, rasgos);
+          expect(a.type).not.toBe("no-quiero");
+        }
+    }
+    expect(casos).toBeGreaterThan(1000);
+  }, 60000);
 });

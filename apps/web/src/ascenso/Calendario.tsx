@@ -1,5 +1,6 @@
 import {
   agenda,
+  rasgosClub,
   anioTemporada,
   club,
   CATEGORIAS,
@@ -410,6 +411,7 @@ function FichaRival({ p, d }: { p: AscensoProgress; d: DiaDePartido }) {
               />
             </>
           )}
+          {c && !c.pais && <Dato t="Cómo juega" v={estilo(rasgosClub(rival))} ancho />}
           {d.clasico && <Dato t="Clásico" v={`🔥 ${d.clasico}`} ancho />}
           <Dato
             t="Nivel"
@@ -427,6 +429,14 @@ function FichaRival({ p, d }: { p: AscensoProgress; d: DiaDePartido }) {
       )}
     </aside>
   );
+}
+
+/** El estilo de un club en la mesa, en palabras (sale de sus rasgos). */
+function estilo(r: { mentiroso: number; pescador: number; agresivo: number }): string {
+  const partes = [r.mentiroso >= 6 && "mentiroso", r.pescador >= 6 && "pescador", r.agresivo >= 6 && "agresivo"].filter(Boolean) as string[];
+  if (!partes.length) return "Prolijo, juega sus cartas";
+  const t = partes.join(", ").replace(/, ([^,]*)$/, " y $1");
+  return t[0]!.toUpperCase() + t.slice(1);
 }
 
 function Dato({

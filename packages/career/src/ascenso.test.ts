@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { miCategoria, agenda, anioTemporada, armarCalendario, hoy, fixture, idReal, sorteoPendiente, marcarSorteoVisto, iniciarAscenso, normalizarAscenso, nuevaTemporada, proximoPartido, registrarAscenso, tablaOrdenada, YO_CLUB, type AscensoProgress } from "./ascenso.ts";
+import { exigencia, miCategoria, agenda, anioTemporada, armarCalendario, hoy, fixture, idReal, sorteoPendiente, marcarSorteoVisto, iniciarAscenso, normalizarAscenso, nuevaTemporada, proximoPartido, registrarAscenso, tablaOrdenada, YO_CLUB, type AscensoProgress } from "./ascenso.ts";
 import { clasico } from "./clasicos.ts";
 import { defaultCareer, normalizeCareer, registrarPartida } from "./career.ts";
-import { CATEGORIAS, CLUBES, club, EXTERIOR, TAMANO } from "./clubes.ts";
+import { CATEGORIAS, CLUBES, club, EXTERIOR, rasgosClub, TAMANO } from "./clubes.ts";
 import { pasosCopa } from "./copas.ts";
 
 /** Juega toda una temporada mía con `gano(partido)` y devuelve el progreso en la fase "fin". */
@@ -252,7 +252,7 @@ describe("Ascenso", () => {
       const prox = proximoPartido(p)!;
       if (prox.clasico) {
         vistos++;
-        expect(prox.nivel).toBe(Math.min(10, (club(prox.rival)?.nivel ?? 5) + 1 + (prox.final || prox.copa === "libertadores" ? 1 : 0)));
+        expect(prox.nivel).toBe(Math.min(10, (club(prox.rival)?.nivel ?? 5) + 1 + (prox.final || prox.copa === "libertadores" ? 1 : 0) + exigencia(p)));
         const r = registrarAscenso(p, prox.rival, true)!;
         expect(r.clasico).toEqual({ nombre: prox.clasico, gane: true });
         expect(r.lineas[0]).toContain(prox.clasico);
@@ -260,5 +260,19 @@ describe("Ascenso", () => {
       } else p = registrarAscenso(p, prox.rival, true)!.progreso;
     }
     expect(vistos).toBeGreaterThanOrEqual(2);
+  });
+
+  it("cuanto más avanzás, más exigentes: la categoría y las temporadas suben el nivel de todos", () => {
+    let p = iniciarAscenso("exigencia", "lugano");
+    expect(exigencia(p)).toBe(0);
+    p = nuevaTemporada(temporada(p, () => true));
+    expect(miCategoria(p)).toBe("b");
+    expect(exigencia(p)).toBe(1);
+    p = nuevaTemporada(temporada(nuevaTemporada(temporada(p, () => true)), () => true));
+    expect(miCategoria(p)).toBe("primera");
+    expect(exigencia(p)).toBe(3);
+    // Los clubes tienen personalidad fija (mentiroso, pescador, agresivo).
+    expect(rasgosClub("boca-juniors")).toEqual(rasgosClub("boca-juniors"));
+    expect(rasgosClub("boca-juniors").agresivo).toBeGreaterThanOrEqual(3);
   });
 });

@@ -1,5 +1,5 @@
 import { nombreTitulo, normalizarAscenso, registrarAscenso } from "./ascenso.ts";
-import { club } from "./clubes.ts";
+import { club, rasgosClub } from "./clubes.ts";
 import type { Rasgos } from "@juegos-argentinos/engine";
 import { GIRAS, LOGROS, PERSONAJES, personaje, puntosPorVictoria, REGALO_BUENOS_AIRES, TIENDA } from "./data.ts";
 import { CAREER_GAMES, REGION_IDS, SLOTS, YO, type CareerGame, type CareerState, type GiraDef, type GiraProgress, type Hecho, type Personaje, type Premio, type RegionId, type Reporte } from "./types.ts";
@@ -57,6 +57,7 @@ export const PREFIJO_ASCENSO = "ascenso:";
 
 /** Rasgos del rival de la carrera (los clubes del Ascenso no tienen: juegan "normal"). */
 export function rasgosRival(rivalId: string): Rasgos | undefined {
+  if (rivalId.startsWith(PREFIJO_ASCENSO)) return club(rivalId.slice(PREFIJO_ASCENSO.length)) ? rasgosClub(rivalId.slice(PREFIJO_ASCENSO.length)) : undefined;
   return PERSONAJES.find((x) => x.id === rivalId)?.rasgos;
 }
 

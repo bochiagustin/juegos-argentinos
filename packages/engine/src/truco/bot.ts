@@ -33,11 +33,12 @@ export function botProfile(skill: number, rasgos?: Rasgos): BotProfile {
   const p: BotProfile = {
     skill: k,
     errorRate: 0.32 * (1 - t) + 0.02,
-    bluff: 0.03 + 0.12 * t,
+    // Los buenos mienten más (y mejor elegido el momento) y pescan más.
+    bluff: 0.04 + 0.14 * t,
     aggression: 0.25 + 0.45 * t,
     envidoMin: 28 - Math.round(2 * t),
     samples: k <= 2 ? 0 : 8 + k * 10,
-    pesca: 0.05 + 0.1 * t,
+    pesca: 0.06 + 0.14 * t,
   };
   if (rasgos) {
     const m = desvio(rasgos.mentiroso);
@@ -116,14 +117,27 @@ function unseenCards(view: TrucoView): SuitedCard[] {
  * Probabilidad de que mi equipo gane la mano (por bazas), estimada simulando repartos posibles
  * de las cartas que no veo. Con `first` fija mi próxima carta.
  */
-function winProbability(view: TrucoView, rng: RngState, samples: number, first?: SuitedCard, pistas: readonly Pista[] = []): [number, RngState] {
+function winProbability(view: TrucoView, rng: RngState, samples: number, first?: SuitedCard, pistas: readonly Pista[] = [], canto?: Seat): [number, RngState] {
   const n = view.config.players;
   const unseen = unseenCards(view);
   let wins = 0;
   let s = rng;
   for (let i = 0; i < samples; i++) {
-    const [deck, next] = shuffle(unseen, s);
+    let [deck, next] = shuffle(unseen, s);
     s = next;
+    // Leer al que cantó: casi siempre tiene algo (un 2 o mejor); los repartos en que no tiene nada pesan menos
+    // (se vuelven a mezclar, salvo una de cada cuatro veces: también se miente).
+    if (canto !== undefined && canto !== view.seat) {
+      for (let intento = 0; intento < 4; intento++) {
+        const k = view.players.slice(0, view.players.findIndex((p) => p.seat === canto)).filter((p) => p.seat !== view.seat).reduce((a, p) => a + p.cardsLeft, 0);
+        const suyas = deck.slice(k, k + (view.players.find((p) => p.seat === canto)?.cardsLeft ?? 0));
+        if (suyas.length === 0 || suyas.some((c) => rankOf(c) >= 9)) break;
+        const [r, n2] = nextFloat(s);
+        s = n2;
+        if (r < 0.25) break;
+        [deck, s] = shuffle(unseen, s);
+      }
+    }
     // Las señas que vi: esas cartas van a la mano de quien las marcó (si todavía puede tenerlas).
     const usadas = new Set<string>();
     const forzadas = new Map<Seat, SuitedCard[]>();
@@ -181,6 +195,17 @@ export function manoAsegurada(view: TrucoView): boolean {
     if (w !== null) return w === view.team;
   }
   return false;
+}
+
+/** Tengo una carta que ninguna de las que no vi le gana (el ancho de espada, o el de basto si el otro ya salió…). */
+function cartaInvicta(view: TrucoView): boolean {
+  const top = unseenCards(view).reduce((m, c) => Math.max(m, rankOf(c)), 0);
+  return view.hand.some((c) => rankOf(c) > top);
+}
+
+/** Mi equipo ya perdió alguna baza en esta mano. */
+function bazaPerdida(view: TrucoView): boolean {
+  return view.tricks.some((t) => t.result !== undefined && t.result !== "parda" && t.result !== view.team);
 }
 
 const has = (valid: readonly TrucoAction[], type: TrucoAction["type"]) => valid.find((a) => a.type === type);
@@ -274,15 +299,21 @@ export function chooseTrucoAction(view: TrucoView, valid: readonly TrucoAction[]
     const quiero = has(valid, "quiero")!;
     // Con la mano ganada pase lo que pase: subir (o querer callado, para subir después).
     if (segura) return [subir && roll() >= prof.pesca * 0.5 ? subir : quiero, rng];
-    // Para contestar siempre piensa (aunque sea poco), con un error de cálculo según el nivel.
-    const pr = Math.min(1, Math.max(0, prob(Math.max(40, prof.samples)) + (roll() - 0.5) * prof.errorRate));
+    // Con una carta que no mata nadie (el ancho) y sin haber perdido ninguna baza, nunca se dice que no.
+    if (cartaInvicta(view) && !bazaPerdida(view)) return [subir && roll() < prof.aggression * 0.4 ? subir : quiero, rng];
+    // Para contestar siempre piensa (aunque sea poco), leyendo que el que cantó suele tener cartas, con un error de
+    // cálculo según el nivel.
+    const [prCanto, rngCanto] = winProbability(view, rng, Math.max(60, prof.samples), undefined, pistas, p.caller);
+    rng = rngCanto;
+    const pr = Math.min(1, Math.max(0, prCanto + (roll() - 0.5) * prof.errorRate));
     if (pr >= 0.8 && subir && roll() < Math.min(0.97, 0.5 + prof.aggression / 2 + prof.pesca / 2)) return [subir, rng];
     const target = view.config.target;
     // No querer le da al rival lo que valía antes: si con eso gana la partida, no hay nada que perder.
     if (view.score[rival] + p.level - 1 >= target) return [quiero, rng];
     // Querer conviene si pr·L − (1−pr)·L > −(L−1), o sea pr > 1/(2L) (truco 25%, retruco 17%, vale cuatro 12,5%).
     // El margen es porque el que canta suele tener cartas (la simulación reparte al azar).
-    let need = 1 / (2 * p.level) + 0.17 - prof.aggression * 0.1;
+    // Ya leyó al que cantó: el margen es chico (más chico cuanto más vale lo que se pierde por no querer).
+    let need = 1 / (2 * p.level) + (p.level === 2 ? 0.1 : 0.05) - prof.aggression * 0.08;
     if (view.score[rival] + p.level >= target) need += 0.15; // si lo pierdo, pierdo la partida
     if (view.score[view.team] + p.level >= target) need -= 0.05; // si lo gano, gano la partida
     if (pr >= need) return [quiero, rng];
@@ -296,7 +327,9 @@ export function chooseTrucoAction(view: TrucoView, valid: readonly TrucoAction[]
   if (trucoCall) {
     const pr = prob();
     const threshold = 0.72 - prof.aggression * 0.12 + (view.trucoLevel - 1) * 0.06;
-    const lateBluff = view.tricks.length >= 2 && roll() < prof.bluff;
+    // Mentir: en la segunda o tercera (cuando el rival ya mostró cartas flojas, más), o de entrada siendo mano.
+    const rivalFlojo = view.tricks.some((t) => t.plays.some((pl) => teamOf(pl.seat) !== view.team && rankOf(pl.card) <= 4));
+    const lateBluff = (view.tricks.length >= 2 && roll() < prof.bluff * (rivalFlojo ? 1.4 : 0.8)) || (view.tricks.length === 1 && manoTeam && roll() < prof.bluff * 0.25);
     // Pescar: con la mano casi ganada y sin truco cantado, tirar callado para que el otro cante y retrucarle.
     const pesca = (segura || pr >= 0.85) && view.trucoLevel === 1 && view.tricks.length < 3 && roll() < prof.pesca;
     if (((segura || pr >= threshold) && !pesca) || lateBluff) return [trucoCall, rng];
